@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>投标台账详情 - 投标助手</title>
+  <link rel="stylesheet" href="../assets/css/theme.css" />
+  <link rel="stylesheet" href="../assets/css/layout.css" />
+  <link rel="stylesheet" href="../assets/css/projects.css" />
+  <link rel="stylesheet" href="../assets/css/ledger-detail.css" />
+</head>
+<body class="app-page project-module-page ledger-detail-page" data-page="ledger">
+  <div id="appHeader"></div>
+  <main class="app-main">
+    <div class="page-breadcrumb"><a href="dashboard.html">投标助手</a><span>/</span><a href="ledger.html">投标台账</a><span>/</span><strong id="ledgerDetailBreadcrumbTitle">项目详情</strong></div>
+
+    <header class="ledger-detail-heading">
+      <div class="ledger-detail-heading-main">
+        <a class="project-back" href="ledger.html"><svg viewBox="0 0 24 24"><path d="M19 12H5M10 17l-5-5 5-5"/></svg><span>返回台账列表</span></a>
+        <div class="project-title-line"><h1 id="ledgerDetailPageTitle">投标台账详情</h1></div>
+        <div class="project-meta"><span id="ledgerDetailPageMeta">项目编号 · 采购人</span></div>
+      </div>
+    </header>
+
+    <div class="ledger-detail-not-found card hidden" id="ledgerDetailNotFound">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 17h.01"/></svg>
+      <strong>未找到对应的投标台账记录</strong>
+      <span>请返回投标台账列表后重新进入项目详情。</span>
+      <a class="primary-btn" href="ledger.html"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></span><span>返回投标台账</span></a>
+    </div>
+
+    <div id="ledgerDetailContent">
+      <section class="ledger-project-overview card">
+        <div class="ledger-project-overview-main">
+          <span class="ledger-project-symbol"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="15" rx="2"/><path d="M8 5V3h8v2M3 10h18"/></svg></span>
+          <div><span>已归档投标项目</span><strong id="ledgerOverviewProjectName">项目名称</strong><p id="ledgerOverviewDescription">查看报告归档和投标结果。</p></div>
+        </div>
+        <div class="ledger-overview-statuses ledger-overview-statuses-two" aria-label="项目结果状态">
+          <div><span>报告归档</span><strong class="status-tag green">已归档</strong></div>
+          <div><span>投标结果</span><strong class="status-tag orange" id="ledgerOverviewResult">结果待公布</strong></div>
+          <div class="hidden" aria-hidden="true"><span>复盘结果</span><strong class="status-tag gray" id="ledgerOverviewReview">待结果</strong></div>
+        </div>
+      </section>
+
+      <section class="ledger-summary-grid" aria-label="投标台账摘要">
+        <article class="card ledger-summary-card"><span>投标时间</span><strong id="ledgerSummaryBidDate">—</strong><small>以正式投标截止时间记录</small></article>
+        <article class="card ledger-summary-card is-highlight is-amount"><span>投标报价</span><strong id="ledgerSummaryBidAmount">—</strong><small>本公司最终投标报价</small></article>
+        <article class="card ledger-summary-card is-highlight"><span>得分与排名</span><strong id="ledgerSummaryScore">—</strong><small>以正式评审反馈为准</small></article>
+        <article class="card ledger-summary-card"><span>项目负责人</span><strong id="ledgerSummaryOwner">—</strong><small>本次投标项目负责人</small></article>
+      </section>
+
+      <section class="ledger-result-section card" id="archiveResult">
+        <header class="ledger-section-head">
+          <div class="ledger-section-title"><span class="ledger-section-symbol"><svg viewBox="0 0 24 24"><path d="M4 5h16v14H4zM8 9h8M8 13h5"/></svg></span><div><h2>报告归档结果</h2><p>查看本项目正式交付版本、归档信息和全部报告文件。</p></div></div>
+          <span class="status-tag green" id="archiveResultStatus">已完成归档</span>
+        </header>
+        <div class="ledger-result-facts">
+          <div><span>正式交付版本</span><strong id="archiveVersion">—</strong></div>
+          <div><span>归档时间</span><strong id="archiveTime">—</strong></div>
+          <div><span>归档操作人</span><strong id="archiveOperator">—</strong></div>
+          <div><span>归档文件</span><strong id="archiveFileTotal">0 份</strong></div>
+        </div>
+        <div class="ledger-file-panel">
+          <div class="ledger-subsection-head"><div><h3>归档文件</h3><p>文件保留正式交付格式，下载后在本地查看。</p></div><span id="archiveFileCount">共 0 份</span></div>
+          <div class="ledger-download-list" id="archiveResultFileList"></div>
+        </div>
+      </section>
+
+      <section class="ledger-result-section card" id="bidResult">
+        <header class="ledger-section-head">
+          <div class="ledger-section-title"><span class="ledger-section-symbol green"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/><circle cx="12" cy="12" r="9"/></svg></span><div><h2>投标结果</h2><p>整合正式投标结果、得分排名、中标信息和结果佐证材料。</p></div></div>
+          <span class="status-tag orange" id="bidResultStatus">结果待公布</span>
+        </header>
+        <div class="ledger-result-facts ledger-bid-result-facts">
+          <div><span>结果公布日期</span><strong id="bidResultDate">—</strong></div>
+          <div><span>本公司总得分</span><strong id="bidResultScore">—</strong></div>
+          <div><span>本公司排名</span><strong id="bidResultRank">—</strong></div>
+          <div><span>结果来源</span><strong id="bidResultSource">—</strong></div>
+          <div><span>中标单位</span><strong id="bidResultWinner">—</strong></div>
+          <div><span>中标金额</span><strong id="bidResultWinningAmount">—</strong></div>
+        </div>
+        <div class="ledger-result-note-block"><span>结果说明</span><p id="bidResultRemark">暂无结果说明。</p></div>
+        <div class="ledger-file-panel">
+          <div class="ledger-subsection-head"><div><h3>结果佐证材料</h3><p>包括结果公告、得分表、中标通知书或采购人书面反馈。</p></div><span id="resultFileCount">共 0 份</span></div>
+          <div class="ledger-download-list" id="bidResultFileList"></div>
+        </div>
+      </section>
+
+      <section class="ledger-result-section card hidden" id="reviewResult" aria-hidden="true">
+        <header class="ledger-section-head">
+          <div class="ledger-section-title"><span class="ledger-section-symbol orange"><svg viewBox="0 0 24 24"><path d="M5 4h14v16H5zM8 8h8M8 12h8M8 16h5"/></svg></span><div><h2>复盘结果</h2><p>整合评审结论、主要得失、可复用经验和改进事项。</p></div></div>
+          <span class="status-tag gray" id="reviewResultStatus">待结果</span>
+        </header>
+        <div class="ledger-review-meta">
+          <div><span>复盘负责人</span><strong id="reviewOwner">—</strong></div>
+          <div><span>计划完成日期</span><strong id="reviewDueDate">—</strong></div>
+          <div><span>完成日期</span><strong id="reviewCompletedAt">—</strong></div>
+        </div>
+        <div class="ledger-review-content" id="reviewResultContent">
+          <article class="full"><span>评审反馈与结论摘要</span><p id="reviewSummary">尚未填写复盘结论。</p></article>
+          <article><span>主要优势</span><p id="reviewStrengths">尚未填写。</p></article>
+          <article><span>失分原因与不足</span><p id="reviewWeaknesses">尚未填写。</p></article>
+          <article class="full"><span>可复用经验</span><p id="reviewExperience">尚未填写。</p></article>
+        </div>
+        <div class="ledger-review-actions-panel">
+          <div class="ledger-subsection-head"><div><h3>改进事项</h3><p>复盘形成的材料补强、流程优化和后续跟进行动。</p></div><span id="reviewActionCount">共 0 项</span></div>
+          <div class="ledger-review-action-list" id="reviewResultActionList"></div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div class="ledger-download-notice hidden" id="ledgerDownloadNotice" role="status"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/><circle cx="12" cy="12" r="9"/></svg><span></span></div>
+
+  <script src="../assets/js/common.js"></script>
+  <script src="../assets/js/ledger-detail.js"></script>
+</body>
+</html>

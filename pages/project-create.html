@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>新建投标项目 - 投标助手</title>
+  <link rel="stylesheet" href="../assets/css/theme.css" />
+  <link rel="stylesheet" href="../assets/css/layout.css" />
+  <link rel="stylesheet" href="../assets/css/projects.css" />
+</head>
+<body class="app-page project-module-page" data-page="projects">
+  <div id="appHeader"></div>
+  <main class="app-main">
+    <div class="create-shell">
+      <div class="page-breadcrumb"><a href="dashboard.html">投标助手</a><span>/</span><a href="projects.html">投标项目</a><span>/</span><strong>新建投标项目</strong></div>
+      <header class="module-heading">
+        <div><h1>新建投标项目</h1><p>上传招标文件即可创建项目，项目信息和招标要求将在后台异步解析。</p></div>
+        <div class="heading-actions"><a class="ghost-btn" href="projects.html"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M19 12H5M10 17l-5-5 5-5"/></svg></span><span>返回项目列表</span></a></div>
+      </header>
+
+      <form class="content-card card" id="createProjectForm">
+        <header class="panel-heading">
+          <div><h3>上传招标文件</h3><p>请上传主招标文件，可同时添加技术需求、评分办法、格式模板和其他附件。</p></div>
+          <span class="status-tag blue">上传即建项</span>
+        </header>
+        <div class="panel-body" style="padding:24px 28px">
+          <input class="visually-hidden" id="tenderFileInput" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.zip,.rar" multiple />
+          <div class="upload-zone" id="tenderUploadZone" role="button" tabindex="0" aria-label="选择招标文件">
+            <div><svg viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 15v5h16v-5"/></svg><strong>拖拽文件到此处，或点击选择文件</strong><span>支持 PDF、Word、Excel、ZIP、RAR；请将主招标文件放在首位</span></div>
+          </div>
+          <div class="upload-list" id="tenderUploadList" aria-live="polite"></div>
+          <div class="info-alert" style="margin-top:14px;margin-bottom:0">
+            <svg viewBox="0 0 24 24"><path d="M12 3 9.8 8.8 4 11l5.8 2.2L12 19l2.2-5.8L20 11l-5.8-2.2L12 3z"/></svg>
+            <div><strong>创建后自动返回项目列表</strong><span>后台将异步识别项目名称、编号、采购人、预算、截止时间及全部招标要求。解析期间项目状态显示为“智能解析中”，不影响继续使用其他功能。</span></div>
+          </div>
+        </div>
+        <footer class="wizard-footer">
+          <span>项目负责人默认设为当前登录用户：李明远</span>
+          <div class="inline-actions">
+            <a class="ghost-btn" href="projects.html"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></span><span>取消</span></a>
+            <button class="primary-btn" id="createProjectBtn" type="submit"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 15v5h16v-5"/></svg></span><span>上传并创建项目</span></button>
+          </div>
+        </footer>
+      </form>
+    </div>
+  </main>
+  <script src="../assets/js/common.js"></script>
+  <script src="../assets/js/project-data.js"></script>
+  <script src="../assets/js/project-common.js"></script>
+  <script src="../assets/js/project-create.js"></script>
+</body>
+</html>

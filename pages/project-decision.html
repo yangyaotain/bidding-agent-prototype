@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>投标决策 - 投标助手</title>
+  <link rel="stylesheet" href="../assets/css/theme.css" /><link rel="stylesheet" href="../assets/css/layout.css" /><link rel="stylesheet" href="../assets/css/projects.css" />
+</head>
+<body class="app-page project-module-page" data-page="projects" data-project-section="decision">
+  <div id="appHeader"></div>
+  <main class="app-main project-workspace-main">
+    <div id="projectWorkspaceHeader"></div>
+    <section class="workspace-content">
+      <header class="content-heading">
+        <div><h2>投标决策</h2><p>分别研判资格硬门槛、不得存在情形、企业能力和材料缺口，由负责人作出人工投标决策。</p></div>
+        <div class="heading-actions"><button class="secondary-btn" type="button" data-toast="资格研判报告已生成演示版本"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6zM14 3v5h5M9 13h6M9 17h4"/></svg></span><span>生成研判报告</span></button><button class="primary-btn" type="button" data-open-layer="bidDecisionModal"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg></span><span>确认投标决策</span></button></div>
+      </header>
+
+      <div class="decision-banner warning">
+        <svg viewBox="0 0 24 24"><path d="M12 3 4 7v5c0 5 3.4 8.3 8 9 4.6-.7 8-4 8-9V7l-8-4z"/><path d="M12 8v5M12 16h.01"/></svg>
+        <div><strong>当前建议：继续投标并完成合规整改</strong><span>营业执照已满足唯一资格条件；人员证明、企业认证和技术承诺作为评分缺口或待确认事项单独处理。</span></div>
+        <span class="status-tag orange">待人工确认</span>
+      </div>
+
+      <section class="summary-cards">
+        <article class="summary-card card"><span class="summary-icon green"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/><circle cx="12" cy="12" r="9"/></svg></span><div class="summary-copy"><span>资格条件</span><strong>1 / 1</strong><small>有效营业执照已提供</small></div></article>
+        <article class="summary-card card"><span class="summary-icon orange"><svg viewBox="0 0 24 24"><path d="M12 3 4 7v5c0 5 3.4 8.3 8 9 4.6-.7 8-4 8-9V7l-8-4z"/></svg></span><div class="summary-copy"><span>合规声明</span><strong>3</strong><small>均需交付前人工确认</small></div></article>
+        <article class="summary-card card"><span class="summary-icon cyan"><svg viewBox="0 0 24 24"><path d="M4 19V9M10 19V5M16 19v-7M22 19V3"/></svg></span><div class="summary-copy"><span>技术准备度</span><strong>78%</strong><small>方案完整，关键承诺待核实</small></div></article>
+        <article class="summary-card card"><span class="summary-icon red"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6zM14 3v5h5"/><path d="M12 12v4M12 18h.01"/></svg></span><div class="summary-copy"><span>材料缺口</span><strong>4</strong><small>均影响评分，不构成资格阻断</small></div></article>
+      </section>
+
+      <div class="split-grid">
+        <article class="content-card card">
+          <header class="panel-heading"><div><h3>资格与评分材料研判</h3><p>资格条件和评分材料分别判断，直接展示资格结论与材料缺口。</p></div><div class="segmented"><button class="segmented-btn active" type="button" data-decision-filter="all">全部 4</button><button class="segmented-btn" type="button" data-decision-filter="gap">评分缺口 1</button><button class="segmented-btn" type="button" data-decision-filter="passed">已提供 3</button></div></header>
+          <div class="table-wrap">
+            <table class="data-table decision-table">
+              <colgroup><col style="width:10%"/><col style="width:36%"/><col style="width:20%"/><col style="width:14%"/><col style="width:20%"/></colgroup>
+              <thead><tr><th>编号</th><th>资格条件</th><th>企业匹配依据</th><th>结论</th><th>处理</th></tr></thead>
+              <tbody>
+                <tr data-decision-status="passed"><td>ZG-001</td><td><div class="cell-stack"><strong>独立法人资格</strong><span>提供有效营业执照</span></div></td><td><div class="cell-stack"><strong>营业执照扫描件</strong><span>材料已核验</span></div></td><td><span class="status-tag green">满足</span></td><td><button class="text-btn compact-btn" type="button" data-toast="已定位营业执照"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z"/></svg></span><span>查看证据</span></button></td></tr>
+                <tr data-decision-status="gap"><td>PF-004</td><td><div class="cell-stack"><strong>项目人员证书及社保</strong><span>技术评分项，最高 5 分</span></div></td><td><div class="cell-stack"><strong>响应文件未见可核验材料</strong><span>不得自动生成履历或证书</span></div></td><td><span class="status-tag orange">评分缺口</span></td><td><a class="text-btn compact-btn" href="project-knowledge-match.html"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14M14 7l5 5-5 5"/></svg></span><span>处理缺口</span></a></td></tr>
+                <tr data-decision-status="passed"><td>PF-005</td><td><div class="cell-stack"><strong>同类项目业绩</strong><span>商务评分项，最高 5 分</span></div></td><td><div class="cell-stack"><strong>3 份同类合同</strong><span>材料已核验</span></div></td><td><span class="status-tag green">预计 3 分</span></td><td><button class="text-btn compact-btn" type="button" data-toast="已定位 3 份业绩合同"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z"/></svg></span><span>查看证据</span></button></td></tr>
+                <tr data-decision-status="passed"><td>PF-006</td><td><div class="cell-stack"><strong>企业认证</strong><span>商务评分项，最高 5 分</span></div></td><td><div class="cell-stack"><strong>3 项 ISO 体系认证</strong><span>ITSS、CMMI 未见</span></div></td><td><span class="status-tag green">预计 3 分</span></td><td><button class="text-btn compact-btn" type="button" data-toast="已定位 ISO 9001、27001、20000 证书"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z"/></svg></span><span>查看证据</span></button></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+
+        <div class="content-grid">
+          <article class="content-card card">
+            <header class="panel-heading"><div><h3>合规声明复核</h3><p>当前仅核对响应文件声明，仍需交付前由授权人员确认。</p></div><span class="status-tag orange">3 项待确认</span></header>
+            <div class="check-list">
+              <div class="check-row"><span class="check-icon green"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg></span><div class="item-copy"><strong>依法合规经营声明</strong><span>商务标报价函中已作出声明</span></div><span class="status-tag orange">待确认</span></div>
+              <div class="check-row"><span class="check-icon green"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg></span><div class="item-copy"><strong>关联关系声明</strong><span>响应文件已包含承诺文本</span></div><span class="status-tag orange">待确认</span></div>
+              <div class="check-row"><span class="check-icon green"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg></span><div class="item-copy"><strong>报价真实性与有效期承诺</strong><span>报价有效期 90 日</span></div><span class="status-tag orange">待确认</span></div>
+            </div>
+          </article>
+          <article class="content-card card">
+            <header class="panel-heading"><div><h3>能力与竞争力判断</h3><p>用于投标策略，不作为资格结论。</p></div><span class="status-tag blue">准备度 78%</span></header>
+            <div class="panel-body">
+              <div class="review-row"><span>技术方案能力</span><strong>中上 · 四章技术方案结构完整</strong></div>
+              <div class="review-row"><span>类似项目业绩</span><strong>中 · 3 份合同，预计 3 / 5 分</strong></div>
+              <div class="review-row"><span>核心团队能力</span><strong>待确认 · 证书与社保材料未见</strong></div>
+              <div class="review-row"><span>交付资源保障</span><strong>待确认 · 5+1 团队等配置需核实</strong></div>
+              <div class="review-row"><span>价格竞争空间</span><strong>较小 · 报价 <b class="amount-text">597,600 元</b>，接近限价</strong></div>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <section class="prototype-modal" id="bidDecisionModal" aria-hidden="true" aria-label="确认投标决策">
+    <header class="layer-head"><div><h3>确认投标决策</h3><p>资格不满足时系统不会自动终止，须由负责人作出人工决策。</p></div><button class="layer-close" type="button" data-close-layer aria-label="关闭"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button></header>
+    <div class="layer-body">
+      <div class="info-alert warning"><svg viewBox="0 0 24 24"><path d="M10.3 3.8 2.7 17a2 2 0 0 0 1.8 3h15a2 2 0 0 0 1.8-3L13.7 3.8a2 2 0 0 0-3.4 0z"/></svg><div><strong>资格条件满足，仍有 4 类评分或承诺事项待处理</strong><span>继续投标不会绕过人工确认，缺失材料和强承诺将持续保留待处理标记。</span></div></div>
+      <label class="radio-line"><input type="radio" name="bidDecision" value="conditional" checked/><span><strong>继续投标并整改</strong><br/>资格条件满足，同时完成评分材料补充和服务响应修正。</span></label>
+      <label class="radio-line"><input type="radio" name="bidDecision" value="continue"/><span><strong>确认继续投标</strong><br/>已核实待处理事项不影响继续投标，可以进入响应策划。</span></label>
+      <label class="radio-line"><input type="radio" name="bidDecision" value="stop"/><span><strong>放弃投标</strong><br/>停止后续任务并保留研判记录。</span></label>
+      <div class="form-field" style="margin-top:12px"><label>决策说明</label><textarea class="form-textarea" id="bidDecisionNote">营业执照已满足资格条件。继续推进投标，并在交付前修正 P1-P4 响应矩阵、核验人员材料、技术强承诺及最终报价。</textarea></div>
+    </div>
+    <footer class="layer-footer"><button class="ghost-btn" type="button" data-close-layer><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></span><span>取消</span></button><button class="primary-btn" id="confirmBidDecision" type="button"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg></span><span>确认并记录决策</span></button></footer>
+  </section>
+  <script src="../assets/js/common.js"></script><script src="../assets/js/project-data.js"></script><script src="../assets/js/project-common.js"></script><script src="../assets/js/project-detail.js"></script>
+</body>
+</html>

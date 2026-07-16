@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>标书编制与质量审核 - 投标助手</title>
+  <link rel="stylesheet" href="../assets/css/theme.css" />
+  <link rel="stylesheet" href="../assets/css/layout.css" />
+  <link rel="stylesheet" href="../assets/css/projects.css" />
+  <link rel="stylesheet" href="../assets/css/project-writing-editor.css" />
+</head>
+<body class="app-page project-module-page bid-writing-page" data-page="projects" data-project-section="writing">
+  <div id="appHeader"></div>
+  <main class="app-main project-workspace-main">
+    <div id="projectWorkspaceHeader"></div>
+    <section class="workspace-content bid-writing-content">
+      <header class="content-heading bid-writing-heading">
+        <div>
+          <h2>标书编制与质量审核</h2>
+          <p>在同一工作区完成技术标、商务标编制、质量审核、问题定位与复检，审核结果始终对应当前保存版本。</p>
+        </div>
+        <div class="heading-actions">
+          <button class="secondary-btn" id="saveBidDocument" type="button">
+            <span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 4h12l2 2v14H5zM8 4v6h8V4M8 20v-6h8v6"/></svg></span><span>保存当前标书</span>
+          </button>
+          <button class="primary-btn" id="submitQualityReview" type="button">
+            <span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M12 3 4 7v5c0 5 3.4 8.3 8 9 4.6-.7 8-4 8-9V7l-8-4z"/><path d="m8.5 12 2.2 2.2 4.8-5"/></svg></span><span>提交质量审核</span>
+          </button>
+          <a class="primary-btn hidden" id="enterDeliveryArchive" href="project-delivery.html">
+            <span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14M14 7l5 5-5 5"/></svg></span><span>进入交付归档</span>
+          </a>
+        </div>
+      </header>
+
+      <section class="parse-status-card quality-review-card card" id="qualityReviewStatusCard" data-quality-state="result">
+        <div class="parse-status-summary">
+          <span class="parse-status-icon" id="qualityReviewStatusIcon"><svg viewBox="0 0 24 24"><path d="M12 3 4 7v5c0 5 3.4 8.3 8 9 4.6-.7 8-4 8-9V7l-8-4z"/><path d="m8.5 12 2.2 2.2 4.8-5"/></svg></span>
+          <div class="parse-status-copy"><strong id="qualityReviewStatusTitle">第 1 次质量审核已完成</strong><span id="qualityReviewStatusDescription">248 项规则已检查，5 项需要人工补充或确认；处理后可再次提交审核。</span></div>
+          <div class="parse-status-actions"><span class="status-tag orange" id="qualityReviewStatusTag">待人工处理 5 项</span><button class="secondary-btn compact-btn" id="toggleQualityReviewDetails" type="button" aria-expanded="false" aria-controls="qualityReviewStatusDetails"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></span><span>展开详情</span></button></div>
+        </div>
+        <div class="parse-status-details quality-review-details" id="qualityReviewStatusDetails" hidden>
+          <div class="quality-review-metrics" aria-label="质量审核指标">
+            <div><span>质量评分</span><strong id="qualityMetricScore">82</strong><small>当前送审版本</small></div>
+            <div><span>检查规则</span><strong id="qualityMetricRules">248</strong><small>资格、响应、格式等</small></div>
+            <div><span>已通过</span><strong id="qualityMetricPassed">240</strong><small>无需人工处理</small></div>
+            <div><span>自动修复</span><strong id="qualityMetricAutoFixed">3</strong><small>已自动复核通过</small></div>
+            <div><span>人工处理</span><strong id="qualityMetricManual">5</strong><small>补充 3 · 确认 2</small></div>
+            <div><span>阻断问题</span><strong id="qualityMetricBlocking">0</strong><small>暂无资格阻断问题</small></div>
+          </div>
+          <div class="quality-review-detail-grid">
+            <article class="quality-process-panel">
+              <header><div><h3>审核过程</h3><p id="qualityProcessDescription">本次送审版本 V1.0.3 · 已完成全部 6 个检查步骤</p></div><span class="status-tag green" id="qualityProcessTag">已完成</span></header>
+              <div class="quality-review-progress"><i><b id="qualityReviewProgressBar" style="width:100%"></b></i><span id="qualityReviewProgressText">100%</span></div>
+              <div class="quality-review-steps" id="qualityReviewSteps">
+                <div data-quality-step="1"><span class="quality-step-index">1</span><div><strong>保存版本与建立审核快照</strong><span>锁定技术标、商务标当前保存内容</span></div><em class="status-tag green">已完成</em></div>
+                <div data-quality-step="2"><span class="quality-step-index">2</span><div><strong>资格条件与否决项检查</strong><span>核验资格材料、文件组成和强制条款</span></div><em class="status-tag green">已完成</em></div>
+                <div data-quality-step="3"><span class="quality-step-index">3</span><div><strong>评分点与响应覆盖检查</strong><span>比对 93 条采购要求与标书章节</span></div><em class="status-tag green">已完成</em></div>
+                <div data-quality-step="4"><span class="quality-step-index">4</span><div><strong>技术与商务一致性检查</strong><span>核对服务时效、报价、偏离和关键承诺</span></div><em class="status-tag green">已完成</em></div>
+                <div data-quality-step="5"><span class="quality-step-index">5</span><div><strong>目录、页码与格式检查</strong><span>检查两份标书目录、表格、图片和页码</span></div><em class="status-tag green">已完成</em></div>
+                <div data-quality-step="6"><span class="quality-step-index">6</span><div><strong>结果归并与人工任务生成</strong><span>合并重复问题并关联到具体目录位置</span></div><em class="status-tag green">已完成</em></div>
+              </div>
+            </article>
+            <article class="quality-result-panel">
+              <header><div><h3>审核结果</h3><p>点击问题可直接切换到对应标书目录并定位处理。</p></div><span class="status-tag orange" id="qualityResultBatchTag">第 1 次审核</span></header>
+              <div class="quality-category-summary" id="qualityCategorySummary"></div>
+              <div class="quality-issue-list" id="qualityIssueList"></div>
+              <div class="quality-all-passed hidden" id="qualityAllPassed"><span><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/><circle cx="12" cy="12" r="9"/></svg></span><div><strong>全部质量问题已通过复检</strong><p>当前版本满足交付条件，可以进入交付归档。</p></div></div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="bid-editor-shell card">
+        <div class="bid-document-tabs" role="tablist" aria-label="响应文件">
+          <button class="bid-document-tab active" type="button" role="tab" aria-selected="true" data-document-id="technical">
+            <span class="bid-doc-type blue">T</span><span><strong>技术标</strong><small>73 页 · 可编辑 Word 正文</small></span><i class="status-tag orange bid-quality-count" id="technicalQualityCount">待处理 2</i>
+          </button>
+          <button class="bid-document-tab" type="button" role="tab" aria-selected="false" data-document-id="business">
+            <span class="bid-doc-type cyan">B</span><span><strong>商务标</strong><small>23 页 · 正文与原始材料</small></span><i class="status-tag orange bid-quality-count" id="businessQualityCount">待处理 3</i>
+          </button>
+          <div class="bid-document-summary">
+            <span><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6zM14 3v5h5"/></svg>共 96 页</span>
+            <span><svg viewBox="0 0 24 24"><path d="M12 3 4 7v5c0 5 3.4 8.3 8 9 4.6-.7 8-4 8-9V7l-8-4z"/></svg>正文可编辑 · 图片独立保留</span>
+          </div>
+        </div>
+
+        <div class="bid-editor-layout">
+          <aside class="bid-outline-pane" aria-label="文档目录">
+            <div class="bid-outline-list" id="bidOutlineList"></div>
+            <footer><span><i></i>当前页</span><small>点击目录直接定位，不显示切换提示</small></footer>
+          </aside>
+
+          <section class="bid-editor-main">
+            <div class="bid-rich-toolbar" id="bidRichToolbar" role="toolbar" aria-label="富文本编辑工具栏">
+              <div class="toolbar-group">
+                <select id="formatBlockSelect" class="toolbar-select heading-select" aria-label="标题级别" title="标题级别">
+                  <option value="p">正文</option><option value="h1">标题 1</option><option value="h2">标题 2</option><option value="h3">标题 3</option><option value="h4">标题 4</option><option value="h5">标题 5</option><option value="h6">标题 6</option>
+                </select>
+                <select id="fontNameSelect" class="toolbar-select" aria-label="字体" title="字体"><option value="Microsoft YaHei">微软雅黑</option><option value="SimSun">宋体</option><option value="SimHei">黑体</option><option value="KaiTi">楷体</option></select>
+                <select id="fontSizeSelect" class="toolbar-select size-select" aria-label="字号" title="字号"><option value="3">小四</option><option value="4">四号</option><option value="5">小三</option><option value="6">二号</option></select>
+              </div>
+              <span class="toolbar-divider"></span>
+              <div class="toolbar-group">
+                <button type="button" data-command="bold" title="加粗" aria-label="加粗"><b>B</b></button>
+                <button type="button" data-command="italic" title="斜体" aria-label="斜体"><em>I</em></button>
+                <button type="button" data-command="underline" title="下划线" aria-label="下划线"><u>U</u></button>
+                <button type="button" data-command="strikeThrough" title="删除线" aria-label="删除线"><s>S</s></button>
+                <label class="toolbar-color" title="文字颜色"><span>A</span><input id="foreColorInput" type="color" value="#17375e" aria-label="文字颜色" /></label>
+                <label class="toolbar-color toolbar-highlight" title="文本高亮"><span><svg viewBox="0 0 24 24"><path d="m7 14 7-7 4 4-7 7H7z"/><path d="M5 20h14"/></svg></span><input id="backColorInput" type="color" value="#fff2a8" aria-label="文本高亮颜色" /></label>
+              </div>
+              <span class="toolbar-divider"></span>
+              <div class="toolbar-group">
+                <button type="button" data-command="insertUnorderedList" title="项目符号" aria-label="项目符号"><svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg></button>
+                <button type="button" data-command="insertOrderedList" title="编号列表" aria-label="编号列表"><svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11M4 4v4M3 4h2M3 12h3l-3 3h3M3 18h3l-3 3h3"/></svg></button>
+                <button type="button" data-command="justifyLeft" title="左对齐" aria-label="左对齐"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 10h11M4 14h16M4 18h11"/></svg></button>
+                <button type="button" data-command="justifyCenter" title="居中" aria-label="居中"><svg viewBox="0 0 24 24"><path d="M4 6h16M7 10h10M4 14h16M7 18h10"/></svg></button>
+                <button type="button" data-command="justifyRight" title="右对齐" aria-label="右对齐"><svg viewBox="0 0 24 24"><path d="M4 6h16M9 10h11M4 14h16M9 18h11"/></svg></button>
+                <button type="button" data-command="justifyFull" title="两端对齐" aria-label="两端对齐"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg></button>
+                <button type="button" data-command="outdent" title="减少缩进" aria-label="减少缩进"><svg viewBox="0 0 24 24"><path d="M10 6h10M10 10h10M10 14h10M10 18h10M7 9l-4 3 4 3"/></svg></button>
+                <button type="button" data-command="indent" title="增加缩进" aria-label="增加缩进"><svg viewBox="0 0 24 24"><path d="M10 6h10M10 10h10M10 14h10M10 18h10M3 9l4 3-4 3"/></svg></button>
+                <select id="lineHeightSelect" class="toolbar-select line-height-select" aria-label="行间距" title="行间距"><option value="">行距</option><option value="1.5">1.5 倍</option><option value="1.75">1.75 倍</option><option value="1.85">1.85 倍</option><option value="2">2 倍</option></select>
+              </div>
+              <span class="toolbar-divider"></span>
+              <div class="toolbar-group">
+                <button type="button" id="insertLinkButton" title="插入链接" aria-label="插入链接"><svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.5.5l2-2a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7.5-.5l-2 2a5 5 0 0 0 7 7l1-1"/></svg></button>
+                <button type="button" id="insertImageButton" title="插入图片" aria-label="插入图片"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="1.5"/><path d="m5 17 4.5-4 3 2.5 2.5-2 4 3.5"/></svg></button>
+                <button type="button" id="insertTableButton" title="插入表格" aria-label="插入表格"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M3 16h18M9 4v16M15 4v16"/></svg></button>
+                <button type="button" data-command="formatBlock" data-command-value="blockquote" title="引用" aria-label="引用"><svg viewBox="0 0 24 24"><path d="M7 7h4v4H7v3a3 3 0 0 0 3 3M14 7h4v4h-4v3a3 3 0 0 0 3 3"/></svg></button>
+                <button type="button" id="insertHorizontalRuleButton" title="插入分割线" aria-label="插入分割线"><svg viewBox="0 0 24 24"><path d="M3 12h18M5 8h14M5 16h14"/></svg></button>
+                <button type="button" data-command="removeFormat" title="清除格式" aria-label="清除格式"><svg viewBox="0 0 24 24"><path d="m4 20 16-16M8 4h10M13 4l-4 10M5 17l3 3M14 17h6"/></svg></button>
+                <button type="button" data-command="undo" title="撤销" aria-label="撤销"><svg viewBox="0 0 24 24"><path d="M9 7 4 12l5 5M4 12h10a6 6 0 0 1 6 6"/></svg></button>
+                <button type="button" data-command="redo" title="重做" aria-label="重做"><svg viewBox="0 0 24 24"><path d="m15 7 5 5-5 5M20 12H10a6 6 0 0 0-6 6"/></svg></button>
+                <button type="button" id="findInDocumentButton" title="查找（Ctrl+F）" aria-label="查找"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 4 4"/></svg></button>
+              </div>
+              <span class="toolbar-spacer"></span>
+              <div class="toolbar-quality-nav hidden" id="qualityIssueNavigation" aria-label="质检批注导航">
+                <span class="toolbar-quality-progress"><svg viewBox="0 0 24 24"><path d="M5 5h14v10H9l-4 4z"/></svg><b id="qualityToolbarProgress">0 / 5</b></span>
+                <button class="toolbar-quality-button" id="previousQualityIssue" type="button" title="上一条问题"><svg viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg><span>上一条</span></button>
+                <button class="toolbar-quality-button" id="nextQualityIssue" type="button" title="下一条问题"><span>下一条</span><svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></button>
+              </div>
+              <input id="insertImageInput" type="file" accept="image/*" hidden />
+            </div>
+            <div class="bid-editor-find hidden" id="bidEditorFind" role="search"><input id="bidFindInput" type="search" placeholder="查找文档内容" aria-label="查找文档内容"/><span id="bidFindCount">0/0</span><button id="bidFindPrevious" type="button" title="上一个" aria-label="上一个">↑</button><button id="bidFindNext" type="button" title="下一个" aria-label="下一个">↓</button><button id="bidFindClose" type="button" title="关闭查找" aria-label="关闭查找"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
+            <div class="bid-word-ruler" aria-hidden="true"><span class="ruler-margin left"></span><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><span class="ruler-margin right"></span></div>
+
+            <div class="bid-document-canvas" id="bidDocumentCanvas">
+              <div class="bid-document-workspace" id="bidDocumentWorkspace">
+                <article class="bid-doc-pages" id="bidDocumentPages" contenteditable="true" spellcheck="false" aria-label="技术标 Word 编辑区"></article>
+                <svg class="quality-comment-connector hidden" id="qualityCommentConnector" aria-hidden="true" focusable="false"><path id="qualityCommentConnectorPath"></path></svg>
+                <aside class="quality-comment-rail hidden" id="qualityCommentRail" aria-label="质检批注">
+                  <article class="quality-comment-card" id="qualityCommentCard" role="note">
+                    <header><span class="quality-comment-avatar"><svg viewBox="0 0 24 24"><path d="M5 5h14v10H9l-4 4z"/><path d="M9 9h6M9 12h4"/></svg></span><div><span id="qualityFocusType">人工确认</span><button id="qualityFocusTitle" type="button" title="定位到正文问题位置">请处理当前质量问题</button></div></header>
+                    <small id="qualityCommentLocation">技术标 · P1</small>
+                    <p id="qualityFocusDescription">问题说明</p>
+                    <footer><button class="primary-btn compact-btn" id="completeQualityIssue" type="button"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg></span><span>确认无误</span></button></footer>
+                  </article>
+                </aside>
+              </div>
+            </div>
+
+            <footer class="bid-editor-statusbar">
+              <div><span id="currentPageStatus">第 1 / 73 页</span><span id="currentWordCount">0 字</span><span>中文（简体）</span><span class="bid-save-state" id="bidSaveState"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg>已保存</span></div>
+              <div class="zoom-control" aria-label="页面缩放工具栏"><button id="zoomOut" type="button" title="缩小" aria-label="缩小"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button><input id="zoomRange" type="range" min="60" max="160" value="100" step="10" aria-label="页面缩放"/><button id="zoomIn" type="button" title="放大" aria-label="放大"><svg viewBox="0 0 24 24"><path d="M5 12h14M12 5v14"/></svg></button><button class="zoom-value" id="zoomReset" type="button" title="恢复 100%" aria-label="恢复 100%"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="2"/><path d="M8 9h8M8 13h5"/></svg><span id="zoomValue">100%</span></button></div>
+            </footer>
+          </section>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <button class="bid-ai-launcher" id="bidAiLauncher" type="button" aria-label="打开 AI 编辑助手" title="打开 AI 编辑助手">
+    <span class="bid-ai-launcher-icon"><svg viewBox="0 0 24 24"><path d="M12 3 9.8 8.8 4 11l5.8 2.2L12 19l2.2-5.8L20 11l-5.8-2.2L12 3z"/><circle cx="18" cy="6" r="2"/></svg></span>
+    <span><strong>AI 编辑助手</strong><small>选择内容后对话改写</small></span><i></i>
+  </button>
+
+  <aside class="bid-ai-panel bid-writing-ai-panel" id="bidAiPanel" aria-hidden="true" aria-label="AI 编辑助手">
+    <span class="bid-ai-resize-handle" id="bidAiResizeHandle" aria-hidden="true"></span>
+    <header class="bid-ai-header">
+      <div><span class="bid-ai-avatar"><svg viewBox="0 0 24 24"><path d="M12 3 9.8 8.8 4 11l5.8 2.2L12 19l2.2-5.8L20 11l-5.8-2.2L12 3z"/></svg></span><div><strong>AI 编辑助手</strong><span id="bidAiSubtitle"><i></i>内容由 AI 生成</span></div></div>
+      <div class="bid-ai-header-actions"><button id="minimizeBidAi" type="button" title="收起助手" aria-label="收起助手"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button><button id="maximizeBidAi" type="button" title="最大化助手" aria-label="最大化助手"><svg viewBox="0 0 24 24"><path d="M5 5h14v14H5z"/></svg></button><button id="closeBidAi" type="button" title="关闭助手" aria-label="关闭助手"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
+    </header>
+    <div class="bid-ai-chat-body" id="bidAiChatBody">
+      <section class="bid-ai-welcome" id="bidAiWelcome">
+        <span class="bid-ai-welcome-icon"><svg viewBox="0 0 24 24"><rect x="4" y="7.5" width="16" height="11" rx="3"/><path d="M12 4.5v3M9.5 16h5M2.5 12.5H4M20 12.5h1.5"/><circle cx="12" cy="3.6" r=".9"/><circle cx="9" cy="13" r="1.1"/><circle cx="15" cy="13" r="1.1"/></svg></span>
+        <h4>嗨，我是标书编辑助手</h4>
+        <p>在正文中选择章节或文字后右键，可进行改写、扩写、仿写、润色、缩写、续写和深度写作。生成内容先作为候选展示，确认采纳后才会写入正文。</p>
+        <div class="bid-ai-welcome-suggestions">
+          <button type="button" data-ai-action="rewrite"><span>改写</span><small>保留原意，换种表达</small></button>
+          <button type="button" data-ai-action="expand"><span>扩写</span><small>补充方法与实施细节</small></button>
+          <button type="button" data-ai-action="polish"><span>润色</span><small>优化语气与逻辑衔接</small></button>
+          <button type="button" data-ai-action="shorten"><span>缩写</span><small>提炼重点，压缩篇幅</small></button>
+        </div>
+      </section>
+      <div class="bid-ai-messages" id="bidAiMessages"></div>
+    </div>
+    <section class="bid-ai-target hidden" id="bidAiTarget">
+      <header><span><i id="bidAiTargetBadge">改写</i>已选对象</span><button id="clearBidAiTarget" type="button" title="清除已选对象" aria-label="清除已选对象"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button></header>
+      <strong id="bidAiTargetTitle">技术标 · 当前章节</strong><p id="bidAiTargetText"></p>
+    </section>
+    <div class="bid-ai-composer" id="bidAiComposer">
+      <div class="bid-ai-input-card">
+        <div class="bid-ai-attachment-preview hidden" id="bidAiAttachmentPreview" aria-label="待发送附件"></div>
+        <div class="bid-ai-textarea-row">
+          <span class="bid-ai-action-prefix hidden" id="bidAiActionPrefix">改写：</span>
+          <textarea id="bidAiInput" rows="3" placeholder="向 AI 编辑助手提问，或先在正文中选择内容并右键发起 AI 写作"></textarea>
+        </div>
+        <div class="bid-ai-input-actions">
+          <div class="bid-ai-upload-tools">
+            <button id="bidAiUploadImage" type="button" title="上传图片"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="1.5"/><path d="m5 17 4.5-4 3 2.5 2.5-2 4 3.5"/></svg><span>图片</span></button>
+            <button id="bidAiUploadFile" type="button" title="上传附件"><svg viewBox="0 0 24 24"><path d="M9 12.8 14.7 7a3 3 0 0 1 4.2 4.2l-7.1 7.1a5 5 0 0 1-7.1-7.1l7.4-7.4"/></svg><span>附件</span></button>
+          </div>
+          <button class="bid-ai-send" id="sendBidAiMessage" type="button"><svg viewBox="0 0 24 24"><path d="m3 11 18-8-8 18-2-7-8-3zM11 14l4-4"/></svg><span>发送</span></button>
+        </div>
+        <input id="bidAiImageInput" type="file" accept="image/*" hidden multiple />
+        <input id="bidAiFileInput" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.txt,.md,.json" hidden multiple />
+      </div>
+      <div class="bid-ai-chip-row"><button type="button" data-ai-action="rewrite">改写</button><button type="button" data-ai-action="expand">扩写</button><button type="button" data-ai-action="imitate">仿写</button><button type="button" data-ai-action="polish">润色</button><button type="button" data-ai-action="shorten">缩写</button><button type="button" data-ai-action="continue">续写</button><button type="button" data-ai-action="deep">深度写作</button></div>
+      <div class="bid-ai-composer-footer"><span id="bidAiInputHint">选择正文后右键发起 · Enter 发送</span></div>
+    </div>
+  </aside>
+
+  <div class="bid-ai-inline-status hidden" id="bidAiInlineStatus" aria-live="polite">
+    <span class="bid-ai-status-ring" aria-hidden="true"></span>
+    <strong id="bidAiInlineStatusTitle">正在生成...</strong>
+    <span id="bidAiInlineStatusDescription">AI 正在理解选区并组织候选内容</span>
+    <button id="bidAiInlineStatusAction" type="button">停止 Esc</button>
+  </div>
+
+  <div class="ai-write-menu hidden" id="aiWriteMenu" role="menu" aria-label="AI 写作操作">
+    <div class="menu-head"><strong>AI 写作</strong><span id="aiMenuSelectionPreview">已选择正文</span></div>
+    <button type="button" data-ai-action="rewrite"><span class="ico">改</span><span class="text"><strong>改写</strong><em>保留原意，换种表达</em></span></button>
+    <button type="button" data-ai-action="expand"><span class="ico">扩</span><span class="text"><strong>扩写</strong><em>根据原文，拓展内容</em></span></button>
+    <button type="button" data-ai-action="imitate"><span class="ico">仿</span><span class="text"><strong>仿写</strong><em>参考表达，融入当前章节</em></span></button>
+    <button type="button" data-ai-action="polish"><span class="ico">润</span><span class="text"><strong>润色</strong><em>优化表达，提升专业度</em></span></button>
+    <button type="button" data-ai-action="shorten"><span class="ico">缩</span><span class="text"><strong>缩写</strong><em>精简内容，提炼重点</em></span></button>
+    <button type="button" data-ai-action="continue"><span class="ico">续</span><span class="text"><strong>续写</strong><em>基于结尾继续展开</em></span></button>
+    <button type="button" data-ai-action="deep"><span class="ico">深</span><span class="text"><strong>深度写作</strong><em>结合材料整体梳理撰写</em></span></button>
+  </div>
+
+  <section class="prototype-modal" id="submitQualityModal" aria-hidden="true" aria-label="提交质量审核">
+    <header class="layer-head"><div><h3 id="submitQualityModalTitle">提交 AI 质量审核</h3><p id="submitQualityModalDescription">技术标和商务标将以当前保存版本建立审核快照，并在本页面展示审核过程和结果。</p></div><button class="layer-close" type="button" data-close-layer aria-label="关闭"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button></header>
+    <div class="layer-body"><div class="quality-submit-version"><span>本次送审文件</span><strong>技术标.docx · 73 页</strong><strong>商务标.docx · 23 页</strong><small id="qualitySubmitVersionText">当前保存版本 V1.0.3</small></div><div class="info-alert warning"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg><div><strong>审核期间锁定本次提交快照</strong><span>编辑区可以浏览但暂时不能修改；人员材料、服务响应、量化指标、赔偿承诺和最终报价不会被自动改写。</span></div></div></div>
+    <footer class="layer-footer"><button class="ghost-btn" type="button" data-close-layer><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></span><span>取消</span></button><button class="primary-btn" id="confirmSubmitQuality" type="button"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M12 3 4 7v5c0 5 3.4 8.3 8 9 4.6-.7 8-4 8-9V7l-8-4z"/><path d="m8.5 12 2.2 2.2 4.8-5"/></svg></span><span>确认提交审核</span></button></footer>
+  </section>
+
+  <section class="prototype-modal" id="enterDeliveryModal" aria-hidden="true" aria-label="确认进入交付归档">
+    <header class="layer-head"><div><h3>进入交付归档</h3><p>当前标书已通过质量审核，可以进入最终交付环节。</p></div><button class="layer-close" type="button" data-close-layer aria-label="关闭"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button></header>
+    <div class="layer-body"><div class="info-alert"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12 2.5 2.5L16 9"/></svg><div><strong>确认进入交付归档？</strong><span>确认后将以当前审核通过版本进入交付归档，继续完成最终确认与正式文件导出。</span></div></div></div>
+    <footer class="layer-footer"><button class="ghost-btn" type="button" data-close-layer><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></span><span>取消</span></button><button class="primary-btn" id="confirmEnterDelivery" type="button"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14M14 7l5 5-5 5"/></svg></span><span>确认进入</span></button></footer>
+  </section>
+
+  <script src="../assets/js/common.js"></script>
+  <script src="../assets/js/project-data.js"></script>
+  <script src="../assets/js/project-common.js"></script>
+  <script src="../assets/js/project-detail.js"></script>
+  <script src="../assets/js/bid-document-flow-data.js"></script>
+  <script src="../assets/js/project-writing-editor.js"></script>
+</body>
+</html>

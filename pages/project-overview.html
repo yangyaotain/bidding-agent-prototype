@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>项目概览 - 投标助手</title>
+  <link rel="stylesheet" href="../assets/css/theme.css" />
+  <link rel="stylesheet" href="../assets/css/layout.css" />
+  <link rel="stylesheet" href="../assets/css/projects.css" />
+</head>
+<body class="app-page project-module-page" data-page="projects" data-project-section="overview">
+  <div id="appHeader"></div>
+  <main class="app-main project-workspace-main">
+    <div id="projectWorkspaceHeader"></div>
+
+    <section class="workspace-content">
+      <header class="content-heading">
+        <div><h2>项目概览</h2><p>集中查看项目阶段、重点问题、团队待办与最近业务动态。</p></div>
+        <div class="heading-actions">
+          <a class="secondary-btn" href="project-planning.html"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M4 5h16v14H4zM8 9h8M8 13h5"/></svg></span><span>查看响应矩阵</span></a>
+          <a class="primary-btn" href="project-writing.html#qualityReviewStatusCard"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M12 3 4 7v5c0 5 3.4 8.3 8 9 4.6-.7 8-4 8-9V7l-8-4z"/><path d="m8.5 12 2.2 2.2 4.8-5"/></svg></span><span>继续质量审核</span></a>
+        </div>
+      </header>
+
+      <div class="info-alert danger">
+        <svg viewBox="0 0 24 24"><path d="M10.3 3.8 2.7 17a2 2 0 0 0 1.8 3h15a2 2 0 0 0 1.8-3L13.7 3.8a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>
+        <div><strong>存在 1 项服务响应关键偏差</strong><span>采购要求为 P1 15 分钟、P2 30 分钟、P3 1 小时、P4 2 小时；当前技术标未完整对齐 P2-P4，需在正式交付前修正。</span></div>
+        <a class="secondary-btn compact-btn" href="project-writing.html#qualityReviewStatusCard"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14M14 7l5 5-5 5"/></svg></span><span>查看质检问题</span></a>
+      </div>
+
+      <section class="workspace-metrics" aria-label="项目关键指标">
+        <article class="workspace-metric card"><div class="metric-symbol"><svg viewBox="0 0 24 24"><path d="M4 5h16v14H4zM8 9h8M8 13h5"/></svg></div><div class="workspace-metric-copy"><span>响应事项</span><strong>93</strong><small>已覆盖 89 项，待确认 4 项</small></div></article>
+        <article class="workspace-metric card"><div class="metric-symbol cyan"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div><div class="workspace-metric-copy"><span>非价格得分</span><strong>25～29</strong><small>满分 40 分，报价分待开标计算</small></div></article>
+        <article class="workspace-metric card"><div class="metric-symbol orange"><svg viewBox="0 0 24 24"><path d="M4 5a2 2 0 0 1 2-2h12v17H6a2 2 0 0 0-2 2V5z"/><path d="M8 7h6M8 11h7"/></svg></div><div class="workspace-metric-copy"><span>知识匹配率</span><strong>83.9%</strong><small>78 项已匹配，4 类材料待补</small></div></article>
+        <article class="workspace-metric card"><div class="metric-symbol red"><svg viewBox="0 0 24 24"><path d="M10.3 3.8 2.7 17a2 2 0 0 0 1.8 3h15a2 2 0 0 0 1.8-3L13.7 3.8a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg></div><div class="workspace-metric-copy"><span>质检问题</span><strong>7</strong><small>0 项废标级、4 项需人工确认</small></div></article>
+      </section>
+
+      <div class="overview-grid">
+        <article class="content-card card">
+          <header class="panel-heading"><div><h3>投标主流程</h3><p>当前处于质量审核阶段，建议先修正响应偏差，再完成材料与承诺确认。</p></div><span class="status-tag blue">总体进度 88%</span></header>
+          <div class="workflow-steps">
+            <a class="workflow-step done" href="project-analysis.html"><span class="step-dot">✓</span><strong>采购解析</strong><span>93 项要求<br/>已完成确认</span></a>
+            <a class="workflow-step done" href="project-decision.html"><span class="step-dot">✓</span><strong>投标决策</strong><span>建议投标<br/>资格条件满足</span></a>
+            <a class="workflow-step done" href="project-planning.html"><span class="step-dot">✓</span><strong>响应策划</strong><span>42 项任务<br/>已分派</span></a>
+            <a class="workflow-step done" href="project-writing.html"><span class="step-dot">✓</span><strong>标书编制</strong><span>技术标 73 页<br/>商务标 23 页</span></a>
+            <a class="workflow-step active" href="project-writing.html#qualityReviewStatusCard"><span class="step-dot">5</span><strong>质量审核</strong><span>质量评分 82<br/>待确认 4 项</span></a>
+            <a class="workflow-step" href="project-delivery.html"><span class="step-dot">6</span><strong>交付归档</strong><span>正式版本<br/>尚未锁定</span></a>
+          </div>
+        </article>
+
+        <article class="content-card card">
+          <header class="panel-heading"><div><h3>重点问题与提醒</h3><p>按业务后果和截止时间排序。</p></div><a class="text-btn compact-btn" href="project-writing.html#qualityReviewStatusCard"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14M14 7l5 5-5 5"/></svg></span><span>全部问题</span></a></header>
+          <div class="issue-summary-list">
+            <div class="issue-summary-item"><span class="issue-mark red">偏差</span><div class="item-copy"><strong>P2-P4 服务响应未完整对齐</strong><span>技术响应要求 · 关联技术标售后服务承诺</span></div><span class="status-tag red">关键偏差</span></div>
+            <div class="issue-summary-item"><span class="issue-mark orange">缺口</span><div class="item-copy"><strong>项目人员证书与近三个月社保未见</strong><span>技术评分项 · 可能影响人员评分 5 分</span></div><span class="status-tag orange">材料缺口</span></div>
+            <div class="issue-summary-item"><span class="issue-mark orange">待确</span><div class="item-copy"><strong>量化指标与赔偿承诺缺少依据</strong><span>技术标强承诺 · 需保留人工确认关口</span></div><span class="status-tag orange">待确认</span></div>
+          </div>
+        </article>
+      </div>
+
+      <div class="overview-grid" style="margin-top:16px">
+        <article class="content-card card">
+          <header class="panel-heading"><div><h3>当前待办</h3><p>按任务优先级和计划时间展示项目团队任务。</p></div><button class="text-btn compact-btn" type="button" data-toast="已按任务优先级和计划时间重新排序"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18M6 12h12M9 18h6"/></svg></span><span>按优先级排序</span></button></header>
+          <div class="task-list-compact">
+            <div class="task-row task-head"><span>任务</span><span>负责人</span><span>计划完成</span><span>状态</span><span>操作</span></div>
+            <div class="task-row"><div class="item-copy"><strong>修正 P1-P4 服务响应矩阵</strong><span>关联技术要求 JS-031</span></div><span>技术负责人</span><span>终审前</span><span class="status-tag red">优先处理</span><a class="text-btn compact-btn" href="project-writing.html"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14M14 7l5 5-5 5"/></svg></span><span>处理</span></a></div>
+            <div class="task-row"><div class="item-copy"><strong>核验项目人员证书与社保材料</strong><span>关联评分项 PF-004</span></div><span>商务负责人</span><span>终审前</span><span class="status-tag orange">待补充</span><a class="text-btn compact-btn" href="project-knowledge-match.html"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14M14 7l5 5-5 5"/></svg></span><span>处理</span></a></div>
+            <div class="task-row"><div class="item-copy"><strong>复核量化指标及赔偿承诺依据</strong><span>技术标售后服务承诺</span></div><span>质量负责人</span><span>终审前</span><span class="status-tag orange">待确认</span><a class="text-btn compact-btn" href="project-writing.html#qualityReviewStatusCard"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14M14 7l5 5-5 5"/></svg></span><span>审核</span></a></div>
+            <div class="task-row"><div class="item-copy"><strong>核对含税总价与四项分项报价</strong><span>总价 <b class="amount-text">597,600 元</b> · 税率 6%</span></div><span>报价负责人</span><span>交付前</span><span class="status-tag blue">待复核</span><a class="text-btn compact-btn" href="project-delivery.html"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14M14 7l5 5-5 5"/></svg></span><span>复核</span></a></div>
+          </div>
+        </article>
+
+        <article class="content-card card">
+          <header class="panel-heading"><div><h3>最近动态</h3><p>记录文件、解析、知识引用和章节版本变化。</p></div></header>
+          <div class="activity-list">
+            <div class="activity-item"><span class="activity-icon"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6zM14 3v5h5"/></svg></span><div class="item-copy"><strong>采购文件解析已完成</strong><span>34 页来源文件已生成 93 条可回溯要求</span><small>今天 09:42</small></div></div>
+            <div class="activity-item"><span class="activity-icon"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg></span><div class="item-copy"><strong>技术标与商务标已导入复核</strong><span>共 96 页响应文件已建立章节索引</span><small>今天 10:18</small></div></div>
+            <div class="activity-item"><span class="activity-icon"><svg viewBox="0 0 24 24"><path d="M4 5a2 2 0 0 1 2-2h12v17H6a2 2 0 0 0-2 2V5z"/></svg></span><div class="item-copy"><strong>完成项目资料核验</strong><span>企业、客户与人员资料已确认</span><small>今天 10:26</small></div></div>
+          </div>
+        </article>
+      </div>
+    </section>
+  </main>
+  <script src="../assets/js/common.js"></script>
+  <script src="../assets/js/project-data.js"></script>
+  <script src="../assets/js/project-common.js"></script>
+  <script src="../assets/js/project-detail.js"></script>
+</body>
+</html>

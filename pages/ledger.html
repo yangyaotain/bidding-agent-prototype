@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>投标台账 - 投标助手</title>
+  <link rel="stylesheet" href="../assets/css/theme.css" />
+  <link rel="stylesheet" href="../assets/css/layout.css" />
+  <link rel="stylesheet" href="../assets/css/projects.css" />
+  <link rel="stylesheet" href="../assets/css/ledger.css" />
+</head>
+<body class="app-page project-module-page ledger-module-page" data-page="ledger">
+  <div id="appHeader"></div>
+  <main class="app-main">
+    <div class="page-breadcrumb"><span>投标助手</span><span>/</span><strong>投标台账</strong></div>
+    <header class="module-heading">
+      <div>
+        <h1>投标台账</h1>
+        <p>集中维护已投项目结果、交付归档、评审得分和相关佐证材料。</p>
+      </div>
+      <div class="heading-actions">
+        <button class="secondary-btn" id="exportLedgerBtn" type="button">
+          <span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M12 4v12M7 11l5 5 5-5M4 20h16"/></svg></span>
+          <span>导出台账</span>
+        </button>
+      </div>
+    </header>
+
+    <section class="project-metrics ledger-metrics" aria-label="年度投标台账概览">
+      <article class="project-metric card">
+        <div class="metric-symbol"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 3v18M11 8h6M11 12h6M11 16h4"/></svg></div>
+        <div class="metric-copy"><span>年度已投项目</span><strong id="ledgerYearTotal">0</strong><small>以正式交付归档时间统计</small></div>
+      </article>
+      <article class="project-metric card">
+        <div class="metric-symbol orange"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+        <div class="metric-copy"><span>结果待维护</span><strong id="ledgerPendingTotal">0</strong><small>需跟进公告或评审反馈</small></div>
+      </article>
+      <article class="project-metric card">
+        <div class="metric-symbol green"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/><circle cx="12" cy="12" r="9"/></svg></div>
+        <div class="metric-copy"><span>中标项目</span><strong id="ledgerWonTotal">0</strong><small id="ledgerWonAmount">年度中标金额 <b class="amount-text">0 万元</b></small></div>
+      </article>
+      <article class="project-metric card">
+        <div class="metric-symbol cyan"><svg viewBox="0 0 24 24"><path d="M4 19V9M10 19V5M16 19v-7M22 19V3"/></svg></div>
+        <div class="metric-copy"><span>年度中标率</span><strong id="ledgerWinRate">0%</strong><small>不含结果待公布项目</small></div>
+      </article>
+    </section>
+
+    <section class="projects-panel ledger-panel card">
+      <div class="project-filter-tabs" role="tablist" aria-label="投标结果筛选">
+        <button class="filter-tab active" type="button" role="tab" aria-selected="true" data-ledger-filter="all">全部<b id="ledgerAllCount">0</b></button>
+        <button class="filter-tab" type="button" role="tab" aria-selected="false" data-ledger-filter="pending">结果待公布<b id="ledgerPendingCount">0</b></button>
+        <button class="filter-tab" type="button" role="tab" aria-selected="false" data-ledger-filter="won">已中标<b id="ledgerWonCount">0</b></button>
+        <button class="filter-tab" type="button" role="tab" aria-selected="false" data-ledger-filter="lost">未中标<b id="ledgerLostCount">0</b></button>
+        <button class="filter-tab hidden" type="button" role="tab" aria-selected="false" aria-hidden="true" tabindex="-1" data-ledger-filter="review">复盘待完成<b id="ledgerReviewCount">0</b></button>
+      </div>
+
+      <div class="project-toolbar ledger-toolbar">
+        <label class="search-box">
+          <span class="visually-hidden">搜索投标台账</span>
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+          <input id="ledgerSearch" type="search" placeholder="搜索项目名称、编号或采购人" autocomplete="off" />
+        </label>
+        <div class="filter-group">
+          <select class="toolbar-select" id="ledgerYearFilter" aria-label="按投标年度筛选">
+            <option value="2026">2026 年</option>
+            <option value="2025">2025 年</option>
+            <option value="all">全部年度</option>
+          </select>
+          <select class="toolbar-select" id="ledgerOwnerFilter" aria-label="按项目负责人筛选">
+            <option value="all">全部负责人</option>
+            <option value="李明远">李明远</option>
+            <option value="周晓雯">周晓雯</option>
+            <option value="王子谦">王子谦</option>
+            <option value="陈思远">陈思远</option>
+            <option value="赵嘉怡">赵嘉怡</option>
+          </select>
+          <button class="ghost-btn compact-btn" id="resetLedgerFilters" type="button">
+            <span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M4 4v6h6M20 20v-6h-6"/><path d="M19 9a8 8 0 0 0-13.5-3L4 10M5 15a8 8 0 0 0 13.5 3L20 14"/></svg></span>
+            <span>重置</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="table-wrap" id="ledgerTableWrap">
+        <table class="data-table ledger-table" aria-label="投标台账列表">
+          <colgroup>
+            <col style="width:20%" /><col style="width:13%" /><col style="width:10%" />
+            <col style="width:10%" /><col style="width:10%" /><col style="width:10%" />
+            <col style="width:9%" /><col style="width:18%" />
+          </colgroup>
+          <thead>
+            <tr><th>项目名称</th><th>采购人</th><th>投标时间</th><th>投标报价</th><th>投标结果</th><th>得分 / 排名</th><th>负责人</th><th>操作</th></tr>
+          </thead>
+          <tbody id="ledgerTableBody"></tbody>
+        </table>
+      </div>
+
+      <div class="empty-state hidden" id="ledgerEmptyState">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4M8 11h6"/></svg>
+        <strong>没有找到符合条件的台账记录</strong>
+        <span>可以修改搜索关键词或重置筛选条件。</span>
+      </div>
+
+      <footer class="panel-footer">
+        <span id="ledgerResultCount">共 0 条台账记录</span>
+        <div class="pagination" id="ledgerPagination" aria-label="台账分页"></div>
+      </footer>
+    </section>
+  </main>
+
+  <section class="prototype-modal wide ledger-result-modal" id="ledgerResultModal" aria-hidden="true" aria-labelledby="ledgerResultModalTitle">
+    <header class="layer-head">
+      <div><h3 id="ledgerResultModalTitle">维护投标结果</h3><p id="ledgerResultModalSubtitle">补充结果公告、得分和排名，信息将记录到项目台账。</p></div>
+      <button class="layer-close" type="button" data-close-ledger-layer title="关闭" aria-label="关闭弹窗"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+    </header>
+    <div class="layer-body">
+      <div class="ledger-modal-project-summary">
+        <span class="ledger-modal-project-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="15" rx="2"/><path d="M8 5V3h8v2M3 10h18"/></svg></span>
+        <div class="ledger-modal-project-copy"><strong id="ledgerResultProjectName">项目名称</strong><span id="ledgerResultProjectMeta">项目编号 · 采购人</span></div>
+        <span class="status-tag blue" id="ledgerCurrentResultTag">结果待公布</span>
+      </div>
+
+      <div class="ledger-result-note">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
+        <div><strong>结果与得分需要人工核验</strong><span>请以正式结果公告、评审得分表或采购人反馈为依据，保存后将同步更新台账中的投标结果。</span></div>
+      </div>
+
+      <div class="form-grid ledger-result-form">
+        <div class="form-field">
+          <label for="ledgerResultStatus"><em>*</em>投标结果</label>
+          <select class="form-select" id="ledgerResultStatus">
+            <option value="pending">结果待公布</option>
+            <option value="won">已中标</option>
+            <option value="lost">未中标</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label for="ledgerResultDate">结果公布日期</label>
+          <input class="form-control" id="ledgerResultDate" type="date" />
+        </div>
+        <div class="form-field">
+          <label for="ledgerScore">本公司总得分</label>
+          <input class="form-control" id="ledgerScore" type="number" min="0" max="100" step="0.01" placeholder="例如：86.42" />
+        </div>
+        <div class="form-field">
+          <label for="ledgerRank">本公司排名</label>
+          <input class="form-control" id="ledgerRank" type="number" min="1" step="1" placeholder="例如：1" />
+        </div>
+        <div class="form-field ledger-outcome-field">
+          <label for="ledgerWinner">中标单位</label>
+          <input class="form-control" id="ledgerWinner" type="text" placeholder="中标时填写本公司，未中标时填写中标单位" />
+        </div>
+        <div class="form-field ledger-outcome-field">
+          <label for="ledgerWinningAmount">中标金额（万元）</label>
+          <input class="form-control" id="ledgerWinningAmount" type="number" min="0" step="0.01" placeholder="例如：856.80" />
+        </div>
+        <div class="form-field full">
+          <label for="ledgerResultSource">结果来源（结果公布后必填）</label>
+          <input class="form-control" id="ledgerResultSource" type="text" placeholder="例如：采购结果公告、评审得分表或采购人书面反馈" />
+        </div>
+        <div class="form-field full">
+          <label for="ledgerResultRemark">结果说明</label>
+          <textarea class="form-textarea" id="ledgerResultRemark" placeholder="填写主要中标优势、未中标原因或后续跟进说明"></textarea>
+        </div>
+        <div class="form-field full">
+          <label for="ledgerResultFiles">结果佐证附件</label>
+          <div class="ledger-upload-field">
+            <input id="ledgerResultFiles" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg" multiple />
+            <button class="ghost-btn compact-btn" id="selectLedgerResultFiles" type="button"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M5 20h14"/></svg></span><span>选择附件</span></button>
+            <span>支持结果公告、得分表、中标通知书或采购人书面反馈</span>
+          </div>
+          <div class="ledger-result-file-list" id="ledgerResultFileList"></div>
+        </div>
+      </div>
+
+    </div>
+    <footer class="layer-footer">
+      <button class="ghost-btn" type="button" data-close-ledger-layer><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></span><span>取消</span></button>
+      <button class="primary-btn" id="saveLedgerResult" type="button"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg></span><span>保存结果</span></button>
+    </footer>
+  </section>
+
+  <section class="prototype-modal ledger-review-modal hidden" id="ledgerReviewModal" aria-hidden="true" aria-labelledby="ledgerReviewModalTitle">
+    <header class="layer-head">
+      <div><h3 id="ledgerReviewModalTitle">项目复盘</h3><p>基于正式结果和评审反馈，总结得失并形成可跟进的改进事项。</p></div>
+      <button class="layer-close" type="button" data-close-ledger-layer title="关闭" aria-label="关闭弹窗"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+    </header>
+    <div class="layer-body ledger-review-body">
+      <div class="ledger-modal-project-summary">
+        <span class="ledger-modal-project-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="15" rx="2"/><path d="M8 5V3h8v2M3 10h18"/></svg></span>
+        <div class="ledger-modal-project-copy"><strong id="ledgerReviewProjectName">项目名称</strong><span id="ledgerReviewProjectMeta">项目编号 · 采购人</span></div>
+        <span class="status-tag orange" id="ledgerReviewStatusTag">待复盘</span>
+      </div>
+
+      <div class="ledger-review-score-grid">
+        <div><span>投标结果</span><strong id="ledgerReviewResult">—</strong></div>
+        <div><span>本公司得分</span><strong id="ledgerReviewScore">—</strong></div>
+        <div><span>最终排名</span><strong id="ledgerReviewRank">—</strong></div>
+        <div><span>结果来源</span><strong id="ledgerReviewSource">—</strong></div>
+      </div>
+
+      <section class="ledger-review-section">
+        <header><div><h4>复盘结论</h4><p>请明确记录中标优势、未中标原因及可复用经验。</p></div></header>
+        <div class="form-grid ledger-review-form">
+          <div class="form-field full">
+            <label for="ledgerReviewSummary"><em>*</em>评审反馈与结论摘要</label>
+            <textarea class="form-textarea" id="ledgerReviewSummary" placeholder="概括正式结果、评审反馈和本次投标的核心结论"></textarea>
+          </div>
+          <div class="form-field">
+            <label for="ledgerReviewStrengths">主要优势</label>
+            <textarea class="form-textarea" id="ledgerReviewStrengths" placeholder="例如：技术方案完整、服务体系得分领先"></textarea>
+          </div>
+          <div class="form-field">
+            <label for="ledgerReviewWeaknesses">失分原因与不足</label>
+            <textarea class="form-textarea" id="ledgerReviewWeaknesses" placeholder="例如：同类业绩不足、价格分偏低"></textarea>
+          </div>
+          <div class="form-field full">
+            <label for="ledgerReviewExperience">可复用经验</label>
+            <textarea class="form-textarea" id="ledgerReviewExperience" placeholder="记录可复用的章节、材料组合、响应策略或报价经验"></textarea>
+          </div>
+          <div class="form-field">
+            <label for="ledgerReviewOwner"><em>*</em>复盘负责人</label>
+            <select class="form-select" id="ledgerReviewOwner">
+              <option value="李明远">李明远</option><option value="周晓雯">周晓雯</option><option value="王子谦">王子谦</option><option value="陈思远">陈思远</option><option value="赵嘉怡">赵嘉怡</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label for="ledgerReviewDueDate">计划完成日期</label>
+            <input class="form-control" id="ledgerReviewDueDate" type="date" />
+          </div>
+        </div>
+      </section>
+
+      <section class="ledger-review-section ledger-action-section">
+        <header><div><h4>改进事项</h4><p>将复盘结论转为明确的材料补强或流程改进任务。</p></div><button class="ghost-btn compact-btn" id="addLedgerReviewAction" type="button"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span><span>添加事项</span></button></header>
+        <div class="ledger-review-action-head"><span>改进事项</span><span>负责人</span><span>完成日期</span><span>状态</span><span>操作</span></div>
+        <div class="ledger-review-action-list" id="ledgerReviewActionList"></div>
+      </section>
+    </div>
+    <footer class="layer-footer">
+      <button class="ghost-btn" type="button" data-close-ledger-layer><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></span><span>取消</span></button>
+      <div class="ledger-detail-actions">
+        <button class="secondary-btn" id="saveLedgerReviewDraft" type="button"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 4h14v16H5zM8 4v6h8V4M8 16h8"/></svg></span><span>保存草稿</span></button>
+        <button class="primary-btn" id="completeLedgerReview" type="button"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg></span><span>完成复盘</span></button>
+      </div>
+    </footer>
+  </section>
+
+  <script src="../assets/js/common.js"></script>
+  <script src="../assets/js/ledger.js"></script>
+</body>
+</html>

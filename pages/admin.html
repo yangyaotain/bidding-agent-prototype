@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>用户管理 - 投标助手</title>
+  <link rel="stylesheet" href="../assets/css/theme.css" />
+  <link rel="stylesheet" href="../assets/css/layout.css" />
+  <link rel="stylesheet" href="../assets/css/admin.css" />
+</head>
+<body class="app-page admin-page" data-page="admin">
+  <div id="appHeader"></div>
+
+  <main class="app-main">
+    <div class="page-breadcrumb"><span>投标助手</span><span>/</span><strong>管理中心</strong></div>
+    <header class="admin-heading">
+      <div>
+        <h1>用户管理</h1>
+        <p>开通和维护投标助手用户账号，并通过系统默认角色控制用户的数据查看范围。</p>
+      </div>
+      <button class="primary-btn" id="createUserBtn" type="button">
+        <span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span>
+        <span>新增用户</span>
+      </button>
+    </header>
+
+    <section class="admin-panel card" aria-labelledby="userListTitle">
+      <div class="admin-panel-head">
+        <div>
+          <h2 id="userListTitle">系统用户</h2>
+          <p id="userSummary">共 8 位用户 · 已启用 6 位 · 已禁用 2 位</p>
+        </div>
+      </div>
+
+      <div class="admin-notice hidden" id="adminNotice" role="status" aria-live="polite">
+        <span class="admin-notice-icon"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/><circle cx="12" cy="12" r="9"/></svg></span>
+        <span id="adminNoticeText"></span>
+        <button type="button" id="closeAdminNotice" aria-label="关闭提示"><svg viewBox="0 0 24 24"><path d="m7 7 10 10M17 7 7 17"/></svg></button>
+      </div>
+
+      <div class="admin-toolbar">
+        <label class="admin-search">
+          <span class="visually-hidden">搜索用户</span>
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+          <input id="userSearch" type="search" placeholder="搜索姓名、账号、手机号或邮箱" autocomplete="off" />
+        </label>
+        <div class="admin-filter-group">
+          <select class="admin-select" id="userStatusFilter" aria-label="按账号状态筛选">
+            <option value="all">全部状态</option>
+            <option value="enabled">已启用</option>
+            <option value="disabled">已禁用</option>
+          </select>
+          <button class="ghost-btn compact-btn" id="resetUserFilters" type="button">
+            <span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M4 4v6h6M20 20v-6h-6"/><path d="M19 9a8 8 0 0 0-13.5-3L4 10M5 15a8 8 0 0 0 13.5 3L20 14"/></svg></span>
+            <span>重置</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="admin-table-wrap" id="userTableWrap">
+        <table class="admin-table" aria-label="系统用户列表">
+          <colgroup>
+            <col style="width:18%" /><col style="width:19%" /><col style="width:15%" />
+            <col style="width:10%" /><col style="width:12%" /><col style="width:12%" /><col style="width:14%" />
+          </colgroup>
+          <thead>
+            <tr><th>用户</th><th>联系方式</th><th>角色</th><th>账号状态</th><th>备注</th><th>最近登录</th><th>操作</th></tr>
+          </thead>
+          <tbody id="userTableBody"></tbody>
+        </table>
+      </div>
+
+      <div class="admin-empty hidden" id="userEmptyState">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4M8 11h6"/></svg>
+        <strong>没有找到符合条件的用户</strong>
+        <span>可以修改搜索内容或重置筛选条件。</span>
+      </div>
+
+      <footer class="admin-panel-footer">
+        <span id="userResultCount">共 8 条用户记录</span>
+        <span>账号状态变更后立即生效</span>
+      </footer>
+    </section>
+  </main>
+
+  <div class="admin-backdrop hidden" id="adminBackdrop" aria-hidden="true"></div>
+
+  <section class="admin-modal wide" id="userFormModal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="userFormTitle">
+    <header class="admin-layer-head">
+      <div><h3 id="userFormTitle">新增用户</h3><p id="userFormDescription">填写账号信息并开通投标助手。</p></div>
+      <button class="admin-layer-close" type="button" data-close-admin-layer aria-label="关闭弹窗"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+    </header>
+    <form id="userForm" novalidate>
+      <div class="admin-layer-body">
+        <div class="admin-access-tip">
+          <svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/><circle cx="12" cy="12" r="9"/></svg>
+          <div><strong id="roleAccessTitle">普通用户</strong><span id="roleAccessDescription">可使用所有功能，并拥有当前用户的数据权限。</span></div>
+        </div>
+        <div class="admin-form-grid">
+          <label class="admin-form-field" id="userNameField">
+            <span>用户姓名<em>*</em></span>
+            <input class="admin-control" id="userNameInput" type="text" maxlength="20" placeholder="请输入用户姓名" autocomplete="off" />
+            <small class="admin-field-error" id="userNameError"></small>
+          </label>
+          <label class="admin-form-field" id="userAccountField">
+            <span>登录账号<em>*</em></span>
+            <input class="admin-control" id="userAccountInput" type="text" maxlength="20" placeholder="4-20 位字母、数字或符号" autocomplete="off" />
+            <small class="admin-field-error" id="userAccountError"></small>
+          </label>
+          <label class="admin-form-field" id="userPhoneField">
+            <span>手机号<em>*</em></span>
+            <input class="admin-control" id="userPhoneInput" type="tel" maxlength="11" placeholder="请输入 11 位手机号" autocomplete="off" />
+            <small class="admin-field-error" id="userPhoneError"></small>
+          </label>
+          <label class="admin-form-field" id="userEmailField">
+            <span>邮箱</span>
+            <input class="admin-control" id="userEmailInput" type="email" maxlength="60" placeholder="请输入用户邮箱（选填）" autocomplete="off" />
+            <small class="admin-field-error" id="userEmailError"></small>
+          </label>
+          <label class="admin-form-field" id="userRoleField">
+            <span>角色<em>*</em></span>
+            <select class="admin-control" id="userRoleInput">
+              <option value="user">普通用户</option>
+              <option value="admin">管理员</option>
+            </select>
+            <small class="admin-field-hint" id="userRoleHint">系统默认角色，暂不支持自定义。</small>
+            <small class="admin-field-error" id="userRoleError"></small>
+          </label>
+          <label class="admin-form-field" id="userPasswordField">
+            <span>初始密码<em>*</em></span>
+            <input class="admin-control" id="userPasswordInput" type="text" maxlength="24" autocomplete="new-password" />
+            <small class="admin-field-hint">用户可在登录后自行修改密码。</small>
+            <small class="admin-field-error" id="userPasswordError"></small>
+          </label>
+          <label class="admin-form-field full" id="userRemarkField">
+            <span>备注</span>
+            <textarea class="admin-control admin-textarea" id="userRemarkInput" maxlength="100" placeholder="请输入用户相关说明，最多 100 字"></textarea>
+            <small class="admin-field-error" id="userRemarkError"></small>
+          </label>
+        </div>
+        <label class="admin-enable-option" id="userEnableField">
+          <input id="userEnabledInput" type="checkbox" checked />
+          <span><strong>开通后立即启用账号</strong><small>取消勾选时，账号将创建为禁用状态。</small></span>
+        </label>
+      </div>
+      <footer class="admin-layer-footer">
+        <button class="ghost-btn" type="button" data-close-admin-layer>
+          <span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></span><span>取消</span>
+        </button>
+        <button class="primary-btn" id="saveUserBtn" type="submit">
+          <span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg></span><span>开通用户</span>
+        </button>
+      </footer>
+    </form>
+  </section>
+
+  <section class="admin-modal" id="userActionModal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="userActionTitle">
+    <header class="admin-layer-head">
+      <div><h3 id="userActionTitle">确认操作</h3><p id="userActionDescription">请确认是否继续当前操作。</p></div>
+      <button class="admin-layer-close" type="button" data-close-admin-layer aria-label="关闭弹窗"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+    </header>
+    <div class="admin-layer-body">
+      <div class="admin-action-alert" id="userActionAlert">
+        <svg viewBox="0 0 24 24"><path d="M10.3 3.8 2.7 17a2 2 0 0 0 1.8 3h15a2 2 0 0 0 1.8-3L13.7 3.8a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>
+        <div><strong id="userActionMessage">请确认是否继续。</strong><span id="userActionHint">操作完成后列表状态将同步更新。</span></div>
+      </div>
+    </div>
+    <footer class="admin-layer-footer">
+      <button class="ghost-btn" type="button" data-close-admin-layer>
+        <span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></span><span>取消</span>
+      </button>
+      <button class="primary-btn" id="confirmUserAction" type="button">
+        <span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg></span><span>确认</span>
+      </button>
+    </footer>
+  </section>
+
+  <section class="admin-modal" id="passwordResultModal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="passwordResultTitle">
+    <header class="admin-layer-head">
+      <div><h3 id="passwordResultTitle">密码已重置</h3><p>请将临时密码安全地提供给用户。</p></div>
+      <button class="admin-layer-close" type="button" data-close-admin-layer aria-label="关闭弹窗"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+    </header>
+    <div class="admin-layer-body">
+      <div class="password-result-card">
+        <div><span>登录账号</span><strong id="resetAccountText">-</strong></div>
+        <div><span>临时密码</span><strong id="temporaryPasswordText">-</strong></div>
+        <button class="secondary-btn compact-btn" id="copyTemporaryPassword" type="button">
+          <span class="btn-icon"><svg viewBox="0 0 24 24"><rect x="8" y="8" width="11" height="11" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg></span><span>复制密码</span>
+        </button>
+      </div>
+      <p class="password-result-hint">原密码已失效，用户登录后可在个人菜单中修改密码。</p>
+    </div>
+    <footer class="admin-layer-footer">
+      <button class="primary-btn" type="button" data-close-admin-layer>
+        <span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg></span><span>我知道了</span>
+      </button>
+    </footer>
+  </section>
+
+  <script src="../assets/js/common.js"></script>
+  <script src="../assets/js/admin.js"></script>
+</body>
+</html>

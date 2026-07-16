@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>招标文件 - 投标助手</title>
+  <link rel="stylesheet" href="../assets/css/theme.css" />
+  <link rel="stylesheet" href="../assets/css/layout.css" />
+  <link rel="stylesheet" href="../assets/css/projects.css" />
+</head>
+<body class="app-page project-module-page" data-page="projects" data-project-section="files">
+  <div id="appHeader"></div>
+  <main class="app-main project-workspace-main">
+    <div id="projectWorkspaceHeader"></div>
+    <section class="workspace-content">
+      <header class="content-heading">
+        <div><h2>招标文件</h2><p>集中管理主招标文件和相关附件，文件调整后可重新发起完整解析。</p></div>
+        <div class="heading-actions">
+          <button class="secondary-btn add-project-file-btn" type="button" data-open-layer="addProjectFileModal"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 15v5h16v-5"/></svg></span><span>补传文件</span></button>
+          <button class="primary-btn reparse-project-btn" type="button" data-open-layer="reparseProjectModal"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 0 0-15.2-6.5L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 15.2 6.5L21 16"/><path d="M16 16h5v5"/></svg></span><span>重新解析</span></button>
+        </div>
+      </header>
+
+      <section class="parse-status-card card completed" id="fileParseStatusCard">
+        <div class="parse-status-summary">
+          <span class="parse-status-icon" id="fileParseStatusIcon"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/><circle cx="12" cy="12" r="9"/></svg></span>
+          <div class="parse-status-copy"><strong id="fileParseStatusTitle">当前解析完成</strong><span id="fileParseStatusDescription">已处理 5 份文件并识别 93 条采购要求，解析结果可用于后续业务页面。</span></div>
+          <div class="parse-status-actions"><span class="status-tag green" id="fileParseStatusTag">解析完成</span><button class="secondary-btn compact-btn" id="toggleFileParseDetails" type="button" aria-expanded="false" aria-controls="fileParseStatusDetails"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></span><span>展开详情</span></button></div>
+        </div>
+        <div class="parse-status-details" id="fileParseStatusDetails" hidden>
+          <div class="parse-detail-metrics" aria-label="解析指标">
+            <div class="parse-detail-metric"><span>文件处理</span><strong id="projectFileCount">5</strong><small>主文件 1、附件 4，全部解析完成</small></div>
+            <div class="parse-detail-metric"><span>页码进度</span><strong id="projectParsedPageCount">74 页 / 3 表</strong><small>页面及工作表均已建立来源定位</small></div>
+            <div class="parse-detail-metric"><span>解析结果</span><strong id="projectRequirementCount">8 项 / 93 条</strong><small>项目信息 8 项、采购要求 93 条</small></div>
+            <div class="parse-detail-metric"><span>最近解析</span><strong id="projectLatestParseTime">01-20 09:42</strong><small>总耗时 2 分 18 秒</small></div>
+          </div>
+          <div class="parse-detail-grid">
+            <div>
+              <h3>解析步骤</h3>
+              <div class="parse-step-list">
+                <div class="parse-step-row" data-file-parse-step="1"><span class="parse-step-index">1</span><div><strong>文件上传与安全校验</strong><span>检查文件格式、完整性和可读性</span></div><span class="status-tag green parse-step-status">已完成</span></div>
+                <div class="parse-step-row" data-file-parse-step="2"><span class="parse-step-index">2</span><div><strong>文件预处理</strong><span>完成页面拆分、附件识别和内容预处理</span></div><span class="status-tag green parse-step-status">已完成</span></div>
+                <div class="parse-step-row" data-file-parse-step="3"><span class="parse-step-index">3</span><div><strong>OCR 与页码索引</strong><span>建立原文、页码和条款定位关系</span></div><span class="status-tag green parse-step-status">已完成</span></div>
+                <div class="parse-step-row" data-file-parse-step="4"><span class="parse-step-index">4</span><div><strong>项目信息识别</strong><span>提取项目名称、采购人、预算和截止时间</span></div><span class="status-tag green parse-step-status">已完成</span></div>
+                <div class="parse-step-row" data-file-parse-step="5"><span class="parse-step-index">5</span><div><strong>招标要求结构化解析</strong><span>识别资格、评分、商务技术及格式要求</span></div><span class="status-tag green parse-step-status">已完成</span></div>
+                <div class="parse-step-row" data-file-parse-step="6"><span class="parse-step-index">6</span><div><strong>生成解析结果</strong><span>汇总项目数据并建立来源定位</span></div><span class="status-tag green parse-step-status">已完成</span></div>
+              </div>
+            </div>
+            <div>
+              <h3>任务进展</h3>
+              <div class="parse-task-list">
+                <div class="parse-task-row"><div><strong>主招标文件逐页识别</strong><span id="mainParseTaskDescription">34 页全部处理完成</span></div><span class="status-tag green" id="mainParseTaskStatus">已完成</span></div>
+                <div class="parse-task-row"><div><strong>独立附件识别</strong><span id="attachmentParseTaskDescription">4 份附件全部识别完成</span></div><span class="status-tag green" id="attachmentParseTaskStatus">已完成</span></div>
+                <div class="parse-task-row"><div><strong>项目信息与要求汇总</strong><span id="resultParseTaskDescription">已生成 8 项项目信息和 93 条要求</span></div><span class="status-tag green" id="resultParseTaskStatus">已完成</span></div>
+              </div>
+              <div class="parse-complete-note" id="fileParseCompleteNote"><span>完成时间</span><strong>2026-01-20 09:42</strong><small>AI 已完成解析、投标研判、响应策划和知识匹配</small></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="content-card card">
+        <header class="panel-heading">
+          <div><h3>项目采购文件</h3><p>集中展示主招标文件、技术附件、报价模板、合同条款及澄清文件，补传后可重新参与解析。</p></div>
+        </header>
+        <div class="table-wrap">
+          <table class="data-table file-table">
+            <colgroup><col style="width:38%"/><col style="width:14%"/><col style="width:13%"/><col style="width:14%"/><col style="width:21%"/></colgroup>
+            <thead><tr><th>文件名称</th><th>文件类型</th><th>大小/页数</th><th>解析状态</th><th>操作</th></tr></thead>
+            <tbody id="projectFileTableBody">
+              <tr data-project-file-row data-file-type="main"><td><div class="file-name-cell"><span class="file-type-icon"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6zM14 3v5h5M9 13h6M9 17h4"/></svg></span><div class="cell-stack"><strong>采购文件.doc</strong><span>李明远 · 01-20 09:30 上传</span></div></div></td><td>主招标文件</td><td>372 KB / 34 页</td><td><span class="status-tag green file-parse-status">解析完成</span></td><td><div class="row-actions"><button class="text-btn compact-btn" type="button" data-toast="已打开采购文件预览"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z"/><circle cx="12" cy="12" r="2.5"/></svg></span><span>预览</span></button><button class="text-btn compact-btn replace-project-file-btn" type="button"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M4 4v6h6M20 20v-6h-6"/></svg></span><span>重新上传</span></button><button class="text-btn compact-btn delete-project-file-btn" type="button"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13"/></svg></span><span>删除</span></button></div></td></tr>
+              <tr data-project-file-row data-file-type="attachment"><td><div class="file-name-cell"><span class="file-type-icon"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6zM14 3v5h5M9 13h6M9 17h4"/></svg></span><div class="cell-stack"><strong>技术需求及服务规范.pdf</strong><span>李明远 · 01-20 09:31 上传</span></div></div></td><td>技术需求附件</td><td>1.8 MB / 22 页</td><td><span class="status-tag green file-parse-status">解析完成</span></td><td><div class="row-actions"><button class="text-btn compact-btn" type="button" data-toast="已打开技术需求及服务规范预览"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z"/><circle cx="12" cy="12" r="2.5"/></svg></span><span>预览</span></button><button class="text-btn compact-btn replace-project-file-btn" type="button"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M4 4v6h6M20 20v-6h-6"/></svg></span><span>重新上传</span></button><button class="text-btn compact-btn delete-project-file-btn" type="button"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13"/></svg></span><span>删除</span></button></div></td></tr>
+              <tr data-project-file-row data-file-type="attachment"><td><div class="file-name-cell"><span class="file-type-icon"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6zM14 3v5h5M9 13h6M9 17h4"/></svg></span><div class="cell-stack"><strong>投标文件格式及报价清单.xlsx</strong><span>李明远 · 01-20 09:31 上传</span></div></div></td><td>投标格式模板</td><td>86 KB / 3 个工作表</td><td><span class="status-tag green file-parse-status">解析完成</span></td><td><div class="row-actions"><button class="text-btn compact-btn" type="button" data-toast="已打开投标文件格式及报价清单预览"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z"/><circle cx="12" cy="12" r="2.5"/></svg></span><span>预览</span></button><button class="text-btn compact-btn replace-project-file-btn" type="button"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M4 4v6h6M20 20v-6h-6"/></svg></span><span>重新上传</span></button><button class="text-btn compact-btn delete-project-file-btn" type="button"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13"/></svg></span><span>删除</span></button></div></td></tr>
+              <tr data-project-file-row data-file-type="attachment"><td><div class="file-name-cell"><span class="file-type-icon"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6zM14 3v5h5M9 13h6M9 17h4"/></svg></span><div class="cell-stack"><strong>合同主要条款.pdf</strong><span>李明远 · 01-20 09:32 上传</span></div></div></td><td>合同附件</td><td>620 KB / 12 页</td><td><span class="status-tag green file-parse-status">解析完成</span></td><td><div class="row-actions"><button class="text-btn compact-btn" type="button" data-toast="已打开合同主要条款预览"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z"/><circle cx="12" cy="12" r="2.5"/></svg></span><span>预览</span></button><button class="text-btn compact-btn replace-project-file-btn" type="button"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M4 4v6h6M20 20v-6h-6"/></svg></span><span>重新上传</span></button><button class="text-btn compact-btn delete-project-file-btn" type="button"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13"/></svg></span><span>删除</span></button></div></td></tr>
+              <tr data-project-file-row data-file-type="attachment"><td><div class="file-name-cell"><span class="file-type-icon"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6zM14 3v5h5M9 13h6M9 17h4"/></svg></span><div class="cell-stack"><strong>澄清答疑纪要.pdf</strong><span>李明远 · 01-20 09:35 上传</span></div></div></td><td>澄清答疑文件</td><td>428 KB / 6 页</td><td><span class="status-tag green file-parse-status">解析完成</span></td><td><div class="row-actions"><button class="text-btn compact-btn" type="button" data-toast="已打开澄清答疑纪要预览"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z"/><circle cx="12" cy="12" r="2.5"/></svg></span><span>预览</span></button><button class="text-btn compact-btn replace-project-file-btn" type="button"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M4 4v6h6M20 20v-6h-6"/></svg></span><span>重新上传</span></button><button class="text-btn compact-btn delete-project-file-btn" type="button"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13"/></svg></span><span>删除</span></button></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <section class="prototype-modal" id="addProjectFileModal" aria-hidden="true" aria-label="上传招标文件">
+    <header class="layer-head"><div><h3 id="projectFileModalTitle">补传招标文件</h3><p>请上传招标文件，可同时添加技术需求、评分办法、格式模板和其他附件。</p></div><button class="layer-close" type="button" data-close-layer aria-label="关闭"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button></header>
+    <div class="layer-body">
+      <input class="visually-hidden" id="projectFileInput" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.zip,.rar" multiple />
+      <div class="upload-zone" id="projectFileUploadZone" role="button" tabindex="0" aria-label="选择招标文件"><div><svg viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 15v5h16v-5"/></svg><strong>拖拽文件到此处，或点击选择文件</strong><span>支持 PDF、Word、Excel、ZIP、RAR</span></div></div>
+      <div class="upload-list" id="projectFileUploadList" aria-live="polite" hidden></div>
+      <div class="info-alert" style="margin-top:14px;margin-bottom:0"><svg viewBox="0 0 24 24"><path d="M12 3 9.8 8.8 4 11l5.8 2.2L12 19l2.2-5.8L20 11l-5.8-2.2L12 3z"/></svg><div><strong>补传后需重新解析</strong><span>新文件将标记为“待重新解析”，重新解析后更新项目信息和招标要求。</span></div></div>
+    </div>
+    <footer class="layer-footer"><button class="ghost-btn" type="button" data-close-layer><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></span><span>取消</span></button><button class="primary-btn" id="confirmProjectFileUpload" type="button"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5"/></svg></span><span>确认上传</span></button></footer>
+  </section>
+
+  <section class="prototype-modal" id="deleteProjectFileModal" aria-hidden="true" aria-label="删除招标文件">
+    <header class="layer-head"><div><h3>删除招标文件</h3><p>删除后需要重新解析，相关业务数据将暂时不可用。</p></div><button class="layer-close" type="button" data-close-layer aria-label="关闭"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button></header>
+    <div class="layer-body"><div class="info-alert danger" style="margin-bottom:0"><svg viewBox="0 0 24 24"><path d="M10.3 3.8 2.7 17a2 2 0 0 0 1.8 3h15a2 2 0 0 0 1.8-3L13.7 3.8a2 2 0 0 0-3.4 0z"/></svg><div><strong id="deleteProjectFileName">确认删除该文件？</strong><span>删除操作仅更新当前项目的文件清单。</span></div></div></div>
+    <footer class="layer-footer"><button class="ghost-btn" type="button" data-close-layer><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></span><span>取消</span></button><button class="primary-btn" id="confirmDeleteProjectFile" type="button"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13"/></svg></span><span>确认删除</span></button></footer>
+  </section>
+
+  <section class="prototype-modal" id="reparseProjectModal" aria-hidden="true" aria-label="重新解析招标文件">
+    <header class="layer-head"><div><h3>重新解析全部招标文件</h3><p>解析将在后台异步执行，您可以立即返回项目列表。</p></div><button class="layer-close" type="button" data-close-layer aria-label="关闭"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button></header>
+    <div class="layer-body"><div class="info-alert warning"><svg viewBox="0 0 24 24"><path d="M10.3 3.8 2.7 17a2 2 0 0 0 1.8 3h15a2 2 0 0 0 1.8-3L13.7 3.8a2 2 0 0 0-3.4 0z"/></svg><div><strong>重新解析期间其他业务数据暂时不可用</strong><span>系统将基于当前文件清单重新提取项目信息和全部招标要求，项目状态会切换为“解析中”。</span></div></div></div>
+    <footer class="layer-footer"><button class="ghost-btn" type="button" data-close-layer><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></span><span>取消</span></button><button class="primary-btn reparse-project-btn" id="confirmProjectReparse" type="button"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 0 0-15.2-6.5L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 15.2 6.5L21 16"/><path d="M16 16h5v5"/></svg></span><span>确认重新解析</span></button></footer>
+  </section>
+
+  <script src="../assets/js/common.js"></script><script src="../assets/js/project-data.js"></script><script src="../assets/js/project-common.js"></script><script src="../assets/js/project-detail.js"></script>
+</body>
+</html>

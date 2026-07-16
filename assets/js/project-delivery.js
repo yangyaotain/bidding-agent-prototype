@@ -1,0 +1,315 @@
+(function () {
+  "use strict";
+
+  function one(selector, root) { return (root || document).querySelector(selector); }
+  function all(selector, root) { return Array.from((root || document).querySelectorAll(selector)); }
+  function toast(message, type, target) { if (window.showToast) window.showToast(message, type, target); }
+  function escapeHtml(value) {
+    return String(value == null ? "" : value).replace(/[&<>"']/g, function (char) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char];
+    });
+  }
+
+  let currentProject = (window.projectPrototype && window.projectPrototype.currentProject) || { id: "BID-202601-001" };
+  let archiveCompleted = false;
+
+  function saveProject(patch) {
+    const next = Object.assign({}, currentProject, patch || {});
+    try { window.sessionStorage.setItem("biddingPendingProject", JSON.stringify(next)); } catch (error) { /* storage unavailable */ }
+    currentProject = next;
+    if (window.projectPrototype) window.projectPrototype.currentProject = next;
+  }
+
+  function numericAmount(value) {
+    const match = String(value || "").replace(/,/g, "").match(/[\d.]+/);
+    return match ? Number(match[0]) : 0;
+  }
+
+  function archiveFilesFromPage() {
+    return all(".ledger-archive-group .archive-attachment-list > div").map(function (item) {
+      const name = one("strong", item).textContent.trim();
+      const description = one("small", item).textContent.trim();
+      const tag = one(".status-tag", item);
+      return {
+        name: name,
+        description: description,
+        category: tag ? tag.textContent.trim() : "归档文件",
+        tone: tag && tag.classList.contains("green") ? "green" : "blue"
+      };
+    });
+  }
+
+  function knowledgeItemsForLedger() {
+    return knowledgeItems().filter(function (item) {
+      return item.getAttribute("data-state") === "confirmed";
+    }).map(function (item) {
+      return {
+        name: one("strong", item).textContent.trim(),
+        description: one("small", item).textContent.trim(),
+        state: "已沉淀"
+      };
+    });
+  }
+
+  function upsertLedgerRecord() {
+    const storageKey = "biddingLedgerRecords";
+    let stored = [];
+    try {
+      const parsed = JSON.parse(window.localStorage.getItem(storageKey) || "[]");
+      if (Array.isArray(parsed)) stored = parsed;
+    } catch (error) {
+      stored = [];
+    }
+    const bidDateText = currentProject.deadline || "2026-07-20 09:30";
+    const bidDate = bidDateText.slice(0, 10);
+    const existingIndex = stored.findIndex(function (record) { return record.id === currentProject.id; });
+    const existing = existingIndex === -1 ? null : stored[existingIndex];
+    const baseRecord = {
+      id: currentProject.id,
+      name: currentProject.name || "某港口集团2026年度集装箱业务平台运维项目",
+      purchaser: currentProject.purchaser || "某港口集团有限公司",
+      bidDate: bidDate,
+      bidDateText: bidDateText,
+      archiveDate: bidDate,
+      archiveTime: bidDate + " 10:12",
+      archiveVersion: "正式交付 V1.0",
+      archiveOperator: currentProject.owner || "李明远",
+      bidAmount: currentProject.id === "BID-202601-001" ? 59.76 : numericAmount(currentProject.budget),
+      owner: currentProject.owner || "李明远",
+      archiveFiles: archiveFilesFromPage(),
+      knowledgeItems: knowledgeItemsForLedger()
+    };
+    const next = Object.assign({
+      result: "pending",
+      resultDate: "",
+      score: "",
+      rank: "",
+      winner: "",
+      winningAmount: "",
+      reviewStatus: "待结果",
+      reviewTone: "gray",
+      source: "",
+      remark: "已完成正式文件交付，等待采购结果公告。",
+      resultFiles: []
+    }, existing || {}, baseRecord);
+    if (existingIndex === -1) stored.push(next);
+    else stored[existingIndex] = next;
+    try { window.localStorage.setItem(storageKey, JSON.stringify(stored)); } catch (error) { /* storage unavailable */ }
+  }
+
+  function knowledgeItems() {
+    return all("[data-knowledge-item]");
+  }
+
+  function knowledgeCounts() {
+    return knowledgeItems().reduce(function (counts, item) {
+      const state = item.getAttribute("data-state") || "pending";
+      counts[state] += 1;
+      counts.total += 1;
+      return counts;
+    }, { pending: 0, confirmed: 0, canceled: 0, total: 0 });
+  }
+
+  function bindKnowledgeMenu(menu) {
+    if (!menu || menu.getAttribute("data-menu-bound") === "true") return;
+    menu.setAttribute("data-menu-bound", "true");
+    menu.addEventListener("toggle", function () {
+      if (!menu.open) return;
+      all(".knowledge-state-menu, .knowledge-batch-menu").forEach(function (other) {
+        if (other !== menu) other.removeAttribute("open");
+      });
+    });
+  }
+
+  function renderKnowledgeState() {
+    knowledgeItems().forEach(function (item) {
+      const state = item.getAttribute("data-state") || "pending";
+      const status = one("[data-knowledge-status]", item);
+      const stateMenu = one(".knowledge-state-menu", item);
+      const confirmButton = one('[data-knowledge-action="confirm"]', item);
+      const cancelButton = one('[data-knowledge-action="cancel"]', item);
+      if (state === "confirmed") {
+        status.textContent = "已确认";
+      } else if (state === "canceled") {
+        status.textContent = "已取消";
+      } else {
+        status.textContent = "待确认";
+      }
+      stateMenu.className = "knowledge-state-menu state-" + state + (archiveCompleted ? " locked" : "");
+      if (archiveCompleted) stateMenu.removeAttribute("open");
+      confirmButton.disabled = archiveCompleted || state === "confirmed";
+      cancelButton.disabled = archiveCompleted || state === "canceled";
+    });
+
+    const counts = knowledgeCounts();
+    const summary = one("#knowledgeArchiveState");
+    if (archiveCompleted) {
+      summary.className = counts.confirmed ? "status-tag green" : "status-tag gray";
+      summary.textContent = counts.confirmed ? counts.confirmed + " 项已沉淀" : "未沉淀";
+    } else if (counts.pending) {
+      summary.className = "status-tag orange";
+      summary.textContent = counts.pending + " 项待确认";
+    } else if (counts.confirmed === counts.total) {
+      summary.className = "status-tag green";
+      summary.textContent = counts.total + " 项已确认";
+    } else if (counts.canceled === counts.total) {
+      summary.className = "status-tag gray";
+      summary.textContent = "全部已取消";
+    } else {
+      summary.className = "status-tag blue";
+      summary.textContent = "确认 " + counts.confirmed + " · 取消 " + counts.canceled;
+    }
+
+    all("[data-knowledge-batch]").forEach(function (button) {
+      const state = button.getAttribute("data-knowledge-batch");
+      button.disabled = archiveCompleted || counts[state] === counts.total;
+    });
+    all(".knowledge-batch-menu").forEach(function (batchMenu) {
+      batchMenu.classList.toggle("locked", archiveCompleted);
+      if (archiveCompleted) batchMenu.removeAttribute("open");
+    });
+    return counts;
+  }
+
+  function setKnowledgeState(item, state) {
+    item.setAttribute("data-state", state);
+    const counts = renderKnowledgeState();
+    if (one("#deliveryArchiveConfirmModal").classList.contains("open")) renderArchiveConfirmState(counts);
+  }
+
+  function setAllKnowledgeState(state) {
+    knowledgeItems().forEach(function (item) { item.setAttribute("data-state", state); });
+    const counts = renderKnowledgeState();
+    if (one("#deliveryArchiveConfirmModal").classList.contains("open")) renderArchiveConfirmState(counts);
+  }
+
+  function renderArchiveConfirmKnowledgeList() {
+    const list = one("#archiveConfirmKnowledgeList");
+    if (!list) return;
+    const stateMeta = {
+      pending: { label: "待确认" },
+      confirmed: { label: "已确认" },
+      canceled: { label: "已取消" }
+    };
+    list.innerHTML = knowledgeItems().map(function (item, index) {
+      const state = item.getAttribute("data-state") || "pending";
+      const meta = stateMeta[state];
+      const name = one("strong", item).textContent;
+      const description = one("small", item).textContent;
+      const icon = window.BiddingFileIcons.markup(name, "compact-file-icon");
+      return '<div data-state="' + state + '">' + icon + '<div><strong>' + escapeHtml(name) + '</strong><small>' + escapeHtml(description) + '</small></div><details class="knowledge-state-menu state-' + state + '" name="knowledge-action-menu"><summary><span class="knowledge-state-dot"></span><span>' + meta.label + '</span><svg class="menu-chevron" viewBox="0 0 24 24"><path d="m8 10 4 4 4-4"/></svg></summary><div class="knowledge-menu-popover"><button type="button" data-modal-knowledge-action="confirm" data-knowledge-index="' + index + '"' + (state === "confirmed" ? " disabled" : "") + '><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg><span>确认沉淀</span></button><button type="button" data-modal-knowledge-action="cancel" data-knowledge-index="' + index + '"' + (state === "canceled" ? " disabled" : "") + '><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg><span>取消沉淀</span></button></div></details></div>';
+    }).join("");
+    all(".knowledge-state-menu", list).forEach(bindKnowledgeMenu);
+  }
+
+  function renderArchiveConfirmState(counts) {
+    const alert = one("#archiveConfirmAlert");
+    const title = one("#archiveConfirmAlertTitle");
+    const text = one("#archiveConfirmAlertText");
+    const countText = one("#archiveConfirmKnowledgeCount");
+    const submit = one("#submitDeliveryArchive");
+    const countParts = [];
+    if (counts.confirmed) countParts.push(counts.confirmed + " 已确认");
+    if (counts.pending) countParts.push(counts.pending + " 待确认");
+    if (counts.canceled) countParts.push(counts.canceled + " 已取消");
+    countText.className = "status-tag " + (counts.pending ? "orange" : counts.confirmed ? "green" : "gray");
+    countText.textContent = countParts.join(" · ");
+    renderArchiveConfirmKnowledgeList();
+
+    if (counts.pending) {
+      alert.className = "info-alert warning";
+      title.textContent = "知识待沉淀内容尚未全部确认";
+      text.textContent = "当前仍有 " + counts.pending + " 项待确认，请在下方列表中选择确认或取消。";
+      submit.disabled = true;
+      one("span:last-child", submit).textContent = "请先处理 " + counts.pending + " 项";
+    } else {
+      alert.className = "info-alert";
+      title.textContent = "知识沉淀范围已确认";
+      text.textContent = counts.confirmed + " 项内容将沉淀至知识库，" + counts.canceled + " 项内容不沉淀。";
+      submit.disabled = false;
+      one("span:last-child", submit).textContent = "确认归档";
+    }
+  }
+
+  function openArchiveConfirm() {
+    const counts = renderKnowledgeState();
+    renderArchiveConfirmState(counts);
+    if (window.projectPrototype) window.projectPrototype.openLayer("deliveryArchiveConfirmModal");
+  }
+
+  function completeDeliveryArchive() {
+    const beforeArchive = knowledgeCounts();
+    if (beforeArchive.pending) {
+      renderArchiveConfirmState(beforeArchive);
+      return;
+    }
+    archiveCompleted = true;
+    const counts = renderKnowledgeState();
+    const archiveTag = one("#autoArchiveTag");
+    const archiveDescription = one("#autoArchiveDescription");
+    const ledgerState = one("#ledgerArchiveState");
+    if (archiveTag) {
+      archiveTag.className = "status-tag green";
+      archiveTag.textContent = "已完成归档";
+    }
+    if (archiveDescription) archiveDescription.textContent = "投标台账已完成归档，" + counts.confirmed + " 项知识内容已沉淀" + (counts.canceled ? "，" + counts.canceled + " 项未沉淀。" : "。");
+    if (ledgerState) {
+      ledgerState.className = "status-tag green";
+      ledgerState.textContent = "已归档";
+    }
+    const archiveButton = one("#confirmDeliveryArchive");
+    if (archiveButton) {
+      archiveButton.disabled = true;
+      one("span:last-child", archiveButton).textContent = "已完成归档";
+    }
+    saveProject({ stage: "交付归档", stageDetail: "已完成交付并归档", progress: 100, status: "archived", deadlineText: "已完成交付" });
+    upsertLedgerRecord();
+    if (window.projectPrototype) window.projectPrototype.closeLayers();
+    toast("交付归档已完成，台账记录和知识内容已按确认结果更新", "success");
+  }
+
+  function init() {
+    renderKnowledgeState();
+    all(".knowledge-state-menu, .knowledge-batch-menu").forEach(bindKnowledgeMenu);
+    document.addEventListener("click", function (event) {
+      if (event.target.closest(".knowledge-state-menu, .knowledge-batch-menu")) return;
+      all(".knowledge-state-menu, .knowledge-batch-menu").forEach(function (menu) { menu.removeAttribute("open"); });
+    });
+    const list = one(".archive-knowledge-list");
+    if (list) {
+      list.addEventListener("click", function (event) {
+        const button = event.target.closest("[data-knowledge-action]");
+        if (!button || button.disabled) return;
+        const item = button.closest("[data-knowledge-item]");
+        const state = button.getAttribute("data-knowledge-action") === "confirm" ? "confirmed" : "canceled";
+        setKnowledgeState(item, state);
+        const menu = button.closest("details");
+        if (menu) menu.removeAttribute("open");
+      });
+    }
+    const modalList = one("#archiveConfirmKnowledgeList");
+    if (modalList) {
+      modalList.addEventListener("click", function (event) {
+        const button = event.target.closest("[data-modal-knowledge-action]");
+        if (!button || button.disabled) return;
+        const item = knowledgeItems()[Number(button.getAttribute("data-knowledge-index"))];
+        if (!item) return;
+        const state = button.getAttribute("data-modal-knowledge-action") === "confirm" ? "confirmed" : "canceled";
+        setKnowledgeState(item, state);
+      });
+    }
+    all("[data-knowledge-batch]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        if (button.disabled) return;
+        setAllKnowledgeState(button.getAttribute("data-knowledge-batch"));
+        const menu = button.closest("details");
+        if (menu) menu.removeAttribute("open");
+      });
+    });
+    one("#confirmDeliveryArchive").addEventListener("click", openArchiveConfirm);
+    one("#submitDeliveryArchive").addEventListener("click", completeDeliveryArchive);
+  }
+
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
+  else init();
+})();

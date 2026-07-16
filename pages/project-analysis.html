@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>解析结果 - 投标助手</title>
+  <link rel="stylesheet" href="../assets/css/theme.css" />
+  <link rel="stylesheet" href="../assets/css/layout.css" />
+  <link rel="stylesheet" href="../assets/css/projects.css" />
+</head>
+<body class="app-page project-module-page" data-page="projects" data-project-section="analysis">
+  <div id="appHeader"></div>
+  <main class="app-main project-workspace-main">
+    <div id="projectWorkspaceHeader"></div>
+    <section class="workspace-content">
+      <header class="content-heading">
+        <div>
+          <h2>解析结果</h2>
+          <p>AI 已完成招标解析、投标研判、响应策划和知识匹配，请确认综合结论后生成投标文件。</p>
+        </div>
+        <div class="heading-actions">
+          <button class="secondary-btn score-forecast-trigger" id="rerunScoreForecast" type="button" data-open-layer="confirmScoreForecastModal" disabled title="完成投标事项处理后可重新预测评分">
+            <span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M18.2 9A7 7 0 0 0 6.1 6.6L4 9M5.8 15A7 7 0 0 0 17.9 17.4L20 15"/></svg></span>
+            <span>重新预测评分</span>
+          </button>
+          <button class="primary-btn" type="button" data-open-layer="confirmGenerateModal">
+            <span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M12 3 9.8 8.8 4 11l5.8 2.2L12 19l2.2-5.8L20 11l-5.8-2.2L12 3z"/><path d="M18 15v6M15 18h6"/></svg></span>
+            <span>确认并生成投标文件</span>
+          </button>
+        </div>
+      </header>
+
+      <section class="parse-status-card card score-forecast-status-card hidden" id="scoreForecastStatusCard" aria-live="polite">
+        <div class="parse-status-summary">
+          <span class="parse-status-icon" id="scoreForecastStatusIcon"><svg viewBox="0 0 24 24"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M18.2 9A7 7 0 0 0 6.1 6.6L4 9M5.8 15A7 7 0 0 0 17.9 17.4L20 15"/></svg></span>
+          <div class="parse-status-copy"><strong id="scoreForecastStatusTitle">正在重新预测评分</strong><span id="scoreForecastStatusDescription">正在读取最新处理说明和附件，重新核验投标事项状态。</span></div>
+          <div class="parse-status-actions"><span class="status-tag blue" id="scoreForecastStatusTag">预测中 0%</span><button class="secondary-btn compact-btn" id="toggleScoreForecastDetails" type="button" aria-expanded="false" aria-controls="scoreForecastStatusDetails"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></span><span>展开详情</span></button></div>
+        </div>
+        <div class="parse-status-details" id="scoreForecastStatusDetails" hidden>
+          <div class="parse-detail-metrics" aria-label="重新预测评分指标">
+            <div class="parse-detail-metric"><span>事项复核</span><strong id="scoreForecastMatterProgress">0 / 93</strong><small>正在核验处理结果和事项状态</small></div>
+            <div class="parse-detail-metric"><span>知识材料</span><strong id="scoreForecastKnowledgeProgress">0 / 21</strong><small>重新匹配知识库和补充附件</small></div>
+            <div class="parse-detail-metric"><span>评分因素</span><strong id="scoreForecastFactorProgress">0 / 7</strong><small>按最新材料重新计算预测得分</small></div>
+            <div class="parse-detail-metric"><span>任务进度</span><strong id="scoreForecastTimeProgress">预计约 8 秒</strong><small>任务在当前页面持续执行</small></div>
+          </div>
+          <div class="parse-detail-grid">
+            <div>
+              <h3>预测步骤</h3>
+              <div class="parse-step-list">
+                <div class="parse-step-row current" data-score-forecast-step="1"><span class="parse-step-index">1</span><div><strong>核验最新处理结果</strong><span>读取处理说明和补充附件，确认参与本次预测的数据</span></div><span class="status-tag blue parse-step-status">进行中</span></div>
+                <div class="parse-step-row" data-score-forecast-step="2"><span class="parse-step-index">2</span><div><strong>重新匹配知识材料</strong><span>结合招标要求，核验知识库和项目补充材料</span></div><span class="status-tag gray parse-step-status">等待中</span></div>
+                <div class="parse-step-row" data-score-forecast-step="3"><span class="parse-step-index">3</span><div><strong>重新计算预测得分</strong><span>更新商务、技术和报价评分及关键影响因素</span></div><span class="status-tag gray parse-step-status">等待中</span></div>
+                <div class="parse-step-row" data-score-forecast-step="4"><span class="parse-step-index">4</span><div><strong>刷新综合投标结论</strong><span>同步准备度、预测总分和综合建议</span></div><span class="status-tag gray parse-step-status">等待中</span></div>
+              </div>
+            </div>
+            <div>
+              <h3>任务进展</h3>
+              <div class="parse-task-list">
+                <div class="parse-task-row"><div><strong>处理记录与附件核验</strong><span id="scoreForecastProcessTaskText">正在读取最新处理记录</span></div><span class="status-tag blue" id="scoreForecastProcessTaskStatus">进行中</span></div>
+                <div class="parse-task-row"><div><strong>知识材料重新匹配</strong><span id="scoreForecastKnowledgeTaskText">等待处理记录核验完成</span></div><span class="status-tag gray" id="scoreForecastKnowledgeTaskStatus">等待中</span></div>
+                <div class="parse-task-row"><div><strong>评分与结论刷新</strong><span id="scoreForecastResultTaskText">等待知识匹配完成</span></div><span class="status-tag gray" id="scoreForecastResultTaskStatus">等待中</span></div>
+              </div>
+              <div class="parse-complete-note hidden" id="scoreForecastCompleteNote"><span>完成时间</span><strong id="scoreForecastCompletedAt">—</strong><small>最新处理结果已纳入评分预测，页面指标已完成刷新</small></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="result-hero card">
+        <div class="result-recommendation">
+          <span class="result-ai-mark"><svg viewBox="0 0 24 24"><path d="M12 3 9.8 8.8 4 11l5.8 2.2L12 19l2.2-5.8L20 11l-5.8-2.2L12 3z"/></svg></span>
+          <div>
+            <span class="result-eyebrow">AI 综合投标结论</span>
+            <div class="result-title-line"><strong>建议投标</strong><span class="status-tag green">综合可行</span></div>
+            <p id="resultRecommendationText">资格条件已满足，建议继续投标并进入合规整改。当前重点是修正 P1-P4 服务响应偏差、补充人员评分材料，并核实技术标中的量化指标与强承诺。</p>
+            <div class="result-evidence-line"><span>已解析 34 页</span><i></i><span>识别 93 项要求</span><i></i><span>匹配 21 份知识材料</span><i></i><span>拆解 7 项评分因素</span></div>
+          </div>
+        </div>
+        <div class="forecast-score forecast-score-compact">
+          <div class="forecast-primary"><span>投标预估分</span><strong><span id="resultForecastScore">84</span><em>分</em></strong></div>
+          <div class="forecast-quick-list">
+            <div><span>满分基准</span><strong>100 分</strong></div>
+            <div><span>资格条件</span><strong class="green-text">满足</strong></div>
+            <div><span>评分口径</span><strong>已含商务、技术与报价</strong></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="result-overview-grid">
+        <article class="content-card card">
+          <header class="panel-heading"><div><h3>项目核心信息</h3><p>信息均来自招标文件，点击来源可回看原文。</p></div><span class="status-tag green">已识别</span></header>
+          <div class="result-project-facts">
+            <div><span>采购人</span><strong>某港口集团有限公司</strong></div>
+            <div class="key-project-fact"><span>最高限价</span><strong class="amount-text">60 万元（含税）</strong></div>
+            <div class="key-project-fact deadline-project-fact"><span>投标截止</span><strong>2026-07-20 09:30</strong></div>
+            <div><span>服务期限</span><strong>365 日历日</strong></div>
+            <div class="key-project-fact"><span>评标方式</span><strong>综合评分法</strong></div>
+            <div><span>付款方式</span><strong>按季度验收支付 25%</strong></div>
+            <div><span>合同签约方</span><strong>某港口数字科技有限公司</strong></div>
+            <div class="key-project-fact"><span>响应报价</span><strong class="amount-text">597,600 元（含税 6%）</strong></div>
+            <div><span>服务范围</span><strong>20 类运维服务 · 7×24 支持</strong></div>
+            <div><span>人员要求</span><strong>不少于 2 名技术人员</strong></div>
+            <div><span>培训与巡检</span><strong>每年不少于 4 次培训 · 按季度巡检</strong></div>
+            <div><span>投标有效期</span><strong>自投标截止之日起 90 日历日</strong></div>
+          </div>
+        </article>
+
+        <article class="content-card card">
+          <header class="panel-heading"><div><h3>投标准备度</h3><p>反映材料、能力与评分依据的覆盖情况。</p></div><span class="status-tag orange">4 项需关注</span></header>
+          <div class="readiness-list">
+            <div class="readiness-row"><span>资格与否决项</span><div class="readiness-track"><b style="width:100%"></b></div><strong>100%</strong></div>
+            <div class="readiness-row"><span>商务评分材料</span><div class="readiness-track"><b id="businessReadinessTrack" style="width:60%"></b></div><strong id="businessReadinessValue">60%</strong></div>
+            <div class="readiness-row"><span>技术方案能力</span><div class="readiness-track"><b style="width:78%"></b></div><strong>78%</strong></div>
+            <div class="readiness-row"><span>知识材料覆盖</span><div class="readiness-track"><b style="width:83.9%"></b></div><strong>83.9%</strong></div>
+          </div>
+          <div class="readiness-score-panel">
+            <div class="readiness-score-head">
+              <div><strong>评分构成与关键影响因素</strong><span>预估总分已综合商务、技术和报价评分。</span></div>
+              <span class="forecast-note"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>仅供投标决策参考</span>
+            </div>
+            <div class="readiness-score-content">
+              <div class="score-weight-summary" aria-label="评分构成及预测得分">
+                <div><span>商务评分</span><strong><em id="businessForecastScore">预测 6 分</em><small>满分 10 分</small></strong></div>
+                <div><span>技术评分</span><strong><em>预测 20 分</em><small>满分 30 分</small></strong></div>
+                <div><span>报价评分</span><strong><em>预测 58 分</em><small>满分 60 分</small></strong></div>
+              </div>
+              <div class="readiness-factor-list" aria-label="关键影响因素">
+                <span class="positive"><i>+</i><em>3 份同类运维业绩合同可见</em></span>
+                <span class="positive"><i>+</i><em>ISO 9001、27001、20000 证书可见</em></span>
+                <span class="negative" id="personMaterialFactor"><i>−</i><em>项目人员证书及近三个月社保未见</em></span>
+                <span class="negative"><i>−</i><em>ITSS、CMMI 与部分强承诺依据未见</em></span>
+              </div>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <section class="content-card card bid-matters-card">
+        <header class="panel-heading">
+          <div><h3>全部投标事项</h3><p>AI 已完成要求识别、响应策略和知识材料匹配，后续将自动写入投标文件。</p></div>
+        </header>
+        <div class="result-filter-tabs" aria-label="投标事项分类">
+          <button class="filter-tab active" type="button" data-result-filter="all">全部事项 <b>93</b></button>
+          <button class="filter-tab" type="button" data-result-filter="qualification">资格与否决项 <b>1</b></button>
+          <button class="filter-tab" type="button" data-result-filter="score">评分项 <b>7</b></button>
+          <button class="filter-tab" type="button" data-result-filter="business">商务要求 <b>14</b></button>
+          <button class="filter-tab" type="button" data-result-filter="technical">技术要求 <b>62</b></button>
+          <button class="filter-tab" type="button" data-result-filter="delivery">文件与交付 <b>9</b></button>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table result-matters-table">
+            <colgroup><col style="width:15%"/><col style="width:22%"/><col style="width:25%"/><col style="width:11%"/><col style="width:16%"/><col style="width:11%"/></colgroup>
+            <thead><tr><th>事项</th><th>招标要求</th><th>AI响应与知识依据</th><th>当前状态</th><th>数据来源</th><th>操作</th></tr></thead>
+            <tbody id="resultMatterBody">
+              <tr data-result-category="qualification"><td><span class="matrix-type qualification"><i></i>资格硬门槛</span><strong class="matter-code">ZG-001</strong></td><td>供应商须具备独立法人资格并提供有效营业执照。</td><td><span class="matter-strategy">商务标已包含营业执照，资格条件满足。</span><small>供应商证明材料 · 已核验</small></td><td><span class="status-tag green">已满足</span></td><td><button class="source-location result-source-btn" type="button" data-open-layer="resultSourceDrawer" data-source="采购文件 · 第11页 · 资格条件" data-file="采购文件.doc" data-page="11" data-section="资格条件" data-title="供应商主体资格" data-original="供应商须是在中华人民共和国境内注册的独立法人，具有有效营业执照。"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6zM14 3v5h5"/></svg><span>采购文件 · 第11页</span></button></td></tr>
+              <tr data-result-category="score"><td><span class="matrix-type score"><i></i>技术评分 9分</span><strong class="matter-code">PF-001</strong></td><td>从技术栈、架构、角色和业务流程等方面说明系统理解。</td><td><span class="matter-strategy">知识库暂无完整方案，AI 可结合招标要求策划系统理解章节。</span><small>未匹配知识材料 · AI 可处理</small></td><td><span class="status-tag blue">AI策划</span></td><td><button class="source-location result-source-btn" type="button" data-open-layer="resultSourceDrawer" data-source="采购文件 · 第12页 · 技术评分" data-file="采购文件.doc" data-page="12" data-section="技术评分" data-title="系统理解评分" data-original="根据供应商对现有系统技术栈、架构、角色、业务流程及运维难点的理解情况进行评分，最高9分。"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6zM14 3v5h5"/></svg><span>采购文件 · 第12页</span></button></td></tr>
+              <tr data-result-category="score"><td><span class="matrix-type score"><i></i>技术评分 9分</span><strong class="matter-code">PF-002</strong></td><td>运维方案应覆盖日常运维、迭代发布、测试和应急保障。</td><td><span class="matter-strategy">未匹配完整运维方案，AI 可按评分标准策划并补齐内容。</span><small>未匹配知识材料 · AI 可处理</small></td><td><span class="status-tag blue">AI策划</span></td><td><button class="source-location result-source-btn" type="button" data-open-layer="resultSourceDrawer" data-source="采购文件 · 第13页 · 技术评分" data-file="采购文件.doc" data-page="13" data-section="技术评分" data-title="运维方案评分" data-original="根据日常运维、迭代优化、发布测试、故障应急及高可用保障方案的完整性和可行性进行评分，最高9分。"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6zM14 3v5h5"/></svg><span>采购文件 · 第13页</span></button></td></tr>
+              <tr data-result-category="score"><td><span class="matrix-type score"><i></i>技术评分 5分</span><strong class="matter-code">PF-004</strong></td><td>项目负责人和实施人员须提供相关证书及近三个月社保证明。</td><td><span class="matter-strategy">知识库未找到人员证书及社保证明，AI 无法代替真实材料。</span><small>人员资质材料 · 缺失</small></td><td><span class="status-tag red">不满足</span></td><td><button class="source-location result-source-btn" type="button" data-open-layer="resultSourceDrawer" data-source="采购文件 · 第13页 · 人员评分" data-file="采购文件.doc" data-page="13" data-section="人员评分" data-title="项目人员评分" data-original="拟投入项目负责人和实施人员具备相关证书并提供近三个月社保证明的，按评分标准计分，最高5分。"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6zM14 3v5h5"/></svg><span>采购文件 · 第13页</span></button></td></tr>
+              <tr data-result-category="score"><td><span class="matrix-type score"><i></i>商务评分 5分</span><strong class="matter-code">PF-005</strong></td><td>提供同类运维项目业绩，每项计分，最高 5 分。</td><td><span class="matter-strategy">知识库已匹配 3 份同类运维项目合同，材料有效。</span><small>同类项目业绩 · 3 份 · 已核验</small></td><td><span class="status-tag green">已满足</span></td><td><button class="source-location result-source-btn" type="button" data-open-layer="resultSourceDrawer" data-source="采购文件 · 第13页 · 商务评分" data-file="采购文件.doc" data-page="13" data-section="商务评分" data-title="同类项目业绩" data-original="供应商提供同类信息系统运维项目业绩，每提供1项有效业绩得1分，最高得5分。"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6zM14 3v5h5"/></svg><span>采购文件 · 第13页</span></button></td></tr>
+              <tr data-result-category="business"><td><span class="matrix-type score"><i></i>商务评分 5分</span><strong class="matter-code">PF-006</strong></td><td>提供质量、信息安全、IT 服务等体系或能力认证。</td><td><span class="matter-strategy">ISO 证书已匹配；ITSS、CMMI 资质缺失，AI 无法生成。</span><small>企业资质材料 · 部分缺失</small></td><td><span class="status-tag red">不满足</span></td><td><button class="source-location result-source-btn" type="button" data-open-layer="resultSourceDrawer" data-source="采购文件 · 第14页 · 商务评分" data-file="采购文件.doc" data-page="14" data-section="商务评分" data-title="企业认证评分" data-original="供应商具备相关管理体系认证或能力成熟度证明的，按评分标准计分，最高5分。"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6zM14 3v5h5"/></svg><span>采购文件 · 第14页</span></button></td></tr>
+              <tr data-result-category="technical"><td><span class="matrix-type general"><i></i>技术要求</span><strong class="matter-code">JS-031</strong></td><td>P1-P4 响应时效分别为 15 分钟、30 分钟、1 小时、2 小时。</td><td><span class="matter-strategy">知识库未匹配响应矩阵，AI 可按采购原文策划并修正表述。</span><small>未匹配知识材料 · AI 可处理</small></td><td><span class="status-tag blue">AI策划</span></td><td><button class="source-location result-source-btn" type="button" data-open-layer="resultSourceDrawer" data-source="采购文件 · 第9页 · 服务响应" data-file="采购文件.doc" data-page="9" data-section="服务响应" data-title="故障分级响应时效" data-original="P1级故障15分钟响应，P2级故障30分钟响应，P3级故障1小时响应，P4级故障2小时响应。"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6zM14 3v5h5"/></svg><span>采购文件 · 第9页</span></button></td></tr>
+              <tr data-result-category="delivery"><td><span class="matrix-type general"><i></i>文件与交付</span><strong class="matter-code">GS-006</strong></td><td>P1、P2 故障处理完成后 3 日内提交事件报告。</td><td><span class="matter-strategy">知识库已匹配月报与重大事件报告模板，可直接引用。</span><small>运维报告模板 · 已匹配</small></td><td><span class="status-tag green">已满足</span></td><td><button class="source-location result-source-btn" type="button" data-open-layer="resultSourceDrawer" data-source="采购文件 · 第10页 · 服务交付" data-file="采购文件.doc" data-page="10" data-section="服务交付" data-title="重大故障事件报告" data-original="P1、P2级故障处理完成后，供应商应在3日内提交完整事件分析及改进报告。"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6zM14 3v5h5"/></svg><span>采购文件 · 第10页</span></button></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <footer class="matter-pagination">
+          <div class="matter-page-summary">共 <strong id="resultMatterTotal">93</strong> 条投标事项</div>
+          <div class="matter-page-controls">
+            <label class="matter-page-size"><span>每页</span><select id="resultMatterPageSize" aria-label="设置每页投标事项数量"><option value="10" selected>10</option><option value="20">20</option><option value="50">50</option></select><span>条</span></label>
+            <button class="page-nav-btn" id="resultMatterPrev" type="button"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg><span>上一页</span></button>
+            <div class="matter-page-numbers" id="resultMatterPageNumbers" aria-label="投标事项分页"></div>
+            <button class="page-nav-btn" id="resultMatterNext" type="button"><span>下一页</span><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></button>
+          </div>
+        </footer>
+      </section>
+    </section>
+  </main>
+
+  <aside class="side-drawer result-source-drawer" id="resultSourceDrawer" aria-hidden="true" aria-label="招标条款原文">
+    <header class="layer-head"><div><h3>招标条款原文</h3><p id="resultSourceLocation">采购文件 · 第11页 · 资格条件</p></div><button class="layer-close" type="button" data-close-layer aria-label="关闭"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button></header>
+    <div class="layer-body">
+      <div class="result-source-clause-head"><div><span>当前条款</span><strong id="resultSourceTitle">供应商主体资格</strong></div><span class="status-tag blue">AI 已定位</span></div>
+      <div class="source-meta-grid result-source-meta"><div class="source-meta-item"><span>来源文件</span><strong id="resultSourceFile">采购文件.doc</strong></div><div class="source-meta-item"><span>页码与章节</span><strong id="resultSourcePageSection">第11页 · 资格条件</strong></div><div class="source-meta-item"><span>OCR 置信度</span><strong>98% · 可回溯</strong></div></div>
+      <div class="detail-section result-source-section"><h4>条款文字</h4><div class="source-quote" id="resultSourceOriginal">供应商须是在中华人民共和国境内注册的独立法人，具有有效营业执照。</div></div>
+      <div class="detail-section result-source-section">
+        <div class="result-source-preview-head"><h4>原文页截图</h4><span>蓝色区域为 AI 定位条款</span></div>
+        <div class="result-source-preview">
+          <div class="result-source-preview-toolbar"><div><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6zM14 3v5h5M9 13h6M9 17h4"/></svg><strong id="resultSourcePreviewFile">采购文件.doc</strong></div><span id="resultSourcePageBadge">第11页</span></div>
+          <figure class="result-source-screenshot" id="resultSourceScreenshot" role="img" aria-label="采购文件第11页原文截图，已高亮供应商主体资格条款">
+            <div class="result-source-paper">
+              <div class="result-source-paper-brand">某港口集团 2026 年度采购文件</div>
+              <h5 id="resultSourceScreenshotSection">第三章 资格条件</h5>
+              <p>供应商应认真阅读采购文件全部内容，并根据项目实际情况提交完整、真实、有效的响应材料。</p>
+              <p class="result-source-highlight"><span id="resultSourceScreenshotOriginal">供应商须是在中华人民共和国境内注册的独立法人，具有有效营业执照。</span><i>AI 条款定位</i></p>
+              <p>响应文件所提供的证明材料应清晰可辨；如材料存在有效期要求，应在投标截止时间保持有效。</p>
+              <div class="result-source-paper-lines" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+              <footer><span>采购文件.doc</span><strong id="resultSourceScreenshotPage">— 11 —</strong></footer>
+            </div>
+          </figure>
+        </div>
+      </div>
+      <div class="info-alert"><svg viewBox="0 0 24 24"><path d="M12 3 9.8 8.8 4 11l5.8 2.2L12 19l2.2-5.8L20 11l-5.8-2.2L12 3z"/></svg><div><strong>AI 后续处理</strong><span>该事项已关联至标书章节、知识材料和质量审核规则，生成过程中将自动持续校验。</span></div></div>
+    </div>
+  </aside>
+
+  <section class="prototype-modal result-process-modal" id="resultProcessModal" aria-hidden="true" aria-label="处理投标事项">
+    <header class="layer-head"><div><h3>处理投标事项</h3><p>补充说明或上传真实材料，保存后将重新判断当前事项状态。</p></div><button class="layer-close" type="button" data-close-layer aria-label="关闭"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button></header>
+    <div class="layer-body">
+      <div class="result-process-context"><div><span id="resultProcessCode">PF-004</span><strong id="resultProcessTitle">项目人员评分</strong><small id="resultProcessRequirement">项目负责人和实施人员须提供相关证书及近三个月社保证明。</small></div><span class="status-tag red" id="resultProcessStatus">不满足</span></div>
+      <div class="form-field result-process-field"><label for="resultProcessNote"><em>*</em>处理说明</label><textarea class="form-textarea" id="resultProcessNote" maxlength="500" placeholder="请说明补充材料、处理方式或需要 AI 调整的内容"></textarea><div class="result-process-field-help"><span>处理说明仅用于当前投标项目</span><span id="resultProcessNoteCount">0 / 500</span></div></div>
+      <div class="form-field result-process-field"><label for="resultProcessFileInput">附件</label><input class="visually-hidden" id="resultProcessFileInput" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png" multiple /><label class="result-process-upload" for="resultProcessFileInput"><span><svg viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 15v5h16v-5"/></svg></span><div><strong>点击上传附件</strong><small>支持 PDF、Word、Excel、JPG、PNG，可上传多个文件</small></div></label><div class="result-process-attachments" id="resultProcessAttachments" aria-live="polite" hidden></div></div>
+      <div class="info-alert warning result-process-alert" id="resultProcessAlert"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg><div><strong>真实材料不能由 AI 生成</strong><span>资质证书、人员证书、社保和业绩证明等事项，需要上传有效附件后才能重新判断为“已满足”。</span></div></div>
+    </div>
+    <footer class="layer-footer"><button class="ghost-btn" type="button" data-close-layer><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></span><span>取消</span></button><button class="primary-btn" id="saveResultProcess" type="button"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg></span><span>保存处理</span></button></footer>
+  </section>
+
+  <section class="prototype-modal" id="confirmScoreForecastModal" aria-hidden="true" aria-label="确认重新预测评分">
+    <header class="layer-head"><div><h3>确认重新预测评分</h3><p>系统将基于最新处理说明、补充附件和知识匹配结果重新计算。</p></div><button class="layer-close" type="button" data-close-layer aria-label="关闭"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button></header>
+    <div class="layer-body">
+      <div class="generate-summary"><span class="generate-summary-icon"><svg viewBox="0 0 24 24"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M18.2 9A7 7 0 0 0 6.1 6.6L4 9M5.8 15A7 7 0 0 0 17.9 17.4L20 15"/></svg></span><div><strong>重新核验 93 条投标事项</strong><span>将复核事项状态、知识依据、补充附件和 7 项评分因素。</span></div></div>
+      <div class="info-alert warning"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg><div><strong>预测结果将覆盖当前页面数据</strong><span>预测完成后会更新总分、评分构成、投标准备度、关键影响因素和综合投标结论。</span></div></div>
+    </div>
+    <footer class="layer-footer"><button class="ghost-btn" type="button" data-close-layer><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></span><span>取消</span></button><button class="primary-btn" id="confirmScoreForecast" type="button"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg></span><span>确认重新预测</span></button></footer>
+  </section>
+
+  <section class="prototype-modal" id="confirmGenerateModal" aria-hidden="true" aria-label="确认生成投标文件">
+    <header class="layer-head"><div><h3>确认生成投标文件</h3><p>确认后 AI 将基于本次解析结果和企业知识库自动完成标书编制。</p></div><button class="layer-close" type="button" data-close-layer aria-label="关闭"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button></header>
+    <div class="layer-body">
+      <div class="generate-summary"><span class="generate-summary-icon"><svg viewBox="0 0 24 24"><path d="M12 3 9.8 8.8 4 11l5.8 2.2L12 19l2.2-5.8L20 11l-5.8-2.2L12 3z"/></svg></span><div><strong>导入并优化 96 页响应文件</strong><span>技术标 73 页、商务标 23 页，将按 93 条采购要求建立响应关联。</span></div></div>
+      <div class="info-alert warning"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg><div><strong>AI 不会虚构企业事实或关键承诺</strong><span>人员材料、报价、响应偏差和量化承诺等缺失内容会保留明确标记，供生成过程或最终审核时确认。</span></div></div>
+    </div>
+    <footer class="layer-footer"><button class="ghost-btn" type="button" data-close-layer><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></span><span>取消</span></button><button class="primary-btn" id="confirmGenerateBid" type="button"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M12 3 9.8 8.8 4 11l5.8 2.2L12 19l2.2-5.8L20 11l-5.8-2.2L12 3z"/></svg></span><span>开始生成投标文件</span></button></footer>
+  </section>
+
+  <script src="../assets/js/common.js"></script>
+  <script src="../assets/js/project-data.js"></script>
+  <script src="../assets/js/project-common.js"></script>
+  <script src="../assets/js/project-detail.js"></script>
+</body>
+</html>

@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>人员档案 - 投标助手</title>
+  <link rel="stylesheet" href="../assets/css/theme.css" />
+  <link rel="stylesheet" href="../assets/css/layout.css" />
+  <link rel="stylesheet" href="../assets/css/knowledge.css" />
+</head>
+<body class="app-page knowledge-module-page" data-page="knowledge" data-knowledge-section="people">
+  <div id="appHeader"></div>
+
+  <main class="app-main">
+    <div class="page-breadcrumb"><span>投标助手</span><span>/</span><a href="knowledge.html">知识库</a><span>/</span><strong>人员档案</strong></div>
+    <header class="knowledge-module-heading">
+      <div>
+        <h1>人员档案</h1>
+        <p>先新增或批量导入人员，再批量上传证书与资质资料，由 AI 自动解析并关联人员。</p>
+      </div>
+      <div class="knowledge-heading-actions">
+        <button class="secondary-btn" type="button" data-import-people="true">
+          <span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6zM14 3v5h5"/><path d="M9 13h6M9 17h6"/></svg></span>
+          <span>导入人员名单</span>
+        </button>
+        <button class="secondary-btn" type="button" data-import-credentials="true">
+          <span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M12 3 4 7v5c0 5 3.4 8.3 8 9 4.6-.7 8-4 8-9V7l-8-4z"/><path d="m9 12 2 2 4-5"/></svg></span>
+          <span>批量导入资质</span>
+        </button>
+        <button class="primary-btn" type="button" data-create-person="true">
+          <span class="btn-icon"><svg viewBox="0 0 24 24"><circle cx="10" cy="8" r="3"/><path d="M4 20c0-3.5 2.7-6 6-6 1.3 0 2.5.4 3.5 1.1M18 13v6M15 16h6"/></svg></span>
+          <span>新增人员</span>
+        </button>
+      </div>
+    </header>
+
+    <section class="knowledge-metrics" aria-label="人员档案概览">
+      <article class="knowledge-metric card">
+        <span class="knowledge-metric-icon"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.5 2.7-6 6-6s6 2.5 6 6M17 6a3 3 0 0 1 0 6M17 15c2.5.5 4 2.4 4 5"/></svg></span>
+        <div class="knowledge-metric-copy"><span>在库人员</span><strong id="peopleMetricInStore">7</strong><small>当前可用于投标项目匹配和标书编制</small></div>
+      </article>
+      <article class="knowledge-metric card">
+        <span class="knowledge-metric-icon green"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/><circle cx="12" cy="12" r="9"/></svg></span>
+        <div class="knowledge-metric-copy"><span>已关联资料</span><strong id="peopleMetricLinked">7</strong><small>在库人员均已关联证书、经历或证明材料</small></div>
+      </article>
+      <article class="knowledge-metric card">
+        <span class="knowledge-metric-icon orange"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+        <div class="knowledge-metric-copy"><span>证书有效期预警</span><strong id="peopleMetricWarnings">2</strong><small>2 项固定有效期证书将在 60 天内到期</small></div>
+      </article>
+      <article class="knowledge-metric card">
+        <span class="knowledge-metric-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="5" rx="1"/><path d="M5 9v11h14V9M9 13h6"/></svg></span>
+        <div class="knowledge-metric-copy"><span>已归档人员</span><strong id="peopleMetricArchived">1</strong><small>归档后可查看，确认无误后可删除</small></div>
+      </article>
+    </section>
+
+    <section class="knowledge-shell card">
+      <aside class="knowledge-sidebar" id="knowledgeSidebar"></aside>
+      <div class="knowledge-main">
+        <div class="knowledge-tabs" role="tablist" aria-label="人员档案状态筛选">
+          <button class="knowledge-tab active" type="button" role="tab" aria-selected="true" data-knowledge-tab="instore">在库人员<b id="peopleTabInStore">7</b></button>
+          <button class="knowledge-tab attention" type="button" role="tab" aria-selected="false" data-knowledge-tab="expiring">有效期预警<b id="peopleTabWarnings">2</b></button>
+          <button class="knowledge-tab" type="button" role="tab" aria-selected="false" data-knowledge-tab="archived">已归档人员<b id="peopleTabArchived">1</b></button>
+        </div>
+
+        <div class="knowledge-toolbar">
+          <label class="knowledge-search">
+            <span class="visually-hidden">搜索人员档案</span>
+            <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+            <input id="peopleSearch" type="search" placeholder="搜索姓名、角色、能力、证书或项目经历" autocomplete="off" />
+          </label>
+          <div class="knowledge-filter-group">
+            <select class="knowledge-select" id="peopleRoleFilter" aria-label="按专业角色筛选">
+              <option value="all">全部专业角色</option>
+              <option value="项目经理">项目经理</option>
+              <option value="技术负责人">技术负责人</option>
+              <option value="安全工程师">安全工程师</option>
+              <option value="运维负责人">运维负责人</option>
+              <option value="实施经理">实施经理</option>
+              <option value="网络工程师">网络工程师</option>
+              <option value="商务负责人">商务负责人</option>
+              <option value="开发运维工程师">开发运维工程师</option>
+            </select>
+            <button class="ghost-btn compact-btn" id="resetPeopleFilters" type="button">
+              <span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M4 4v6h6M20 20v-6h-6"/><path d="M19 9a8 8 0 0 0-13.5-3L4 10M5 15a8 8 0 0 0 13.5 3L20 14"/></svg></span>
+              <span>重置</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="knowledge-table-wrap" id="peopleTableWrap">
+          <table class="knowledge-table" aria-label="人员档案列表">
+            <colgroup>
+              <col style="width:16%"/><col style="width:14%"/><col style="width:12%"/><col style="width:20%"/>
+              <col style="width:16%"/><col style="width:10%"/><col style="width:12%"/>
+            </colgroup>
+            <thead><tr><th>人员</th><th>部门 / 岗位</th><th>投标角色</th><th>关联资料</th><th>档案状态</th><th>最近更新</th><th>操作</th></tr></thead>
+            <tbody id="peopleTableBody"></tbody>
+          </table>
+        </div>
+        <div class="knowledge-empty hidden" id="peopleEmptyState">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4M8 11h6"/></svg>
+          <strong>没有找到符合条件的人员档案</strong>
+          <span>可以调整关键词或专业角色。</span>
+        </div>
+        <footer class="knowledge-panel-footer">
+          <span id="peopleResultCount">当前展示 7 条在库档案 · 人员档案共 8 项</span>
+          <div class="knowledge-pagination" aria-label="分页">
+            <button class="knowledge-page-btn" type="button" aria-label="上一页">‹</button>
+            <button class="knowledge-page-btn active" type="button">1</button>
+            <button class="knowledge-page-btn" type="button" aria-label="下一页">›</button>
+          </div>
+        </footer>
+      </div>
+    </section>
+  </main>
+
+  <script src="../assets/js/common.js"></script>
+  <script src="../assets/js/knowledge-data.js"></script>
+  <script src="../assets/js/knowledge-common.js"></script>
+  <script src="../assets/js/knowledge.js"></script>
+</body>
+</html>

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>人员档案详情 - 投标助手</title>
+  <link rel="stylesheet" href="../assets/css/theme.css" />
+  <link rel="stylesheet" href="../assets/css/layout.css" />
+  <link rel="stylesheet" href="../assets/css/knowledge.css" />
+</head>
+<body class="app-page knowledge-module-page" data-page="knowledge" data-knowledge-section="people">
+  <div id="appHeader"></div>
+  <main class="app-main" id="personProfilePage"></main>
+
+  <section class="knowledge-modal wide" id="personSubrecordModal" aria-hidden="true" aria-label="维护人员资料">
+    <header class="knowledge-layer-head">
+      <div><h3 id="personSubrecordTitle">新增人员资料</h3><p id="personSubrecordSubtitle">资料将关联到当前人员档案。</p></div>
+      <button class="knowledge-layer-close" type="button" data-close-person-record title="关闭" aria-label="关闭弹窗">
+        <svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg>
+      </button>
+    </header>
+    <div class="knowledge-layer-body"><div class="knowledge-form-grid" id="personSubrecordFields"></div></div>
+    <footer class="knowledge-layer-footer">
+      <button class="ghost-btn" type="button" data-close-person-record><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></span><span>取消</span></button>
+      <button class="primary-btn" id="savePersonSubrecord" type="button" disabled><span class="btn-icon" id="savePersonSubrecordIcon"><svg viewBox="0 0 24 24"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><path d="M7 12h10M9 9h6M9 15h6"/></svg></span><span id="savePersonSubrecordText">等待上传</span></button>
+    </footer>
+  </section>
+
+  <script src="../assets/js/common.js"></script>
+  <script src="../assets/js/knowledge-data.js"></script>
+  <script src="../assets/js/knowledge-common.js"></script>
+  <script src="../assets/js/knowledge-person-detail.js"></script>
+</body>
+</html>

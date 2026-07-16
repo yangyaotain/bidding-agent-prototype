@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>首页 - 投标助手</title>
+  <link rel="stylesheet" href="../assets/css/theme.css" />
+  <link rel="stylesheet" href="../assets/css/layout.css" />
+  <link rel="stylesheet" href="../assets/css/dashboard.css" />
+</head>
+<body class="app-page" data-page="dashboard">
+  <div id="appHeader"></div>
+
+  <main class="app-main">
+    <section class="dashboard-intro">
+      <div class="intro-copy">
+        <div class="intro-eyebrow"><i></i><span id="currentDate">2026年7月15日 星期三</span></div>
+        <h1 id="dashboardGreeting">下午好，李明远</h1>
+        <p id="dashboardSummary">当前有 8 个投标项目正在推进，其中 2 个临近截标。建议优先处理解析结论确认、质量问题整改和最终交付确认。</p>
+      </div>
+      <div class="intro-actions">
+        <a class="primary-btn" href="project-create.html">
+          <span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span>
+          <span>新建投标项目</span>
+        </a>
+        <a class="secondary-btn" id="continuePriorityProject" href="projects.html">
+          <span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14M14 7l5 5-5 5"/></svg></span>
+          <span>继续处理优先项目</span>
+        </a>
+      </div>
+    </section>
+
+    <section class="metrics-grid" aria-label="当前需要关注的工作">
+      <a class="metric-card card" href="projects.html">
+        <div class="metric-icon orange"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+        <div class="metric-copy"><span>临近截标</span><strong id="deadlineMetric">2</strong><small>优先核对截止安排与当前进度</small></div>
+      </a>
+      <a class="metric-card card" href="project-writing.html?id=BID-202601-001#qualityReviewStatusCard">
+        <div class="metric-icon red"><svg viewBox="0 0 24 24"><path d="M10.3 3.8 2.7 17a2 2 0 0 0 1.8 3h15a2 2 0 0 0 1.8-3L13.7 3.8a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg></div>
+        <div class="metric-copy"><span>阻断与材料缺口</span><strong id="gapMetric">4</strong><small>涉及服务响应、人员和证明材料</small></div>
+      </a>
+      <a class="metric-card card" href="project-analysis.html?id=BID-202607-002">
+        <div class="metric-icon cyan"><svg viewBox="0 0 24 24"><path d="M4 5h16v14H4z"/><path d="M8 9h8M8 13h5"/><path d="m15 16 1.5 1.5L20 14"/></svg></div>
+        <div class="metric-copy"><span>待人工确认</span><strong id="confirmationMetric">8</strong><small>解析、偏离、报价与关键承诺</small></div>
+      </a>
+      <a class="metric-card card" href="project-delivery.html?id=BID-202607-005">
+        <div class="metric-icon green"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
+        <div class="metric-copy"><span>待终审交付</span><strong id="deliveryMetric">1</strong><small>确认最终版本后进入交付归档</small></div>
+      </a>
+      <a class="metric-card card" href="ledger.html">
+        <div class="metric-icon"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 3v18M11 8h6M11 12h6M11 16h4"/></svg></div>
+        <div class="metric-copy"><span>结果待维护</span><strong id="resultMetric">1</strong><small>补充公告、得分、排名与佐证材料</small></div>
+      </a>
+    </section>
+
+    <section class="home-grid">
+      <article class="panel-card card">
+        <header class="panel-head">
+          <div><h2>重点投标项目</h2><p>优先展示临近截标、待确认和待交付项目</p></div>
+          <a class="text-btn" href="projects.html"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14M14 7l5 5-5 5"/></svg></span><span>全部项目</span></a>
+        </header>
+        <div class="project-table-wrap">
+          <table class="project-table">
+            <colgroup><col style="width:31%"/><col style="width:18%"/><col style="width:19%"/><col style="width:22%"/><col style="width:10%"/></colgroup>
+            <thead><tr><th>项目名称</th><th>投标截止</th><th>当前阶段</th><th>下一步</th><th>操作</th></tr></thead>
+            <tbody id="priorityProjectBody"></tbody>
+          </table>
+        </div>
+      </article>
+
+      <article class="panel-card card">
+        <header class="panel-head"><div><h2>待我处理</h2><p>按业务影响和项目紧迫程度排序</p></div><span class="status-tag blue">5 项</span></header>
+        <div class="task-list">
+          <div class="task-item">
+            <span class="task-status danger"><svg viewBox="0 0 24 24"><path d="M10.3 3.8 2.7 17a2 2 0 0 0 1.8 3h15a2 2 0 0 0 1.8-3L13.7 3.8a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg></span>
+            <div class="task-copy"><strong>修正港口运维项目 P1-P4 服务响应偏差</strong><span>标书编制与审核 · 1 项关键问题</span></div>
+            <a class="task-action-btn" href="project-writing.html?id=BID-202601-001#qualityReviewStatusCard"><span>去处理</span><svg viewBox="0 0 24 24"><path d="M5 12h14M14 7l5 5-5 5"/></svg></a>
+          </div>
+          <div class="task-item">
+            <span class="task-status warning"><svg viewBox="0 0 24 24"><path d="M4 5h16v14H4z"/><path d="M8 9h8M8 13h5"/></svg></span>
+            <div class="task-copy"><strong>确认智慧园区项目综合投标结论</strong><span>解析结果 · 资格与材料缺口待确认</span></div>
+            <a class="task-action-btn" href="project-analysis.html?id=BID-202607-002"><span>去确认</span><svg viewBox="0 0 24 24"><path d="M5 12h14M14 7l5 5-5 5"/></svg></a>
+          </div>
+          <div class="task-item">
+            <span class="task-status"><svg viewBox="0 0 24 24"><path d="M4 5a2 2 0 0 1 2-2h12v17H6a2 2 0 0 0-2 2V5z"/><path d="M8 7h6M8 11h7"/></svg></span>
+            <div class="task-copy"><strong>完善轨道交通项目技术标重点章节</strong><span>标书编制与审核 · 技术方案完善中</span></div>
+            <a class="task-action-btn" href="project-writing.html?id=BID-202607-006"><span>去编制</span><svg viewBox="0 0 24 24"><path d="M5 12h14M14 7l5 5-5 5"/></svg></a>
+          </div>
+          <div class="task-item">
+            <span class="task-status warning"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h6"/></svg></span>
+            <div class="task-copy"><strong>确认数据中台项目最终交付文件</strong><span>交付归档 · 正式版本待人工确认</span></div>
+            <a class="task-action-btn" href="project-delivery.html?id=BID-202607-005"><span>去终审</span><svg viewBox="0 0 24 24"><path d="M5 12h14M14 7l5 5-5 5"/></svg></a>
+          </div>
+          <div class="task-item">
+            <span class="task-status"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 3v18M11 8h6M11 12h6M11 16h4"/></svg></span>
+            <div class="task-copy"><strong>维护城市运行项目投标结果</strong><span>投标台账 · 结果公告、得分和排名待补充</span></div>
+            <a class="task-action-btn" href="ledger.html"><span>去维护</span><svg viewBox="0 0 24 24"><path d="M5 12h14M14 7l5 5-5 5"/></svg></a>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <section class="bottom-grid">
+      <article class="panel-card card">
+        <header class="panel-head"><div><h2>项目阶段态势</h2><p>按当前项目工作台的四个业务阶段汇总</p></div><a class="text-btn" href="projects.html"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14M14 7l5 5-5 5"/></svg></span><span>查看项目</span></a></header>
+        <div class="workflow-body">
+          <div class="stage-grid">
+            <div class="stage-item"><span class="stage-count" id="stageFilesCount">0</span><strong>招标文件</strong><span>上传、补遗与解析中</span></div>
+            <div class="stage-item"><span class="stage-count" id="stageAnalysisCount">2</span><strong>解析结果</strong><span>研判、策划与材料确认</span></div>
+            <div class="stage-item"><span class="stage-count" id="stageWritingCount">5</span><strong>编制与审核</strong><span>章节编制与问题整改</span></div>
+            <div class="stage-item"><span class="stage-count" id="stageDeliveryCount">1</span><strong>交付归档</strong><span>终审、导出与归档</span></div>
+          </div>
+        </div>
+      </article>
+
+      <article class="panel-card card">
+        <header class="panel-head"><div><h2>业务提醒</h2><p>集中处理知识资产和投标结果事项</p></div></header>
+        <div class="business-reminder-list">
+          <a class="business-reminder" href="knowledge.html?view=validity-alert">
+            <span class="reminder-icon danger"><svg viewBox="0 0 24 24"><path d="M10.3 3.8 2.7 17a2 2 0 0 0 1.8 3h15a2 2 0 0 0 1.8-3L13.7 3.8a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg></span>
+            <span class="reminder-copy"><strong>知识资产有效期预警</strong><small>12 项资料需要关注，其中 1 项已过期</small></span>
+            <span class="status-tag red">12 项</span>
+          </a>
+          <a class="business-reminder" href="knowledge.html?view=processing">
+            <span class="reminder-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+            <span class="reminder-copy"><strong>知识资料解析中</strong><small>11 项资料正在上传、识别或结构化处理</small></span>
+            <span class="status-tag blue">11 项</span>
+          </a>
+          <a class="business-reminder" href="ledger.html">
+            <span class="reminder-icon warning"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 3v18M11 8h6M11 12h6M11 16h4"/></svg></span>
+            <span class="reminder-copy"><strong>投标结果待维护</strong><small>1 个已投项目等待补充公告、得分与排名</small></span>
+            <span class="status-tag orange">1 项</span>
+          </a>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <script src="../assets/js/common.js"></script>
+  <script src="../assets/js/project-data.js"></script>
+  <script src="../assets/js/dashboard.js"></script>
+</body>
+</html>

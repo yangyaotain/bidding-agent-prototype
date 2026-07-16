@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>投标项目 - 投标助手</title>
+  <link rel="stylesheet" href="../assets/css/theme.css" />
+  <link rel="stylesheet" href="../assets/css/layout.css" />
+  <link rel="stylesheet" href="../assets/css/projects.css" />
+</head>
+<body class="app-page project-module-page" data-page="projects">
+  <div id="appHeader"></div>
+  <main class="app-main">
+    <div class="page-breadcrumb"><span>投标助手</span><span>/</span><strong>投标项目</strong></div>
+    <header class="module-heading">
+      <div>
+        <h1>投标项目</h1>
+        <p>统一管理招标解析、投标决策、响应策划、标书编制、质量审核与交付归档。</p>
+      </div>
+      <div class="heading-actions">
+        <a class="primary-btn" href="project-create.html">
+          <span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span>
+          <span>新建投标项目</span>
+        </a>
+      </div>
+    </header>
+
+    <section class="project-metrics" aria-label="投标项目概览">
+      <article class="project-metric card">
+        <div class="metric-symbol"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="15" rx="2"/><path d="M8 5V3h8v2M3 10h18"/></svg></div>
+        <div class="metric-copy"><span>全部项目</span><strong id="allProjectMetric">12</strong><small>本月新建 5 个项目</small></div>
+      </article>
+      <article class="project-metric card">
+        <div class="metric-symbol cyan"><svg viewBox="0 0 24 24"><path d="M4 19V9M10 19V5M16 19v-7M22 19V3"/></svg></div>
+        <div class="metric-copy"><span>进行中</span><strong id="ongoingProjectMetric">6</strong><small>其中 3 个处于标书编制与审核阶段</small></div>
+      </article>
+      <article class="project-metric card">
+        <div class="metric-symbol orange"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+        <div class="metric-copy"><span>72 小时内截标</span><strong id="deadlineProjectMetric">2</strong><small>最早剩余 61 小时</small></div>
+      </article>
+      <article class="project-metric card">
+        <div class="metric-symbol green"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="5" rx="1"/><path d="M5 9v11h14V9M9 13h6"/><path d="m9 17 2 2 4-4"/></svg></div>
+        <div class="metric-copy"><span>已交付归档</span><strong id="archivedProjectMetric">4</strong><small>均已完成文件交付并进入投标台账</small></div>
+      </article>
+    </section>
+
+    <section class="projects-panel card">
+      <div class="project-filter-tabs" role="tablist" aria-label="项目状态筛选">
+        <button class="filter-tab active" type="button" data-project-filter="all">全部项目<b id="allProjectTabCount">12</b></button>
+        <button class="filter-tab" type="button" data-project-filter="ongoing">进行中<b id="ongoingProjectTabCount">6</b></button>
+        <button class="filter-tab" type="button" data-project-filter="deadline">临近截标<b id="deadlineProjectTabCount">2</b></button>
+        <button class="filter-tab" type="button" data-project-filter="archived">已归档<b id="archivedProjectTabCount">4</b></button>
+      </div>
+      <div class="project-toolbar">
+        <label class="search-box">
+          <span class="visually-hidden">搜索项目</span>
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+          <input id="projectSearch" type="search" placeholder="搜索项目名称、编号或采购人" autocomplete="off" />
+        </label>
+        <div class="filter-group">
+          <select class="toolbar-select" id="stageFilter" aria-label="按当前阶段筛选">
+            <option value="all">全部阶段</option>
+            <option value="解析中">解析中</option>
+            <option value="解析结果">解析结果</option>
+            <option value="标书编制与审核">标书编制与审核</option>
+            <option value="交付归档">交付归档</option>
+          </select>
+          <select class="toolbar-select" id="ownerFilter" aria-label="按负责人筛选">
+            <option value="all">全部负责人</option>
+            <option value="李明远">李明远</option>
+            <option value="周晓雯">周晓雯</option>
+            <option value="王子谦">王子谦</option>
+            <option value="陈思远">陈思远</option>
+            <option value="赵嘉怡">赵嘉怡</option>
+          </select>
+          <button class="ghost-btn compact-btn" id="resetProjectFilters" type="button">
+            <span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M4 4v6h6M20 20v-6h-6"/><path d="M19 9a8 8 0 0 0-13.5-3L4 10M5 15a8 8 0 0 0 13.5 3L20 14"/></svg></span>
+            <span>重置</span>
+          </button>
+        </div>
+      </div>
+      <div class="table-wrap" id="projectTableWrap">
+        <table class="data-table" aria-label="投标项目列表">
+          <colgroup>
+            <col style="width:22%" /><col style="width:14%" /><col style="width:15%" /><col style="width:17%" />
+            <col style="width:10%" /><col style="width:8%" /><col style="width:14%" />
+          </colgroup>
+          <thead><tr><th>项目名称</th><th>采购人</th><th>投标截止</th><th>当前阶段</th><th>总体进度</th><th>负责人</th><th>操作</th></tr></thead>
+          <tbody id="projectTableBody"></tbody>
+        </table>
+      </div>
+      <div class="empty-state hidden" id="projectEmptyState">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4M8 11h6"/></svg>
+        <strong>没有找到符合条件的项目</strong>
+        <span>可以修改搜索关键词或重置筛选条件。</span>
+      </div>
+      <footer class="panel-footer">
+        <span id="projectResultCount">共 12 条项目记录 · 每页 10 条</span>
+        <div class="pagination" id="projectPagination" aria-label="项目列表分页"></div>
+      </footer>
+    </section>
+  </main>
+
+  <section class="prototype-modal" id="projectActionModal" aria-hidden="true" aria-labelledby="projectActionTitle">
+    <header class="layer-head">
+      <div><h3 id="projectActionTitle">确认项目操作</h3><p id="projectActionDescription">请确认是否继续当前操作。</p></div>
+      <button class="layer-close" type="button" data-close-layer aria-label="关闭弹窗"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+    </header>
+    <div class="layer-body">
+      <div class="info-alert warning" id="projectActionAlert" style="margin-bottom:0">
+        <svg viewBox="0 0 24 24"><path d="M10.3 3.8 2.7 17a2 2 0 0 0 1.8 3h15a2 2 0 0 0 1.8-3L13.7 3.8a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>
+        <div><strong id="projectActionMessage">请确认是否继续。</strong><span id="projectActionHint">操作完成后列表状态将同步更新。</span></div>
+      </div>
+    </div>
+    <footer class="layer-footer">
+      <button class="ghost-btn" type="button" data-close-layer><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></span><span>取消</span></button>
+      <button class="primary-btn project-action-confirm" id="confirmProjectAction" type="button"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg></span><span>确认</span></button>
+    </footer>
+  </section>
+
+  <script src="../assets/js/common.js"></script>
+  <script src="../assets/js/project-data.js"></script>
+  <script src="../assets/js/project-common.js"></script>
+  <script src="../assets/js/projects.js"></script>
+</body>
+</html>

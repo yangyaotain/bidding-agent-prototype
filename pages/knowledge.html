@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>知识库 - 投标助手</title>
+  <link rel="stylesheet" href="../assets/css/theme.css" />
+  <link rel="stylesheet" href="../assets/css/layout.css" />
+  <link rel="stylesheet" href="../assets/css/knowledge.css" />
+</head>
+<body class="app-page knowledge-module-page" data-page="knowledge" data-knowledge-section="all">
+  <div id="appHeader"></div>
+
+  <main class="app-main">
+    <div class="page-breadcrumb"><span>投标助手</span><span>/</span><strong>知识库</strong></div>
+    <header class="knowledge-module-heading">
+      <div>
+        <h1>知识库</h1>
+        <p>上传并分类管理投标资料，由 AI 自动提取名称、标签、摘要和关键信息，供项目解析、评分预测和标书编制使用。</p>
+      </div>
+      <div class="knowledge-heading-actions">
+        <button class="primary-btn" type="button" data-create-asset="true">
+          <span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span>
+          <span>上传资料</span>
+        </button>
+      </div>
+    </header>
+
+    <section class="knowledge-metrics five" aria-label="知识资产概览">
+      <article class="knowledge-metric card">
+        <span class="knowledge-metric-icon"><svg viewBox="0 0 24 24"><path d="M4 5a2 2 0 0 1 2-2h12v17H6a2 2 0 0 0-2 2V5z"/><path d="M8 7h6M8 11h7"/></svg></span>
+        <div class="knowledge-metric-copy"><span>在库资料</span><strong>51</strong><small>当前示例中可检索和使用的资料</small></div>
+      </article>
+      <article class="knowledge-metric card">
+        <span class="knowledge-metric-icon green"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>
+        <div class="knowledge-metric-copy"><span>已入库</span><strong>44</strong><small>资料信息已保存，可用于投标业务</small></div>
+      </article>
+      <article class="knowledge-metric card">
+        <span class="knowledge-metric-icon cyan"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+        <div class="knowledge-metric-copy"><span>解析中</span><strong>7</strong><small>正在上传、识别或结构化处理</small></div>
+      </article>
+      <article class="knowledge-metric card">
+        <span class="knowledge-metric-icon red"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+        <div class="knowledge-metric-copy"><span>有效期预警</span><strong>8</strong><small>1 项已过期 · 7 项固定有效期资料临期</small></div>
+      </article>
+      <article class="knowledge-metric card">
+        <span class="knowledge-metric-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="5" rx="1"/><path d="M5 9v11h14V9M9 13h6"/></svg></span>
+        <div class="knowledge-metric-copy"><span>已归档</span><strong>9</strong><small>已移出在库列表，可查看或永久删除</small></div>
+      </article>
+    </section>
+
+    <section class="knowledge-shell card">
+      <aside class="knowledge-sidebar" id="knowledgeSidebar"></aside>
+      <div class="knowledge-main">
+        <div class="knowledge-tabs" role="tablist" aria-label="知识资料状态筛选">
+          <button class="knowledge-tab active" type="button" role="tab" aria-selected="true" data-knowledge-tab="instore">在库资料<b>51</b></button>
+          <button class="knowledge-tab" type="button" role="tab" aria-selected="false" data-knowledge-tab="stored">已入库<b>44</b></button>
+          <button class="knowledge-tab" type="button" role="tab" aria-selected="false" data-knowledge-tab="processing">解析中<b>7</b></button>
+          <button class="knowledge-tab danger-attention" type="button" role="tab" aria-selected="false" data-knowledge-tab="validity-alert">有效期预警<b>8</b></button>
+          <button class="knowledge-tab" type="button" role="tab" aria-selected="false" data-knowledge-tab="archived">已归档<b>9</b></button>
+        </div>
+
+        <div class="knowledge-toolbar">
+          <label class="knowledge-search">
+            <span class="visually-hidden">搜索知识资料</span>
+            <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+            <input id="knowledgeSearch" type="search" placeholder="搜索资料名称、编号、类型、摘要或标签" autocomplete="off" />
+          </label>
+          <div class="knowledge-filter-group">
+            <select class="knowledge-select" id="knowledgeCategoryFilter" aria-label="按知识分类筛选">
+              <option value="all">全部分类</option>
+              <option value="company">企业基础资料</option>
+              <option value="certificates">企业资质证照</option>
+              <option value="people">人员档案</option>
+              <option value="cases">业绩案例</option>
+              <option value="solutions">产品与技术方案</option>
+              <option value="business">商务素材</option>
+              <option value="templates">模板与格式</option>
+              <option value="charts">图表素材</option>
+              <option value="history">历史标书</option>
+            </select>
+            <button class="ghost-btn compact-btn" id="resetKnowledgeFilters" type="button">
+              <span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M4 4v6h6M20 20v-6h-6"/><path d="M19 9a8 8 0 0 0-13.5-3L4 10M5 15a8 8 0 0 0 13.5 3L20 14"/></svg></span>
+              <span>重置</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="knowledge-table-wrap" id="knowledgeTableWrap">
+          <table class="knowledge-table" aria-label="知识资产列表">
+            <colgroup>
+              <col style="width:20%"/><col style="width:14%"/><col style="width:19%"/>
+              <col style="width:12%"/><col style="width:13%"/><col style="width:10%"/><col style="width:12%"/>
+            </colgroup>
+            <thead><tr><th>资料名称</th><th>分类与类型</th><th>AI 解析摘要</th><th>资料状态</th><th>有效期</th><th>最近更新</th><th>操作</th></tr></thead>
+            <tbody id="knowledgeTableBody"></tbody>
+          </table>
+        </div>
+        <div class="knowledge-empty hidden" id="knowledgeEmptyState">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4M8 11h6"/></svg>
+          <strong>没有找到符合条件的知识资料</strong>
+          <span>可以调整关键词、分类或状态筛选条件。</span>
+        </div>
+        <footer class="knowledge-panel-footer">
+          <span id="knowledgeResultCount">当前展示 10 条 · 筛选结果 51 项 · 示例资料共 60 项</span>
+          <div class="knowledge-pagination" id="knowledgePagination" aria-label="分页">
+            <button class="knowledge-page-btn" type="button" aria-label="上一页">‹</button>
+            <button class="knowledge-page-btn active" type="button">1</button>
+            <button class="knowledge-page-btn" type="button">2</button>
+            <button class="knowledge-page-btn" type="button">3</button><button class="knowledge-page-btn" type="button">4</button><button class="knowledge-page-btn" type="button">5</button><button class="knowledge-page-btn" type="button">6</button>
+            <button class="knowledge-page-btn" type="button" aria-label="下一页">›</button>
+          </div>
+        </footer>
+      </div>
+    </section>
+  </main>
+
+  <script src="../assets/js/common.js"></script>
+  <script src="../assets/js/knowledge-data.js"></script>
+  <script src="../assets/js/knowledge-common.js"></script>
+  <script src="../assets/js/knowledge.js"></script>
+</body>
+</html>

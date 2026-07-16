@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>交付归档 - 投标助手</title>
+  <link rel="stylesheet" href="../assets/css/theme.css" />
+  <link rel="stylesheet" href="../assets/css/layout.css" />
+  <link rel="stylesheet" href="../assets/css/projects.css" />
+  <link rel="stylesheet" href="../assets/css/project-delivery-files.css" />
+</head>
+<body class="app-page project-module-page" data-page="projects" data-project-section="delivery">
+  <div id="appHeader"></div>
+  <main class="app-main project-workspace-main">
+    <div id="projectWorkspaceHeader"></div>
+    <section class="workspace-content">
+      <header class="content-heading">
+        <div><h2>交付归档</h2><p>正式文件按 Word、PDF 两套统一组织，可分别整套下载；确认后归档投标台账与知识沉淀结果。</p></div>
+        <div class="heading-actions">
+          <button class="primary-btn" id="confirmDeliveryArchive" type="button"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M4 5h16v14H4zM8 9h8M8 13h5"/><path d="m14 16 2 2 4-5"/></svg></span><span>确认交付归档</span></button>
+        </div>
+      </header>
+
+      <section class="delivery-summary-cards">
+        <article class="card"><span class="summary-icon green"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg></span><div><span>质量审核</span><strong>82 分</strong><small>248 项规则检查完成</small></div></article>
+        <article class="card"><span class="summary-icon"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6zM14 3v5h5"/></svg></span><div><span>正式文档</span><strong>4 份</strong><small>技术标、商务标各含 DOCX 与 PDF</small></div></article>
+        <article class="card"><span class="summary-icon cyan"><svg viewBox="0 0 24 24"><path d="M4 5h16v14H4zM8 9h8M8 13h5"/></svg></span><div><span>交付套件</span><strong>2 套</strong><small>支持 Word、PDF 整套下载</small></div></article>
+      </section>
+
+      <article class="content-card card formal-files-card">
+        <header class="panel-heading formal-files-heading">
+          <div><h3>正式交付文件</h3><p>技术标与商务标已按格式归并为两套文件，不再分散下载单个文件。</p></div>
+        </header>
+
+        <div class="formal-export-note">
+          <svg viewBox="0 0 24 24"><path d="M4 5h6l2 2h8v12H4z"/></svg>
+          <div><span>交付文件目录</span><strong>某港口集团2026年度集装箱业务平台运维项目 / Word 文件套、PDF 文件套</strong></div>
+          <small>2 套 · 4 份正式文件</small>
+        </div>
+
+        <div class="delivery-package-grid" id="formalFileTree">
+          <section class="delivery-package-card word-package-card">
+            <header><span class="file-type-icon type-word delivery-package-format-icon" role="img" aria-label="DOCX 文件套" title="DOCX 文件套"><span class="file-format-mark">DOCX</span></span><div><strong>Word 文件套</strong><small>标书编制最终保存版本 · 保留正文、表格及图片</small></div></header>
+            <div class="delivery-package-files">
+              <div><span class="file-type-icon type-word package-file-type" role="img" aria-label="DOCX 文件" title="DOCX 文件"><span class="file-format-mark">DOCX</span></span><div><strong>技术标.docx</strong><small>标书编制最终保存内容 · 共 73 页</small></div></div>
+              <div><span class="file-type-icon type-word package-file-type" role="img" aria-label="DOCX 文件" title="DOCX 文件"><span class="file-format-mark">DOCX</span></span><div><strong>商务标.docx</strong><small>标书编制最终保存内容 · 共 23 页</small></div></div>
+            </div>
+            <footer><span>2 份文件 · 8.96 MB</span><a class="secondary-btn" href="../assets/bid-documents/packages/某港口集团2026年度集装箱业务平台运维项目_Word文件套.zip" download="某港口集团2026年度集装箱业务平台运维项目_Word文件套.zip" aria-label="下载 Word 文件套"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M12 4v12M7 11l5 5 5-5M4 20h16"/></svg></span><span>下载 Word 文件套</span></a></footer>
+          </section>
+
+          <section class="delivery-package-card pdf-package-card">
+            <header><span class="file-type-icon type-pdf delivery-package-format-icon" role="img" aria-label="PDF 文件套" title="PDF 文件套"><span class="file-format-mark">PDF</span></span><div><strong>PDF 文件套</strong><small>原始正式版本 · 保持上传文件页序与内容</small></div></header>
+            <div class="delivery-package-files">
+              <div><span class="file-type-icon type-pdf package-file-type" role="img" aria-label="PDF 文件" title="PDF 文件"><span class="file-format-mark">PDF</span></span><div><strong>技术标.pdf</strong><small>原始 PDF · 共 73 页</small></div></div>
+              <div><span class="file-type-icon type-pdf package-file-type" role="img" aria-label="PDF 文件" title="PDF 文件"><span class="file-format-mark">PDF</span></span><div><strong>商务标.pdf</strong><small>原始 PDF · 共 23 页</small></div></div>
+            </div>
+            <footer><span>2 份文件 · 3.54 MB</span><a class="secondary-btn" href="../assets/bid-documents/packages/某港口集团2026年度集装箱业务平台运维项目_PDF文件套.zip" download="某港口集团2026年度集装箱业务平台运维项目_PDF文件套.zip" aria-label="下载 PDF 文件套"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M12 4v12M7 11l5 5 5-5M4 20h16"/></svg></span><span>下载 PDF 文件套</span></a></footer>
+          </section>
+        </div>
+
+      </article>
+
+      <article class="content-card card automatic-archive-card">
+        <header class="panel-heading">
+          <div><h3>自动归档</h3><p id="autoArchiveDescription">确认交付归档后，系统自动整理投标台账，并按确认结果沉淀知识材料。</p></div>
+          <span class="status-tag blue" id="autoArchiveTag">待确认归档</span>
+        </header>
+
+        <div class="archive-panel-grid">
+          <section class="archive-group-card ledger-archive-group">
+            <header class="archive-group-head">
+              <span class="archive-group-icon"><svg viewBox="0 0 24 24"><path d="M4 5h16v14H4zM8 9h8M8 13h5"/></svg></span>
+              <div><strong>投标台账归档内容</strong><p>同步项目基础信息与本次正式交付附件，便于后续维护投标结果、得分和复盘。</p></div>
+              <span class="status-tag blue" id="ledgerArchiveState">待自动归档</span>
+            </header>
+
+            <div class="archive-group-body">
+              <div class="archive-subheading"><strong>台账基础信息</strong><span>9 项</span></div>
+              <div class="archive-fact-grid">
+                <div class="wide"><span>项目名称</span><strong>某港口集团2026年度集装箱业务平台运维项目</strong></div>
+                <div><span>项目编号</span><strong>BID-202601-001</strong></div>
+                <div><span>采购人</span><strong>某港口集团有限公司</strong></div>
+                <div><span>投标截止</span><strong>2026-07-20 09:30</strong></div>
+                <div><span>投标负责人</span><strong>李明远</strong></div>
+                <div><span>投标报价</span><strong class="amount-text">597,600 元</strong></div>
+                <div><span>税率</span><strong>6%</strong></div>
+                <div><span>投标结果</span><strong class="pending-value">待开标后补录</strong></div>
+                <div><span>投标有效期</span><strong>90 日</strong></div>
+              </div>
+
+              <div class="archive-subheading archive-attachment-heading"><strong>台账附件</strong><span>7 份文件</span></div>
+              <div class="archive-attachment-list">
+                <div><span class="file-type-icon type-word compact-file-icon" role="img" aria-label="DOC 文件" title="DOC 文件"><span class="file-format-mark">DOC</span></span><div><strong>采购文件.doc</strong><small>主招标文件 · 372 KB · 34 页</small></div><span class="status-tag blue">招标文件</span></div>
+                <div><span class="file-type-icon type-pdf compact-file-icon" role="img" aria-label="PDF 文件" title="PDF 文件"><span class="file-format-mark">PDF</span></span><div><strong>技术需求及服务规范.pdf</strong><small>技术需求附件 · 1.8 MB · 22 页</small></div><span class="status-tag blue">招标文件</span></div>
+                <div><span class="file-type-icon type-excel compact-file-icon" role="img" aria-label="XLSX 文件" title="XLSX 文件"><span class="file-format-mark">XLSX</span></span><div><strong>投标文件格式及报价清单.xlsx</strong><small>投标格式模板 · 86 KB · 3 个工作表</small></div><span class="status-tag blue">招标文件</span></div>
+                <div><span class="file-type-icon type-pdf compact-file-icon" role="img" aria-label="PDF 文件" title="PDF 文件"><span class="file-format-mark">PDF</span></span><div><strong>合同主要条款.pdf</strong><small>合同附件 · 620 KB · 12 页</small></div><span class="status-tag blue">招标文件</span></div>
+                <div><span class="file-type-icon type-pdf compact-file-icon" role="img" aria-label="PDF 文件" title="PDF 文件"><span class="file-format-mark">PDF</span></span><div><strong>澄清答疑纪要.pdf</strong><small>澄清答疑文件 · 428 KB · 6 页</small></div><span class="status-tag blue">招标文件</span></div>
+                <div><span class="file-type-icon type-word compact-file-icon" role="img" aria-label="DOCX 文件" title="DOCX 文件"><span class="file-format-mark">DOCX</span></span><div><strong>技术标.docx</strong><small>正式交付文件 · 73 页</small></div><span class="status-tag green">技术标</span></div>
+                <div><span class="file-type-icon type-word compact-file-icon" role="img" aria-label="DOCX 文件" title="DOCX 文件"><span class="file-format-mark">DOCX</span></span><div><strong>商务标.docx</strong><small>正式交付文件 · 23 页</small></div><span class="status-tag green">商务标</span></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="archive-group-card knowledge-archive-group">
+            <header class="archive-group-head">
+              <span class="archive-group-icon cyan"><svg viewBox="0 0 24 24"><path d="M12 3 9.8 8.8 4 11l5.8 2.2L12 19l2.2-5.8L20 11l-5.8-2.2L12 3z"/></svg></span>
+              <div><strong>知识待沉淀</strong><p>AI 梳理过程中补充上传、具备后续复用价值的资质和证明文件。</p></div>
+            </header>
+
+            <div class="archive-group-body knowledge-archive-body">
+              <div class="knowledge-batch-bar">
+                <div class="knowledge-confirm-summary"><span class="status-tag orange" id="knowledgeArchiveState">3 项待确认</span><small>逐项设置是否沉淀</small></div>
+                <details class="knowledge-batch-menu" name="knowledge-action-menu">
+                  <summary><svg viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></svg><span>批量处理</span><svg class="menu-chevron" viewBox="0 0 24 24"><path d="m8 10 4 4 4-4"/></svg></summary>
+                  <div class="knowledge-menu-popover"><button type="button" data-knowledge-batch="confirmed"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg><span>全部确认沉淀</span></button><button type="button" data-knowledge-batch="canceled"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg><span>全部取消沉淀</span></button></div>
+                </details>
+              </div>
+              <div class="archive-knowledge-list">
+                <div class="archive-knowledge-item" data-knowledge-item data-state="pending"><span class="file-type-icon type-archive compact-file-icon" role="img" aria-label="ZIP 文件" title="ZIP 文件"><span class="file-format-mark">ZIP</span></span><div><strong>项目人员证书及近三个月社保证明.zip</strong><small>人员档案 · AI 梳理阶段补充上传</small></div><details class="knowledge-state-menu state-pending" name="knowledge-action-menu"><summary><span class="knowledge-state-dot"></span><span data-knowledge-status>待确认</span><svg class="menu-chevron" viewBox="0 0 24 24"><path d="m8 10 4 4 4-4"/></svg></summary><div class="knowledge-menu-popover"><button type="button" data-knowledge-action="confirm"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg><span>确认沉淀</span></button><button type="button" data-knowledge-action="cancel"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg><span>取消沉淀</span></button></div></details></div>
+                <div class="archive-knowledge-item" data-knowledge-item data-state="pending"><span class="file-type-icon type-pdf compact-file-icon" role="img" aria-label="PDF 文件" title="PDF 文件"><span class="file-format-mark">PDF</span></span><div><strong>ITSS 三级服务能力证明.pdf</strong><small>企业资质证照 · AI 梳理阶段补充上传</small></div><details class="knowledge-state-menu state-pending" name="knowledge-action-menu"><summary><span class="knowledge-state-dot"></span><span data-knowledge-status>待确认</span><svg class="menu-chevron" viewBox="0 0 24 24"><path d="m8 10 4 4 4-4"/></svg></summary><div class="knowledge-menu-popover"><button type="button" data-knowledge-action="confirm"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg><span>确认沉淀</span></button><button type="button" data-knowledge-action="cancel"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg><span>取消沉淀</span></button></div></details></div>
+                <div class="archive-knowledge-item" data-knowledge-item data-state="pending"><span class="file-type-icon type-pdf compact-file-icon" role="img" aria-label="PDF 文件" title="PDF 文件"><span class="file-format-mark">PDF</span></span><div><strong>CMMI 三级认证证书.pdf</strong><small>企业资质证照 · AI 梳理阶段补充上传</small></div><details class="knowledge-state-menu state-pending" name="knowledge-action-menu"><summary><span class="knowledge-state-dot"></span><span data-knowledge-status>待确认</span><svg class="menu-chevron" viewBox="0 0 24 24"><path d="m8 10 4 4 4-4"/></svg></summary><div class="knowledge-menu-popover"><button type="button" data-knowledge-action="confirm"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg><span>确认沉淀</span></button><button type="button" data-knowledge-action="cancel"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg><span>取消沉淀</span></button></div></details></div>
+              </div>
+
+              <div class="archive-knowledge-note">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
+                <span>确认交付归档时，仍可统一选择“全部沉淀”。</span>
+              </div>
+            </div>
+          </section>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <section class="prototype-modal archive-confirm-modal" id="deliveryArchiveConfirmModal" aria-hidden="true" aria-label="确认交付归档">
+    <header class="layer-head"><div><h3>确认交付归档</h3><p>请核对台账基础信息、归档附件及知识沉淀附件，确认后完成项目归档。</p></div><button class="layer-close" type="button" data-close-layer aria-label="关闭"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button></header>
+    <div class="layer-body">
+      <div class="info-alert warning" id="archiveConfirmAlert"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg><div><strong id="archiveConfirmAlertTitle">知识待沉淀内容尚未全部确认</strong><span id="archiveConfirmAlertText">当前有 3 项内容待确认，请在下方列表中选择确认或取消。</span></div></div>
+
+      <section class="archive-confirm-section">
+        <header class="archive-confirm-section-head"><div><h4>投标台账基础信息</h4><p>以下信息将形成投标台账主记录。</p></div><span class="status-tag green">9 项完整</span></header>
+        <div class="archive-confirm-fact-body">
+          <div class="archive-fact-grid">
+            <div class="wide"><span>项目名称</span><strong>某港口集团2026年度集装箱业务平台运维项目</strong></div>
+            <div><span>项目编号</span><strong>BID-202601-001</strong></div>
+            <div><span>采购人</span><strong>某港口集团有限公司</strong></div>
+            <div><span>投标截止</span><strong>2026-07-20 09:30</strong></div>
+            <div><span>投标负责人</span><strong>李明远</strong></div>
+            <div><span>投标报价</span><strong class="amount-text">597,600 元</strong></div>
+            <div><span>税率</span><strong>6%</strong></div>
+            <div><span>投标结果</span><strong class="pending-value">待开标后补录</strong></div>
+            <div><span>投标有效期</span><strong>90 日</strong></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="archive-confirm-section">
+        <header class="archive-confirm-section-head"><div><h4>投标台账归档附件</h4><p>上传的招标文件保持原格式，技术标与商务标归档 DOCX 文件。</p></div><span class="status-tag blue">7 份文件</span></header>
+        <div class="archive-confirm-file-list">
+          <div><span class="file-type-icon type-word compact-file-icon" role="img" aria-label="DOC 文件" title="DOC 文件"><span class="file-format-mark">DOC</span></span><div><strong>采购文件.doc</strong><small>主招标文件 · 372 KB · 34 页</small></div><span class="status-tag blue">招标文件</span></div>
+          <div><span class="file-type-icon type-pdf compact-file-icon" role="img" aria-label="PDF 文件" title="PDF 文件"><span class="file-format-mark">PDF</span></span><div><strong>技术需求及服务规范.pdf</strong><small>技术需求附件 · 1.8 MB · 22 页</small></div><span class="status-tag blue">招标文件</span></div>
+          <div><span class="file-type-icon type-excel compact-file-icon" role="img" aria-label="XLSX 文件" title="XLSX 文件"><span class="file-format-mark">XLSX</span></span><div><strong>投标文件格式及报价清单.xlsx</strong><small>投标格式模板 · 86 KB · 3 个工作表</small></div><span class="status-tag blue">招标文件</span></div>
+          <div><span class="file-type-icon type-pdf compact-file-icon" role="img" aria-label="PDF 文件" title="PDF 文件"><span class="file-format-mark">PDF</span></span><div><strong>合同主要条款.pdf</strong><small>合同附件 · 620 KB · 12 页</small></div><span class="status-tag blue">招标文件</span></div>
+          <div><span class="file-type-icon type-pdf compact-file-icon" role="img" aria-label="PDF 文件" title="PDF 文件"><span class="file-format-mark">PDF</span></span><div><strong>澄清答疑纪要.pdf</strong><small>澄清答疑文件 · 428 KB · 6 页</small></div><span class="status-tag blue">招标文件</span></div>
+          <div><span class="file-type-icon type-word compact-file-icon" role="img" aria-label="DOCX 文件" title="DOCX 文件"><span class="file-format-mark">DOCX</span></span><div><strong>技术标.docx</strong><small>正式交付文件 · 73 页</small></div><span class="status-tag green">技术标</span></div>
+          <div><span class="file-type-icon type-word compact-file-icon" role="img" aria-label="DOCX 文件" title="DOCX 文件"><span class="file-format-mark">DOCX</span></span><div><strong>商务标.docx</strong><small>正式交付文件 · 23 页</small></div><span class="status-tag green">商务标</span></div>
+        </div>
+      </section>
+
+      <section class="archive-confirm-section knowledge-confirm-section">
+        <header class="archive-confirm-section-head"><div><h4>知识沉淀附件</h4><p>AI 梳理阶段补充上传、具备复用价值的资质与证明文件。</p></div><div class="archive-confirm-section-actions"><span class="status-tag orange" id="archiveConfirmKnowledgeCount">3 项待确认</span><details class="knowledge-batch-menu archive-modal-batch-menu" name="knowledge-action-menu"><summary><svg viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></svg><span>批量处理</span><svg class="menu-chevron" viewBox="0 0 24 24"><path d="m8 10 4 4 4-4"/></svg></summary><div class="knowledge-menu-popover"><button type="button" data-knowledge-batch="confirmed"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg><span>全部确认沉淀</span></button><button type="button" data-knowledge-batch="canceled"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg><span>全部取消沉淀</span></button></div></details></div></header>
+        <div class="archive-confirm-file-list knowledge-confirm-file-list" id="archiveConfirmKnowledgeList"></div>
+      </section>
+    </div>
+    <footer class="layer-footer"><button class="ghost-btn" type="button" data-close-layer><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></span><span>取消</span></button><button class="primary-btn" id="submitDeliveryArchive" type="button"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg></span><span>确认归档</span></button></footer>
+  </section>
+
+  <script src="../assets/js/common.js"></script>
+  <script src="../assets/js/project-data.js"></script>
+  <script src="../assets/js/project-common.js"></script>
+  <script src="../assets/js/project-delivery.js"></script>
+</body>
+</html>
