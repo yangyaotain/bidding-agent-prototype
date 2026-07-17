@@ -87,8 +87,29 @@
     container.innerHTML = files.map(function (file, index) {
       const category = file.category || (scope === "result" ? "结果佐证" : "归档文件");
       const tone = file.tone || (scope === "result" ? "blue" : "gray");
-      return '<div class="ledger-download-item">' + fileIcon(file.name) + '<div><strong title="' + escapeHtml(file.name) + '">' + escapeHtml(file.name) + '</strong><small>' + escapeHtml(file.description || category) + '</small></div><span class="status-tag ' + escapeHtml(tone) + '">' + escapeHtml(category) + '</span><button class="ledger-download-btn" type="button" data-download-file data-download-scope="' + escapeHtml(scope) + '" data-download-index="' + index + '"><svg viewBox="0 0 24 24"><path d="M12 4v12M7 11l5 5 5-5M4 20h16"/></svg><span>下载</span></button></div>';
+      return '<div class="ledger-download-item">' + fileIcon(file.name) + '<div><strong title="' + escapeHtml(file.name) + '">' + escapeHtml(file.name) + '</strong><small>' + escapeHtml(file.description || category) + '</small></div><span class="status-tag ' + escapeHtml(tone) + '">' + escapeHtml(category) + '</span><div class="ledger-file-actions"><button class="ledger-download-btn is-preview" type="button" data-preview-file data-preview-scope="' + escapeHtml(scope) + '" data-preview-index="' + index + '"><svg viewBox="0 0 24 24"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z"/><circle cx="12" cy="12" r="2.5"/></svg><span>预览</span></button><button class="ledger-download-btn" type="button" data-download-file data-download-scope="' + escapeHtml(scope) + '" data-download-index="' + index + '"><svg viewBox="0 0 24 24"><path d="M12 4v12M7 11l5 5 5-5M4 20h16"/></svg><span>下载</span></button></div></div>';
     }).join("");
+  }
+
+  function previewProfile(file) {
+    const name = String(file && file.name || "").toLowerCase();
+    if (name.indexOf("商务标") !== -1) return "bid-business";
+    if (name.indexOf("技术标") !== -1) return "bid-technical";
+    if (name.indexOf("澄清") !== -1) return "clarification";
+    if (name.indexOf("采购") !== -1 || name.indexOf("招标") !== -1) return "procurement";
+    const format = window.BiddingFileIcons.meta(name);
+    if (format.type === "word" || format.type === "pdf") return "bid-technical";
+    return window.BiddingFilePreview.profileFromName(name);
+  }
+
+  function openLedgerPreview(file, scope) {
+    const sizeMatch = String(file.description || "").match(/\d+(?:\.\d+)?\s*(?:KB|MB|GB)/i);
+    window.BiddingFilePreview.open({
+      profile: previewProfile(file),
+      name: file.name,
+      size: sizeMatch ? sizeMatch[0] : "—",
+      context: scope === "result" ? "投标台账结果佐证" : "投标台账归档文件"
+    });
   }
 
   function renderReviewActions(actions) {
@@ -551,6 +572,14 @@
 
   function initEvents() {
     document.addEventListener("click", function (event) {
+      const previewButton = event.target.closest("[data-preview-file]");
+      if (previewButton && currentRecord) {
+        const previewScope = previewButton.getAttribute("data-preview-scope");
+        const previewIndex = Number(previewButton.getAttribute("data-preview-index"));
+        const previewFiles = previewScope === "result" ? currentRecord.resultFiles : currentRecord.archiveFiles;
+        if (Array.isArray(previewFiles) && previewFiles[previewIndex]) openLedgerPreview(previewFiles[previewIndex], previewScope);
+        return;
+      }
       const button = event.target.closest("[data-download-file]");
       if (!button || !currentRecord) return;
       const scope = button.getAttribute("data-download-scope");

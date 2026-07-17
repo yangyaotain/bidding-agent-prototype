@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">投标知识库图表素材示例来源文件</title>
+  <desc id="desc">展示需求解析、知识匹配、标书编制和质量审核之间的业务关系。</desc>
+  <rect width="1200" height="720" fill="#f4f7fb"/>
+  <rect x="70" y="70" width="1060" height="580" rx="24" fill="#ffffff" stroke="#dbe7f4" stroke-width="2"/>
+  <text x="110" y="135" fill="#102a48" font-family="Microsoft YaHei, sans-serif" font-size="34" font-weight="700">投标知识库业务关系示意</text>
+  <text x="110" y="178" fill="#64748b" font-family="Microsoft YaHei, sans-serif" font-size="20">示例来源文件 · SVG 可编辑图表素材</text>
+  <g font-family="Microsoft YaHei, sans-serif" font-size="24" font-weight="700" text-anchor="middle">
+    <rect x="120" y="290" width="200" height="110" rx="18" fill="#eaf3ff" stroke="#8fc1ff" stroke-width="2"/>
+    <text x="220" y="355" fill="#0b3d91">需求解析</text>
+    <rect x="380" y="290" width="200" height="110" rx="18" fill="#eaf3ff" stroke="#8fc1ff" stroke-width="2"/>
+    <text x="480" y="355" fill="#0b3d91">知识匹配</text>
+    <rect x="640" y="290" width="200" height="110" rx="18" fill="#eaf3ff" stroke="#8fc1ff" stroke-width="2"/>
+    <text x="740" y="355" fill="#0b3d91">标书编制</text>
+    <rect x="900" y="290" width="200" height="110" rx="18" fill="#e8f8ef" stroke="#86d4a7" stroke-width="2"/>
+    <text x="1000" y="355" fill="#15803d">质量审核</text>
+  </g>
+  <g fill="none" stroke="#1677ff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M320 345h45"/>
+    <path d="m350 330 15 15-15 15"/>
+    <path d="M580 345h45"/>
+    <path d="m610 330 15 15-15 15"/>
+    <path d="M840 345h45"/>
+    <path d="m870 330 15 15-15 15"/>
+  </g>
+  <g font-family="Microsoft YaHei, sans-serif" font-size="19" fill="#526173">
+    <text x="120" y="500">来源可追溯</text>
+    <text x="380" y="500">资料不虚构</text>
+    <text x="640" y="500">章节有依据</text>
+    <text x="900" y="500">问题可整改</text>
+  </g>
+</svg>

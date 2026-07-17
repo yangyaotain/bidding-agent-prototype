@@ -34,7 +34,7 @@
 .delivery-package-format-icon .file-format-mark { min-width: 29px; height: 27px; font-size: 7px; }
 
 .delivery-package-files { padding: 4px 14px; }
-.delivery-package-files > div { min-height: 58px; display: grid; grid-template-columns: 30px minmax(0, 1fr); align-items: center; gap: 9px; border-bottom: 1px solid #edf1f7; }
+.delivery-package-files > div { min-height: 58px; display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; align-items: center; gap: 9px; border-bottom: 1px solid #edf1f7; }
 .delivery-package-files > div:last-child { border-bottom: 0; }
 .delivery-package-files strong,
 .delivery-package-files small { display: block; }
@@ -42,6 +42,8 @@
 .delivery-package-files small { margin-top: 4px; color: var(--muted); font-size: 8px; line-height: 1.4; }
 .package-file-type { width: 28px; height: 31px; border-radius: 7px; }
 .package-file-type .file-format-mark { min-width: 22px; height: 21px; padding: 0 2px; font-size: 5.5px; border-radius: 5px; }
+.delivery-file-preview { min-height: 30px; padding: 0 8px; font-size: 8.5px; white-space: nowrap; }
+.delivery-file-preview .btn-icon svg { width: 13px; height: 13px; }
 
 .delivery-package-card > footer { min-height: 56px; margin-top: auto; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px; background: #fbfcfe; border-top: 1px solid var(--line); }
 .delivery-package-card > footer > span { color: var(--muted); font-size: 8.5px; white-space: nowrap; }

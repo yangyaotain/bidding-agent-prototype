@@ -14,6 +14,7 @@
   let currentRecordMode = "create";
   let currentRecordItem = null;
   let selectedFileName = "";
+  let selectedFile = null;
   let subrecordParsed = false;
   let subrecordTimer = null;
 
@@ -25,7 +26,7 @@
     material: '<svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6zM14 3v5h5"/><path d="M9 13h6M9 17h4"/></svg>',
     archive: '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="5" rx="1"/><path d="M5 9v11h14V9M9 13h6"/></svg>',
     trash: '<svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v5M14 11v5"/></svg>',
-    eye: '<svg viewBox="0 0 24 24"><path d="M3 12s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6z"/><circle cx="12" cy="12" r="2.5"/></svg>',
+    enter: '<svg viewBox="0 0 24 24"><path d="M5 12h14M14 7l5 5-5 5"/></svg>',
     upload: '<svg viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M5 14v6h14v-6"/></svg>',
     scan: '<svg viewBox="0 0 24 24"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><path d="M7 12h10M9 9h6M9 15h6"/></svg>',
     check: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12 2.5 2.5L16 9"/></svg>'
@@ -42,8 +43,8 @@
   }
 
   function fileCell(name, fileName, subtitle) {
-    const icon = window.BiddingFileIcons ? window.BiddingFileIcons.markup(fileName, "compact-file-icon") : '<span class="file-type-icon type-generic compact-file-icon"><span class="file-format-mark">FILE</span></span>';
-    return '<div class="knowledge-person-file-cell">' + icon + '<span><strong>' + escapeHtml(name || "未命名资料") + '</strong><small>' + escapeHtml(fileName || "未关联来源文件") + '</small>' + (subtitle ? '<small>' + escapeHtml(subtitle) + '</small>' : '') + '</span></div>';
+    const icon = window.BiddingFileIcons ? window.BiddingFileIcons.markup(fileName, "knowledge-record-format-icon") : '<span class="file-type-icon type-generic knowledge-record-format-icon"><span class="file-format-mark">FILE</span></span>';
+    return '<div class="knowledge-person-file-cell">' + icon + '<span class="knowledge-person-file-copy"><strong title="' + escapeHtml(name || "未命名资料") + '">' + escapeHtml(name || "未命名资料") + '</strong><small title="' + escapeHtml(fileName || "未关联来源文件") + '">' + escapeHtml(fileName || "未关联来源文件") + '</small>' + (subtitle ? '<small>' + escapeHtml(subtitle) + '</small>' : '') + '</span></div>';
   }
 
   function activeRecords(records) {
@@ -73,12 +74,12 @@
   function recordActions(type, item) {
     const base = ' data-person-record-type="' + type + '" data-person-record-id="' + escapeHtml(item.id) + '"';
     if (item.lifecycleState === "archived") {
-      return '<div class="knowledge-person-record-actions"><button class="ghost-btn compact-btn" type="button" data-person-record-action="view"' + base + '><span class="btn-icon">' + icons.eye + '</span><span>查看</span></button><button class="danger-btn compact-btn" type="button" data-person-record-action="delete"' + base + '><span class="btn-icon">' + icons.trash + '</span><span>删除</span></button></div>';
+      return '<div class="knowledge-person-record-actions"><button class="text-btn compact-btn knowledge-view-btn" type="button" data-person-record-action="view"' + base + '><span class="btn-icon">' + icons.enter + '</span><span>查看</span></button><button class="danger-btn compact-btn" type="button" data-person-record-action="delete"' + base + '><span class="btn-icon">' + icons.trash + '</span><span>删除</span></button></div>';
     }
     if (person.lifecycleState === "archived") {
-      return '<div class="knowledge-person-record-actions"><button class="ghost-btn compact-btn" type="button" data-person-record-action="view"' + base + '><span class="btn-icon">' + icons.eye + '</span><span>查看</span></button></div>';
+      return '<div class="knowledge-person-record-actions"><button class="text-btn compact-btn knowledge-view-btn" type="button" data-person-record-action="view"' + base + '><span class="btn-icon">' + icons.enter + '</span><span>查看</span></button></div>';
     }
-    return '<div class="knowledge-person-record-actions"><button class="ghost-btn compact-btn" type="button" data-person-record-action="edit"' + base + '><span class="btn-icon">' + icons.edit + '</span><span>编辑</span></button><button class="ghost-btn compact-btn" type="button" data-person-record-action="archive"' + base + '><span class="btn-icon">' + icons.archive + '</span><span>归档</span></button></div>';
+    return '<div class="knowledge-person-record-actions"><button class="text-btn compact-btn knowledge-view-btn" type="button" data-person-record-action="view"' + base + '><span class="btn-icon">' + icons.enter + '</span><span>查看</span></button><button class="ghost-btn compact-btn" type="button" data-person-record-action="edit"' + base + '><span class="btn-icon">' + icons.edit + '</span><span>编辑</span></button><button class="ghost-btn compact-btn" type="button" data-person-record-action="archive"' + base + '><span class="btn-icon">' + icons.archive + '</span><span>归档</span></button></div>';
   }
 
   function sectionHead(title, description, actions) {
@@ -203,7 +204,15 @@
         if (action === "edit") openRecordModal(type, item);
         if (action === "archive") window.knowledgePrototype.openArchive(item);
         if (action === "delete") window.knowledgePrototype.openDelete(item);
-        if (action === "view") window.showToast("正在查看“" + item.name + "”的资料内容", "info");
+        if (action === "view") {
+          item.categoryLabel = recordTypeLabel(type);
+          item.updatedAt = item.updatedAt || person.updatedAt;
+          item.owner = item.owner || currentUserName;
+          item.summary = item.summary || recordSummary(type, item);
+          item.description = item.description || "来源文件已完成解析并关联“" + person.name + "”的人员档案。";
+          item.detailReadOnly = person.lifecycleState === "archived" && item.lifecycleState !== "archived";
+          window.knowledgePrototype.openDetail(item);
+        }
       });
     });
   }
@@ -216,6 +225,14 @@
     document.getElementById("savePersonSubrecordText").textContent = text;
     document.getElementById("savePersonSubrecordIcon").innerHTML = icon;
     document.getElementById("savePersonSubrecord").disabled = Boolean(disabled);
+  }
+
+  function recordFileConfig(type) {
+    return {
+      certificate: { accept: ".pdf,.png,.jpg,.jpeg", hint: "支持 PDF、PNG、JPG 证书文件" },
+      experience: { accept: ".pdf,.doc,.docx,.png,.jpg,.jpeg", hint: "支持合同、项目证明和履历文件" },
+      material: { accept: ".pdf,.doc,.docx,.png,.jpg,.jpeg", hint: "支持 PDF、Word 和图片文件" }
+    }[type];
   }
 
   function parsedSubrecordFields(type, fileName, item) {
@@ -237,6 +254,7 @@
 
   function startSubrecordParsing(file) {
     selectedFileName = file.name;
+    selectedFile = file;
     subrecordParsed = false;
     if (subrecordTimer) window.clearTimeout(subrecordTimer);
     document.getElementById("subrecordParseStatus").textContent = "AI 正在解析“" + file.name + "”并提取相关属性...";
@@ -258,21 +276,19 @@
     currentRecordMode = item ? "edit" : "create";
     currentRecordItem = item || null;
     selectedFileName = item ? item.file : "";
+    selectedFile = null;
     subrecordParsed = Boolean(item);
     if (subrecordTimer) window.clearTimeout(subrecordTimer);
     const label = recordTypeLabel(type);
     document.getElementById("personSubrecordTitle").textContent = item ? "编辑" + label : "导入" + label;
-    document.getElementById("personSubrecordSubtitle").textContent = item ? "修改 AI 解析信息，来源文件保持关联。" : "上传资料后，AI 将自动提取信息并关联到“" + person.name + "”。";
+    document.getElementById("personSubrecordSubtitle").textContent = item ? "可修改解析信息，也可重新上传来源文件并重新解析。" : "上传资料后，AI 将自动提取信息并关联到“" + person.name + "”。";
     if (item) {
-      document.getElementById("personSubrecordFields").innerHTML = '<div class="knowledge-current-file full"><span>当前来源文件</span>' + fileCell(item.name, item.file, recordSummary(type, item)) + '</div><div class="knowledge-ai-extract knowledge-parsed-fields full"><div class="knowledge-ai-extract-head"><span>' + icons.edit + '</span><div><strong>编辑解析信息</strong><small>修改后将更新当前人员资料记录</small></div></div><div class="knowledge-form-grid">' + parsedSubrecordFields(type, item.file, item) + '</div></div>';
+      const config = recordFileConfig(type);
+      document.getElementById("personSubrecordFields").innerHTML = '<div class="knowledge-current-file full"><span>当前来源文件</span>' + fileCell(item.name, item.file, recordSummary(type, item)) + '</div><div class="knowledge-form-field full"><label>重新上传来源文件</label><label class="knowledge-upload-zone compact" for="subrecordFile"><span class="knowledge-upload-icon">' + icons.upload + '</span><strong>点击选择新文件</strong><span>' + config.hint + '；不选择则保留当前文件</span><input id="subrecordFile" type="file" accept="' + config.accept + '"/></label></div><div class="knowledge-batch-status full" id="subrecordParseStatus">未选择新文件，将保留当前来源文件</div><div class="knowledge-ai-extract knowledge-parsed-fields full" id="subrecordParsedFields"><div class="knowledge-ai-extract-head"><span>' + icons.edit + '</span><div><strong>编辑解析信息</strong><small>修改后将更新当前人员资料记录</small></div></div><div class="knowledge-form-grid">' + parsedSubrecordFields(type, item.file, item) + '</div></div>';
+      document.getElementById("subrecordFile").addEventListener("change", function () { const file = this.files && this.files[0]; if (file) startSubrecordParsing(file); });
       setSubrecordButton("保存修改", icons.check, false);
     } else {
-      const configs = {
-        certificate: { accept: ".pdf,.png,.jpg,.jpeg", hint: "支持 PDF、PNG、JPG 证书文件" },
-        experience: { accept: ".pdf,.doc,.docx,.png,.jpg,.jpeg", hint: "支持合同、项目证明和履历文件" },
-        material: { accept: ".pdf,.doc,.docx,.png,.jpg,.jpeg", hint: "支持 PDF、Word 和图片文件" }
-      };
-      const config = configs[type];
+      const config = recordFileConfig(type);
       document.getElementById("personSubrecordFields").innerHTML = '<div class="knowledge-form-field full"><label>资料文件 <em>*</em></label><label class="knowledge-upload-zone" for="subrecordFile"><span class="knowledge-upload-icon">' + icons.upload + '</span><strong>点击选择文件并进行 AI 解析</strong><span>' + config.hint + '</span><input id="subrecordFile" type="file" accept="' + config.accept + '"/></label></div><div class="knowledge-batch-status full" id="subrecordParseStatus">尚未选择资料文件</div><div class="knowledge-ai-extract knowledge-parsed-fields full hidden" id="subrecordParsedFields"></div>';
       document.getElementById("subrecordFile").addEventListener("change", function () { const file = this.files && this.files[0]; if (file) startSubrecordParsing(file); });
       setSubrecordButton("等待上传", icons.scan, true);
@@ -284,6 +300,7 @@
     if (subrecordTimer) window.clearTimeout(subrecordTimer);
     subrecordTimer = null;
     currentRecordItem = null;
+    selectedFile = null;
     window.knowledgePrototype.closeLayers();
   }
 
@@ -305,7 +322,7 @@
     }
     let item = currentRecordItem;
     if (!item) {
-      item = { id: person.id + "-" + currentRecordType.toUpperCase().slice(0, 3) + "-NEW-" + Date.now(), category: "people-record", recordType: currentRecordType, lifecycleState: "active", file: selectedFileName, owner: currentUserName };
+      item = { id: person.id + "-" + currentRecordType.toUpperCase().slice(0, 3) + "-NEW-" + Date.now(), category: "people-record", recordType: currentRecordType, lifecycleState: "active", file: selectedFileName, sourceFile: selectedFile, owner: currentUserName };
       if (currentRecordType === "certificate") profile.certificates.push(item);
       if (currentRecordType === "experience") profile.experiences.push(item);
       if (currentRecordType === "material") profile.materials.push(item);
@@ -318,15 +335,27 @@
       item.name = name.value.trim(); item.type = type.value.trim(); item.period = document.getElementById("subrecordNumber").value.trim(); item.status = "已解析"; item.tone = "green";
     }
     const editMode = currentRecordMode === "edit";
+    const replacedFile = editMode && Boolean(selectedFile);
+    if (selectedFile) {
+      item.file = selectedFile.name;
+      item.sourceFile = selectedFile;
+      item.sourceFileUrl = "";
+    }
+    item.updatedAt = new Date().toISOString().slice(0, 10);
     closeRecordModal();
     renderShell();
-    window.showToast(editMode ? "“" + item.name + "”已更新" : "“" + item.name + "”已导入并关联人员", "success");
+    window.showToast(editMode ? "“" + item.name + "”已更新" + (replacedFile ? "，新来源文件已重新解析" : "") : "“" + item.name + "”已导入并关联人员", "success");
   }
 
   document.addEventListener("click", function (event) {
     if (event.target.closest("[data-close-person-record]") || event.target.id === "knowledgeBackdrop") closeRecordModal();
   });
   document.getElementById("savePersonSubrecord").addEventListener("click", saveSubrecord);
+  document.addEventListener("knowledge-person-record-edit-request", function (event) {
+    if (!event.detail || person.lifecycleState === "archived") return;
+    const item = findRecord(event.detail.type, event.detail.id);
+    if (item) openRecordModal(event.detail.type, item);
+  });
   document.addEventListener("keydown", function (event) { if (event.key === "Escape" && modal.classList.contains("open")) closeRecordModal(); });
   document.addEventListener("knowledge-record-changed", function (event) {
     if (!event.detail || !person) return;

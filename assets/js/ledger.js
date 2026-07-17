@@ -244,7 +244,7 @@
       '<td><div class="table-primary"><div><strong title="' + escapeHtml(record.name) + '">' + escapeHtml(record.name) + '</strong><span class="ledger-project-subline">' + escapeHtml(record.id) + '<i></i>归档于 ' + escapeHtml(record.archiveDate) + "</span></div></div></td>",
       '<td><strong class="purchaser-name" title="' + escapeHtml(record.purchaser) + '">' + escapeHtml(record.purchaser) + "</strong></td>",
       '<td><div class="cell-stack"><strong>' + escapeHtml(record.bidDateText.slice(0, 10)) + '</strong><span>' + escapeHtml(record.bidDateText.slice(11)) + " 截止</span></div></td>",
-      '<td><strong class="ledger-price">' + formatAmount(record.bidAmount) + "</strong></td>",
+      '<td><strong class="table-amount amount-text">' + formatAmount(record.bidAmount) + "</strong></td>",
       '<td><div class="ledger-result-cell"><span class="status-tag ' + result.tone + resultClass + '">' + result.label + "</span><small>" + escapeHtml(resultHint) + "</small></div></td>",
       '<td><div class="ledger-score"><strong>' + score + "</strong><span>" + rank + "</span></div></td>",
       '<td><div class="owner-cell"><span class="person-avatar">' + escapeHtml(record.owner.slice(0, 1)) + "</span><span>" + escapeHtml(record.owner) + "</span></div></td>",

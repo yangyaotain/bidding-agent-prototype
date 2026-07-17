@@ -78,6 +78,48 @@
     markup: fileIconMarkup
   };
 
+  function previewProfileFromName(name) {
+    const format = fileFormatMeta(name);
+    if (format.type === "excel") return "quote";
+    if (format.type === "image" || format.type === "vector") return "image";
+    if (format.type === "archive") return "package";
+    return "uploaded";
+  }
+
+  function openFilePreview(config) {
+    const options = config || {};
+    const query = new URLSearchParams();
+    const values = {
+      profile: options.profile || previewProfileFromName(options.name),
+      name: options.name,
+      format: options.formatLabel,
+      size: options.size,
+      context: options.context,
+      url: options.sourceUrl,
+      page: options.page
+    };
+    Object.keys(values).forEach(function (key) {
+      if (values[key] !== undefined && values[key] !== null && String(values[key]).trim() !== "") query.set(key, values[key]);
+    });
+    const pathname = String(window.location.pathname || "").replace(/\\/g, "/");
+    const previewPage = pathname.indexOf("/pages/") !== -1 ? "file-preview.html" : "pages/file-preview.html";
+    const link = document.createElement("a");
+    link.href = previewPage + "?" + query.toString();
+    link.target = "_blank";
+    link.rel = "noopener";
+    link.hidden = true;
+    document.body.appendChild(link);
+    link.click();
+    const href = link.href;
+    link.remove();
+    return href;
+  }
+
+  window.BiddingFilePreview = {
+    open: openFilePreview,
+    profileFromName: previewProfileFromName
+  };
+
   const menuItems = [
     { key: "dashboard", label: "首页", href: "dashboard.html", icon: icons.home },
     { key: "projects", label: "投标项目", href: "projects.html", icon: icons.project },

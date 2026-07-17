@@ -395,6 +395,33 @@
   text-overflow: ellipsis;
 }
 
+.amount-column-heading {
+  color: var(--primary-dark) !important;
+}
+
+.table-amount {
+  display: block;
+  width: fit-content;
+  padding: 5px 8px;
+  color: var(--amount) !important;
+  background: linear-gradient(135deg, #fffdf8, var(--amount-soft));
+  border: 1px solid var(--amount-border);
+  border-radius: 8px;
+  box-shadow: 0 3px 9px rgba(var(--amount-rgb), 0.06);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.table-amount-pending {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
 .person-avatar {
   display: grid;
   place-items: center;

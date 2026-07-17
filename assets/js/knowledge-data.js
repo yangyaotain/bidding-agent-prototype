@@ -1199,6 +1199,18 @@
     return matched ? matched[0] : "";
   }
 
+  function sampleSourceFileUrl(fileName) {
+    const extension = ((fileName || "").split(".").pop() || "").toLowerCase();
+    const sourceFiles = {
+      pdf: "../assets/bid-documents/technical.pdf",
+      docx: "../assets/bid-documents/technical.docx",
+      xlsx: "../assets/knowledge-files/knowledge-source-sample.xlsx",
+      svg: "../assets/knowledge-files/knowledge-source-sample.svg",
+      zip: "../assets/bid-documents/packages/某港口集团2026年度集装箱业务平台运维项目_Word文件套.zip"
+    };
+    return sourceFiles[extension] || "";
+  }
+
   function normalizeKnowledgeRecord(record) {
     if (!record) return record;
     if (/^KB-CERT-/.test(record.id || "")) {
@@ -1226,6 +1238,7 @@
       record.archivedAt = "2026-07-15";
       record.archivedBy = "李明远";
     }
+    if (record.file && !record.sourceFileUrl) record.sourceFileUrl = sampleSourceFileUrl(record.file);
     delete record.permissions;
     delete record.maintenance;
     delete record.maintenanceTone;
@@ -1243,6 +1256,14 @@
 
   [assets, companyRecords, peopleRecords, caseRecords, solutionRecords, businessRecords, templateRecords, chartRecords, historyRecords, certificates].forEach(function (collection) {
     collection.forEach(normalizeKnowledgeRecord);
+  });
+
+  peopleProfiles.forEach(function (profile) {
+    [profile.certificates, profile.experiences, profile.materials].forEach(function (records) {
+      (records || []).forEach(function (record) {
+        if (record.file && !record.sourceFileUrl) record.sourceFileUrl = sampleSourceFileUrl(record.file);
+      });
+    });
   });
 
   window.KnowledgePrototypeData = {

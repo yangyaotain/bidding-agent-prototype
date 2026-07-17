@@ -109,7 +109,12 @@
 
   function rowTemplate(project) {
     const urgentClass = project.status === "deadline" ? " style=\"color:#dc2626\"" : "";
-    const projectSubline = project.status === "parsing" ? project.fileName + " · 项目编号生成中" : project.id + ' · 预算 <b class="amount-text">' + project.budget + "</b>";
+    const projectSubline = project.status === "parsing" ?
+      '<span class="project-row-parsing">' + project.fileName + " · 项目编号生成中</span>" :
+      "<span>" + project.id + "</span>";
+    const budgetContent = project.status === "parsing" ?
+      '<span class="table-amount-pending">待解析</span>' :
+      '<strong class="table-amount amount-text">' + project.budget + "</strong>";
     const entryHref = projectEntryPage(project) + "?id=" + encodeURIComponent(project.id);
     const stateAction = project.status === "archived" ?
       '<button class="project-row-action-btn danger" type="button" data-project-action="delete"><span class="btn-icon">' + icons.trash + '</span><span>删除</span></button>' :
@@ -119,8 +124,9 @@
     const displayStage = listStage(project);
     return [
       '<tr data-project-id="' + project.id + '">',
-      '<td><div class="table-primary"><div><strong title="' + project.name + '">' + project.name + '</strong><span>' + projectSubline + '</span></div></div></td>',
+      '<td><div class="table-primary"><div><strong title="' + project.name + '">' + project.name + "</strong>" + projectSubline + "</div></div></td>",
       '<td><strong class="purchaser-name" title="' + project.purchaser + '">' + project.purchaser + '</strong></td>',
+      "<td>" + budgetContent + "</td>",
       '<td><div class="cell-stack"><strong' + urgentClass + '>' + project.deadline + '</strong><span' + urgentClass + '>' + project.deadlineText + '</span></div></td>',
       '<td><div class="stage-cell"><span class="status-tag ' + stageTone + '">' + displayStage + '</span><small>' + projectStageDetail(project) + '</small></div></td>',
       '<td><div class="table-progress"><span class="table-progress-track"><b style="width:' + project.progress + '%"></b></span><b>' + project.progress + '%</b></div></td>',

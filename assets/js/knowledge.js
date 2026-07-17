@@ -64,8 +64,8 @@
   }
 
   function fileIconMarkup(fileName) {
-    if (window.BiddingFileIcons) return window.BiddingFileIcons.markup(fileName);
-    return '<span class="file-type-icon type-generic"><span class="file-format-mark">FILE</span></span>';
+    if (window.BiddingFileIcons) return window.BiddingFileIcons.markup(fileName, "knowledge-record-format-icon");
+    return '<span class="file-type-icon type-generic knowledge-record-format-icon"><span class="file-format-mark">FILE</span></span>';
   }
 
   function personValiditySummary(item) {
@@ -280,7 +280,7 @@
   function handleKnowledgeAction(action, item) {
     if (!item) return;
     if (action === "person-detail") {
-      window.location.href = "knowledge-person-detail.html?id=" + encodeURIComponent(item.id);
+      window.location.href = "knowledge-person-detail.html?id=" + encodeURIComponent(item.id) + "&v=20260717-3";
       return;
     }
     if (action === "person-edit") {

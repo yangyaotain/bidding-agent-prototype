@@ -542,6 +542,22 @@
   background: #f5f3ff;
 }
 
+.knowledge-record-format-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+}
+
+.knowledge-record-format-icon .file-format-mark {
+  min-width: 25px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-size: 7px;
+  line-height: 1;
+}
+
 .knowledge-name-button {
   width: 100%;
   padding: 0;
@@ -986,26 +1002,94 @@ body.knowledge-layer-open {
 .knowledge-detail-file {
   display: flex !important;
   align-items: center;
-  gap: 8px;
+  justify-content: space-between;
+  gap: 14px;
+  min-height: 58px;
+  margin-top: 7px;
+  padding: 10px 11px;
+  background: #fff;
+  border: 1px solid #dbe6f2;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, .04);
 }
 
-.knowledge-detail-file > span:last-child {
+.knowledge-detail-source {
+  grid-column: 1 / -1;
+}
+
+.knowledge-detail-source > span {
+  font-weight: 700;
+}
+
+.knowledge-detail-file-name {
+  flex: 1 1 auto;
   min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.knowledge-detail-file-copy {
+  min-width: 0;
+}
+
+.knowledge-detail-file-copy strong,
+.knowledge-detail-file-copy small {
+  display: block;
+}
+
+.knowledge-detail-file-copy strong {
   overflow: hidden;
+  color: var(--heading);
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 1.4;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.knowledge-detail-format-icon {
-  width: 30px;
-  height: 32px;
-  border-radius: 8px;
+.knowledge-detail-file-copy small {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.35;
 }
 
-.knowledge-detail-format-icon .file-format-mark {
-  min-width: 23px;
-  height: 21px;
-  font-size: 6px;
+.knowledge-detail-file-actions {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 6px;
+}
+
+.knowledge-detail-file-actions .compact-btn {
+  min-width: 58px;
+  min-height: 30px;
+  padding: 0 9px;
+  color: var(--primary);
+  background: var(--primary-panel-bg);
+  border: 1px solid var(--primary-border-soft);
+  border-radius: 8px;
+  font-size: 10px;
+}
+
+.knowledge-detail-file-actions .compact-btn:hover {
+  background: var(--primary-soft);
+  border-color: var(--primary-border);
+}
+
+.knowledge-detail-file-actions .compact-btn span {
+  color: inherit;
+  font-size: inherit;
+}
+
+.knowledge-detail-file-actions .btn-icon {
+  display: inline-flex;
+}
+
+.knowledge-detail-file-actions .btn-icon svg {
+  width: 14px;
+  height: 14px;
 }
 
 .knowledge-detail-grid > div {
@@ -1016,17 +1100,17 @@ body.knowledge-layer-open {
   border-radius: 9px;
 }
 
-.knowledge-detail-grid span,
-.knowledge-detail-grid strong {
+.knowledge-detail-grid > div > span,
+.knowledge-detail-grid > div > strong {
   display: block;
 }
 
-.knowledge-detail-grid span {
+.knowledge-detail-grid > div > span {
   color: var(--muted);
   font-size: 10px;
 }
 
-.knowledge-detail-grid strong {
+.knowledge-detail-grid > div > strong {
   margin-top: 5px;
   overflow-wrap: anywhere;
   color: #334155;
@@ -1266,6 +1350,10 @@ body.knowledge-layer-open {
   flex-wrap: nowrap;
 }
 
+.knowledge-person-record-actions {
+  min-width: 198px;
+}
+
 .knowledge-person-info-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -1351,30 +1439,38 @@ body.knowledge-layer-open {
 }
 
 .knowledge-person-file-cell {
-  display: flex;
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
   align-items: center;
-  gap: 8px;
-  min-width: 150px;
+  gap: 10px;
+  min-width: 180px;
 }
 
-.knowledge-person-file-cell span:last-child {
+.knowledge-person-file-copy {
   min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  overflow-wrap: anywhere;
+  overflow: hidden;
 }
 
-.knowledge-person-file-cell strong {
+.knowledge-person-file-copy strong {
+  display: block;
+  overflow: hidden;
   color: var(--heading);
   font-size: 11px;
+  font-weight: 750;
   line-height: 1.45;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.knowledge-person-file-cell small {
-  margin-top: 0 !important;
+.knowledge-person-file-copy small {
+  display: block;
+  margin-top: 2px !important;
+  overflow: hidden;
   color: var(--muted);
   font-size: 9px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .knowledge-current-file {
@@ -1933,6 +2029,17 @@ body.knowledge-layer-open {
   border-color: #8ec5ff;
 }
 
+.knowledge-upload-zone.compact {
+  min-height: 82px;
+  padding: 12px 16px;
+}
+
+.knowledge-upload-zone.compact .knowledge-upload-icon {
+  width: 30px;
+  height: 30px;
+  margin-bottom: 6px;
+}
+
 .knowledge-upload-zone.dragging {
   background: var(--primary-soft);
   border-color: var(--primary);
@@ -2314,5 +2421,14 @@ body.knowledge-layer-open {
   .knowledge-person-section-head {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .knowledge-detail-file {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .knowledge-detail-file-actions {
+    justify-content: flex-start;
   }
 }

@@ -27,7 +27,9 @@
     trash: '<svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v5M14 11v5"/></svg>',
     warning: '<svg viewBox="0 0 24 24"><path d="M10.3 3.8 2.7 17a2 2 0 0 0 1.8 3h15a2 2 0 0 0 1.8-3L13.7 3.8a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>',
     people: '<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.5 2.7-6 6-6s6 2.5 6 6M17 6a3 3 0 0 1 0 6M17 15c2.5.5 4 2.4 4 5"/></svg>',
-    certificate: '<svg viewBox="0 0 24 24"><path d="M12 3 4 7v5c0 5 3.4 8.3 8 9 4.6-.7 8-4 8-9V7l-8-4z"/><path d="m9 12 2 2 4-5"/></svg>'
+    certificate: '<svg viewBox="0 0 24 24"><path d="M12 3 4 7v5c0 5 3.4 8.3 8 9 4.6-.7 8-4 8-9V7l-8-4z"/><path d="m9 12 2 2 4-5"/></svg>',
+    preview: '<svg viewBox="0 0 24 24"><path d="M3 12s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6z"/><circle cx="12" cy="12" r="2.5"/></svg>',
+    download: '<svg viewBox="0 0 24 24"><path d="M12 4v12M7 11l5 5 5-5M4 20h16"/></svg>'
   };
 
   const typeOptionsByCategory = {
@@ -81,6 +83,83 @@
     if (window.BiddingFileIcons) return window.BiddingFileIcons.markup(fileName, extraClass || "");
     const mark = ((fileName || "FILE").split(".").pop() || "FILE").toUpperCase().slice(0, 5);
     return '<span class="file-type-icon type-generic' + (extraClass ? ' ' + extraClass : '') + '" role="img" aria-label="' + mark + ' 文件"><span class="file-format-mark">' + mark + '</span></span>';
+  }
+
+  function fileFormatLabel(fileName) {
+    if (window.BiddingFileIcons) return window.BiddingFileIcons.meta(fileName).label;
+    const mark = ((fileName || "FILE").split(".").pop() || "FILE").toUpperCase().slice(0, 5);
+    return mark + " 文件";
+  }
+
+  function personRecordLabel(item) {
+    return { certificate: "证书与资质", experience: "项目经历", material: "证明材料" }[item && item.recordType] || "人员资料";
+  }
+
+  function detailCategoryLabel(item) {
+    if (item && item.category === "people-record") return item.categoryLabel || personRecordLabel(item);
+    return (item && (item.categoryLabel || categoryLabels[item.category])) || "知识资料";
+  }
+
+  function personRecordDetailFields(item) {
+    const fields = [];
+    if (item.recordType === "certificate") {
+      fields.push(["证书编号", item.number], ["发证机构", item.issuer], ["取得日期", item.issueDate], ["到期日期", item.endDate || "长期有效"]);
+    } else if (item.recordType === "experience") {
+      fields.push(["项目名称", item.project], ["承担角色", item.role], ["参与时间", item.period], ["主要工作", item.content]);
+    } else if (item.recordType === "material") {
+      fields.push(["材料类型", item.type], ["版本或覆盖期间", item.period], ["解析状态", item.status || "已解析"]);
+    }
+    return fields.filter(function (field) { return field[1]; });
+  }
+
+  function sourceFileTarget(item) {
+    if (item && item.sourceFile && typeof item.sourceFile.size === "number") return { href: URL.createObjectURL(item.sourceFile), objectUrl: true };
+    if (item && (item.sourceFileUrl || item.downloadUrl)) return { href: item.sourceFileUrl || item.downloadUrl, objectUrl: false };
+    return null;
+  }
+
+  function openSourcePreview(item) {
+    if (!item || !item.file) {
+      window.showToast("当前资料暂未关联来源文件", "warning");
+      return;
+    }
+    const target = sourceFileTarget(item);
+    if (!target) {
+      window.showToast("当前资料暂未配置来源文件", "warning");
+      return;
+    }
+    const format = window.BiddingFileIcons.meta(item.file);
+    let profile = window.BiddingFilePreview.profileFromName(item.file);
+    if (format.type === "word" || format.type === "pdf") profile = "bid-technical";
+    window.BiddingFilePreview.open({
+      profile: profile,
+      name: item.file,
+      size: item.sourceFile && typeof item.sourceFile.size === "number" ? formatFileSize(item.sourceFile.size) : "—",
+      context: "知识库来源文件",
+      sourceUrl: target.href
+    });
+    if (target.objectUrl) window.setTimeout(function () { URL.revokeObjectURL(target.href); }, 300000);
+  }
+
+  function downloadSourceFile(item) {
+    if (!item || !item.file) {
+      window.showToast("当前资料暂未关联来源文件", "warning");
+      return;
+    }
+    const target = sourceFileTarget(item);
+    if (!target) {
+      window.showToast("当前资料暂未配置来源文件", "warning");
+      return;
+    }
+    const link = document.createElement("a");
+    link.href = target.href;
+    link.download = item.file;
+    link.hidden = true;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    if (target.objectUrl) window.setTimeout(function () { URL.revokeObjectURL(target.href); }, 30000);
+    window.showToast("已开始浏览器下载：“" + item.file + "”", "success");
   }
 
   window.KnowledgeValidity = {
@@ -309,12 +388,12 @@
       '<div class="knowledge-detail-summary"><div><span class="status-tag green" id="detailRecordStatus">已入库</span><span class="status-tag green hidden" id="detailValidityTag">有效</span></div><div class="knowledge-detail-key-summary"><span>AI 摘要</span><strong id="detailSummary">-</strong></div><p id="detailDescription"></p></div>',
       '<section class="knowledge-detail-section"><h4>资料信息</h4><div class="knowledge-detail-grid">',
       '<div><span>资料类型</span><strong id="detailType">-</strong></div><div><span>知识分类</span><strong id="detailClassification">-</strong></div>',
-      '<div><span>来源文件</span><strong class="knowledge-detail-file" id="detailFile">-</strong></div><div><span>最近更新人</span><strong id="detailOwner">-</strong></div>',
+      '<div class="knowledge-detail-source"><span>来源文件</span><div class="knowledge-detail-file" id="detailFile">-</div></div><div><span>最近更新人</span><strong id="detailOwner">-</strong></div>',
       '<div><span>资料状态</span><strong id="detailStatusText">已入库</strong></div><div><span>状态时间</span><strong id="detailStatusTime">-</strong></div>',
       '<div class="hidden" id="detailValidityStatusField"><span>有效状态</span><strong id="detailValidityStatus">-</strong></div><div class="hidden" id="detailValidityDateField"><span>有效期限</span><strong id="detailValidityDate">-</strong></div>',
       '</div></section>',
       '<section class="knowledge-detail-section"><h4>AI 解析信息</h4><div class="knowledge-detail-grid" id="detailAiFields"></div></section>',
-      '<section class="knowledge-detail-section"><h4>资料标签</h4><div class="knowledge-detail-tags" id="detailTags"></div></section>',
+      '<section class="knowledge-detail-section" id="detailTagsSection"><h4>资料标签</h4><div class="knowledge-detail-tags" id="detailTags"></div></section>',
       '<section class="knowledge-detail-section"><h4>使用记录</h4><div class="knowledge-detail-grid"><div><span>投标引用</span><strong id="detailReferences">0 次</strong></div><div><span>最近处理</span><strong id="detailUpdatedAt">-</strong></div></div></section>',
       '<section class="knowledge-detail-section"><h4>处理记录</h4><div class="knowledge-timeline"><div class="hidden" id="detailArchiveRecord"><i></i><strong>资料归档</strong><span id="detailArchivedAt">-</span></div><div><i></i><strong>AI 解析资料内容</strong><span id="detailParsedAt">-</span></div><div><i></i><strong>资料上传入库</strong><span>系统 · 保留来源文件</span></div></div></section>',
       '</div>',
@@ -421,21 +500,21 @@
     if (!item) return;
     currentItem = item;
     const status = recordStatus(item);
-    const validity = validityInfo(item);
-    const aiFields = buildAiExtract(item.category, item.type, item.file, item);
-    setText("detailCategory", item.categoryLabel || categoryLabels[item.category] || "知识资料");
+    const validity = item.category === "people-record" && item.recordType !== "certificate" ? { applicable: false, tone: "gray", label: "-", dateText: "" } : validityInfo(item);
+    const aiFields = item.category === "people-record" ? personRecordDetailFields(item) : buildAiExtract(item.category, item.type, item.file, item);
+    setText("detailCategory", detailCategoryLabel(item));
     setText("detailTitle", item.name);
     setText("detailCode", item.id || "资料编号待生成");
-    setText("detailSummary", item.summary || (item.tags || []).slice(0, 3).join("、") || item.name);
-    setText("detailDescription", item.description || "资料内容已完成 AI 解析，可用于知识检索和投标项目匹配。");
-    setText("detailType", item.type || "AI 自动识别");
-    setText("detailClassification", item.categoryLabel || categoryLabels[item.category] || "知识资料");
-    setText("detailOwner", currentUserName);
-    document.getElementById("detailFile").innerHTML = fileIconMarkup(item.file, "knowledge-detail-format-icon") + '<span>' + escapeHtml(item.file || "来源文件已保留") + '</span>';
+    setText("detailSummary", item.summary || item.content || item.period || (item.tags || []).slice(0, 3).join("、") || item.name);
+    setText("detailDescription", item.description || (item.category === "people-record" ? "来源文件已完成解析并关联当前人员档案，可继续查看、编辑或归档。" : "资料内容已完成 AI 解析，可用于知识检索和投标项目匹配。"));
+    setText("detailType", item.type || (item.category === "people-record" ? personRecordLabel(item) : "AI 自动识别"));
+    setText("detailClassification", detailCategoryLabel(item));
+    setText("detailOwner", item.owner || currentUserName);
+    document.getElementById("detailFile").innerHTML = '<div class="knowledge-detail-file-name">' + fileIconMarkup(item.file, "knowledge-record-format-icon") + '<div class="knowledge-detail-file-copy"><strong title="' + escapeHtml(item.file || "来源文件已保留") + '">' + escapeHtml(item.file || "来源文件已保留") + '</strong><small>' + escapeHtml(fileFormatLabel(item.file)) + ' · 原始资料</small></div></div><div class="knowledge-detail-file-actions"><button class="text-btn compact-btn" id="detailPreviewFile" type="button"><span class="btn-icon">' + icons.preview + '</span><span>预览</span></button><button class="text-btn compact-btn" id="detailDownloadFile" type="button"><span class="btn-icon">' + icons.download + '</span><span>下载</span></button></div>';
     setText("detailStatusText", status.label);
     setText("detailStatusTime", status.key === "archived" ? (item.archivedAt || "-") + " · " + (item.archivedBy || currentUserName) : (item.updatedAt || "-") + " · " + currentUserName);
     setText("detailReferences", (item.references || 0) + " 次");
-    setText("detailUpdatedAt", item.updatedAt + " · " + currentUserName);
+    setText("detailUpdatedAt", (item.updatedAt || "-") + " · " + (item.owner || currentUserName));
     setText("detailParsedAt", item.manualFilled ? "AI 未识别到有效信息 · 已人工补充" : (item.updatedAt || "-") + " · 解析信息已保存");
     const archiveRecord = document.getElementById("detailArchiveRecord");
     archiveRecord.classList.toggle("hidden", status.key !== "archived");
@@ -454,11 +533,13 @@
     setText("detailValidityDate", validity.dateText);
     const actionButton = document.getElementById("detailActionBtn");
     const archived = status.key === "archived";
-    actionButton.className = archived ? "danger-btn" : "primary-btn";
+    actionButton.className = (archived ? "danger-btn" : "primary-btn") + (item.detailReadOnly ? " hidden" : "");
     document.getElementById("detailActionIcon").innerHTML = archived ? icons.trash : icons.edit;
     document.getElementById("detailActionText").textContent = archived ? "删除资料" : "编辑资料";
     document.getElementById("detailAiFields").innerHTML = aiFields.map(function (field) { return '<div><span>' + escapeHtml(field[0]) + '</span><strong>' + escapeHtml(field[1]) + '</strong></div>'; }).join("");
-    document.getElementById("detailTags").innerHTML = (item.tags || []).map(function (tag) { return '<span>' + escapeHtml(tag) + '</span>'; }).join("");
+    const tags = item.tags || [];
+    document.getElementById("detailTags").innerHTML = tags.map(function (tag) { return '<span>' + escapeHtml(tag) + '</span>'; }).join("");
+    document.getElementById("detailTagsSection").classList.toggle("hidden", !tags.length);
   }
 
   function openDetail(item) {
@@ -781,7 +862,7 @@
       root.innerHTML = '<div class="knowledge-import-result-head"><div><strong>资质解析与人员匹配结果</strong><span>系统已按姓名和证书信息自动关联，可修正低置信度结果</span></div><span class="status-tag green">AI 解析完成</span></div><div class="knowledge-person-table-wrap"><table class="knowledge-person-table knowledge-import-table"><thead><tr><th>选择</th><th>来源文件</th><th>AI 识别资质</th><th>关联人员</th><th>匹配结果</th></tr></thead><tbody>' + sourceFiles.map(function (file, index) {
         const person = (data.peopleRecords || [])[index % Math.max(1, (data.peopleRecords || []).length)] || { name: "王磊" };
         const low = index === sourceFiles.length - 1 && sourceFiles.length > 1;
-        return '<tr><td><input type="checkbox" data-import-row checked/></td><td><div class="knowledge-person-file-cell">' + fileIconMarkup(file.name, "compact-file-icon") + '<span><strong>' + escapeHtml(file.name) + '</strong><small>' + formatFileSize(file.size) + '</small></span></div></td><td>' + (index % 2 ? '注册信息安全工程师' : '信息系统项目管理师') + '<small>编号与有效期已提取</small></td><td>' + (low ? personSelect(person.name) : '<strong>' + escapeHtml(person.name) + '</strong>') + '</td><td><span class="status-tag ' + (low ? 'orange' : 'green') + '">' + (low ? '请确认关联' : '自动匹配') + '</span></td></tr>';
+        return '<tr><td><input type="checkbox" data-import-row checked/></td><td><div class="knowledge-person-file-cell">' + fileIconMarkup(file.name, "knowledge-record-format-icon") + '<span class="knowledge-person-file-copy"><strong>' + escapeHtml(file.name) + '</strong><small>' + formatFileSize(file.size) + '</small></span></div></td><td>' + (index % 2 ? '注册信息安全工程师' : '信息系统项目管理师') + '<small>编号与有效期已提取</small></td><td>' + (low ? personSelect(person.name) : '<strong>' + escapeHtml(person.name) + '</strong>') + '</td><td><span class="status-tag ' + (low ? 'orange' : 'green') + '">' + (low ? '请确认关联' : '自动匹配') + '</span></td></tr>';
       }).join("") + '</tbody></table></div>';
       document.getElementById("personImportStatus").textContent = "资质信息已解析并关联人员，请确认后导入";
     }
@@ -920,7 +1001,10 @@
         currentItem.startDate = currentItem.validityStartDate;
         currentItem.endDate = currentItem.validityDueDate;
         const replacementFile = document.getElementById("assetFile").files[0];
-        if (replacementFile) currentItem.file = replacementFile.name;
+        if (replacementFile) {
+          currentItem.file = replacementFile.name;
+          currentItem.sourceFile = replacementFile;
+        }
         currentItem.parseStatus = "stored";
         currentItem.manualFilled = false;
         currentItem.updatedAt = formatDate(new Date());
@@ -933,7 +1017,12 @@
       const section = document.body.getAttribute("data-knowledge-section");
       if (!currentItem) return;
       if (currentItem.lifecycleState === "archived") openDelete(currentItem);
+      else if (currentItem.category === "people-record") document.dispatchEvent(new CustomEvent("knowledge-person-record-edit-request", { detail: { type: currentItem.recordType, id: currentItem.id } }));
       else openAssetModal("edit", currentItem, section !== "all" && section !== "people" ? section : "");
+    });
+    document.addEventListener("click", function (event) {
+      if (event.target.closest("#detailPreviewFile")) openSourcePreview(currentItem);
+      if (event.target.closest("#detailDownloadFile")) downloadSourceFile(currentItem);
     });
     document.getElementById("confirmArchiveAsset").addEventListener("click", function () {
       if (!pendingArchiveItem) return;
@@ -1010,6 +1099,8 @@
     openPersonImportModal: openPersonImportModal,
     openArchive: openArchive,
     openDelete: openDelete,
+    openSourcePreview: openSourcePreview,
+    downloadSourceFile: downloadSourceFile,
     activeCategory: getActiveCategory
   };
 

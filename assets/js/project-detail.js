@@ -91,10 +91,12 @@
       const previewButton = actions.querySelector(".text-btn:not(.replace-project-file-btn):not(.delete-project-file-btn)");
       const replaceButton = actions.querySelector(".replace-project-file-btn");
       if (previewButton) {
+        const row = actions.closest("[data-project-file-row]");
+        const nameNode = row ? row.querySelector(".cell-stack strong") : null;
         previewButton.classList.add("file-preview-btn");
         previewButton.removeAttribute("data-toast");
         previewButton.setAttribute("title", "在新页面预览");
-        previewButton.setAttribute("aria-label", "在新页面预览文件");
+        previewButton.setAttribute("aria-label", "在新页面预览" + (nameNode ? nameNode.textContent : "文件"));
         const previewButtonIcon = previewButton.querySelector(".btn-icon");
         if (previewButtonIcon) previewButtonIcon.innerHTML = previewIcon;
       }
@@ -108,6 +110,24 @@
     function fileNameFromRow(row) {
       const strong = row ? row.querySelector(".cell-stack strong") : null;
       return strong ? strong.textContent : "该文件";
+    }
+
+    function openFilePreview(row) {
+      const name = fileNameFromRow(row);
+      const previewFiles = {
+        "采购文件.doc": { profile: "procurement", size: "372 KB" },
+        "技术需求及服务规范.pdf": { profile: "technical", size: "1.8 MB" },
+        "投标文件格式及报价清单.xlsx": { profile: "quote", size: "86 KB" },
+        "合同主要条款.pdf": { profile: "contract", size: "620 KB" },
+        "澄清答疑纪要.pdf": { profile: "clarification", size: "428 KB" }
+      };
+      const preview = previewFiles[name] || { profile: "uploaded", size: "—" };
+      window.BiddingFilePreview.open({
+        profile: preview.profile,
+        name: name,
+        size: preview.size,
+        context: "项目采购文件"
+      });
     }
 
     function formatSize(bytes) {
@@ -414,6 +434,12 @@
     }
 
     document.addEventListener("click", function (event) {
+      const previewButton = event.target.closest(".file-preview-btn");
+      if (previewButton) {
+        event.preventDefault();
+        openFilePreview(previewButton.closest("[data-project-file-row]"));
+        return;
+      }
       const addButton = event.target.closest(".add-project-file-btn");
       if (addButton) {
         replacingRow = null;

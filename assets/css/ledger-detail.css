@@ -364,11 +364,13 @@
 .ledger-download-item {
   min-height: 68px;
   display: grid;
-  grid-template-columns: 38px minmax(0, 1fr) auto 76px;
+  grid-template-columns: 38px minmax(0, 1fr) auto 148px;
   align-items: center;
   gap: 11px;
   border-bottom: 1px solid var(--ledger-detail-line);
 }
+
+.ledger-file-actions { display: flex; align-items: center; justify-content: flex-end; gap: 7px; }
 
 .ledger-download-item:last-child {
   border-bottom: 0;
@@ -414,6 +416,9 @@
   background: var(--primary);
   border-color: var(--primary);
 }
+
+.ledger-download-btn.is-preview { color: #52657c; background: #fff; border-color: var(--line); }
+.ledger-download-btn.is-preview:hover { color: var(--primary); background: var(--primary-soft); border-color: var(--primary-border-soft); }
 
 .ledger-download-btn svg {
   width: 13px;
@@ -652,7 +657,7 @@
     grid-template-columns: 38px minmax(0, 1fr) auto;
   }
 
-  .ledger-download-item .ledger-download-btn {
+  .ledger-download-item .ledger-file-actions {
     grid-column: 2 / -1;
     width: fit-content;
   }

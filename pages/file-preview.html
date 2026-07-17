@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>文件预览 - 投标助手</title>
+  <link rel="stylesheet" href="../assets/css/theme.css" />
+  <link rel="stylesheet" href="../assets/css/file-preview.css" />
+</head>
+<body class="file-preview-page">
+  <header class="file-preview-header">
+    <div class="preview-file-identity">
+      <span id="previewFileIcon" class="file-type-icon type-generic" role="img" aria-label="文件"><span class="file-format-mark">FILE</span></span>
+      <div>
+        <strong id="previewFileName">正在加载文件…</strong>
+        <span id="previewFileMeta">项目采购文件 · 在线预览</span>
+      </div>
+    </div>
+    <div class="preview-load-state" role="status">
+      <span class="preview-state-dot" aria-hidden="true"></span>
+      <span>预览已加载</span>
+    </div>
+    <button class="preview-close-btn" id="closeFilePreview" type="button" title="关闭当前预览页面">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+      <span>关闭预览</span>
+    </button>
+  </header>
+
+  <main class="file-preview-shell">
+    <aside class="preview-sidebar" id="previewSidebar" aria-label="文件导航">
+      <div class="preview-sidebar-tabs" role="tablist" aria-label="预览导航方式">
+        <button class="preview-tab-btn active" type="button" role="tab" aria-selected="true" data-preview-nav="pages">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
+          <span id="previewPagesTabLabel">页面</span>
+        </button>
+        <button class="preview-tab-btn" type="button" role="tab" aria-selected="false" data-preview-nav="outline">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h2M4 12h2M4 18h2M9 6h11M9 12h11M9 18h11"/></svg>
+          <span>目录</span>
+        </button>
+      </div>
+      <div class="preview-nav-panel" id="previewPagesPanel" role="tabpanel">
+        <div class="preview-thumbnail-list" id="previewThumbnailList"></div>
+      </div>
+      <div class="preview-nav-panel" id="previewOutlinePanel" role="tabpanel" hidden>
+        <nav class="preview-outline-list" id="previewOutlineList" aria-label="文档目录"></nav>
+      </div>
+    </aside>
+
+    <section class="preview-workspace">
+      <div class="preview-toolbar" aria-label="文件预览工具栏">
+        <div class="preview-toolbar-group">
+          <button class="preview-tool-btn" id="togglePreviewSidebar" type="button" aria-pressed="true" title="收起导航栏">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg>
+            <span>导航栏</span>
+          </button>
+        </div>
+        <span class="preview-toolbar-divider" aria-hidden="true"></span>
+        <div class="preview-toolbar-group preview-paging-tools">
+          <button class="preview-tool-btn" id="previewPreviousPage" type="button" title="上一页">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+            <span>上一页</span>
+          </button>
+          <label class="preview-page-field"><span class="visually-hidden" id="previewPageFieldLabel">当前页</span><input id="previewPageInput" type="number" min="1" value="1" aria-labelledby="previewPageFieldLabel" /><span id="previewPageTotal">/ 1</span></label>
+          <button class="preview-tool-btn" id="previewNextPage" type="button" title="下一页">
+            <span>下一页</span>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+          </button>
+          <button class="preview-tool-btn preview-auto-page-btn" id="previewAutoPage" type="button" aria-pressed="false" title="开始自动翻页">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 5 11 7-11 7z"/></svg>
+            <span>自动翻页</span>
+          </button>
+        </div>
+        <span class="preview-toolbar-divider" aria-hidden="true"></span>
+        <div class="preview-toolbar-group preview-zoom-tools">
+          <button class="preview-tool-btn" id="previewZoomOut" type="button" title="缩小预览">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M8 11h6M16 16l5 5"/></svg>
+            <span>缩小</span>
+          </button>
+          <span class="preview-zoom-value" id="previewZoomValue">100%</span>
+          <button class="preview-tool-btn" id="previewZoomIn" type="button" title="放大预览">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M8 11h6M11 8v6M16 16l5 5"/></svg>
+            <span>放大</span>
+          </button>
+          <button class="preview-tool-btn" id="previewFitWidth" type="button" title="适合窗口宽度">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7V4h3M17 4h3v3M20 17v3h-3M7 20H4v-3"/><path d="M8 12h8M10 10l-2 2 2 2M14 10l2 2-2 2"/></svg>
+            <span>适合宽度</span>
+          </button>
+        </div>
+        <div class="preview-toolbar-status" id="previewToolbarStatus">第 1 页</div>
+      </div>
+
+      <div class="preview-canvas" id="previewCanvas">
+        <div class="preview-document-stage" id="previewDocumentStage">
+          <div class="preview-document-pages" id="previewDocumentPages"></div>
+        </div>
+        <div class="preview-spreadsheet-stage" id="previewSpreadsheetStage" hidden>
+          <div class="spreadsheet-formula-bar">
+            <span class="spreadsheet-name-box" id="spreadsheetCellName">A1</span>
+            <span class="spreadsheet-function-mark">fx</span>
+            <span class="spreadsheet-formula-value" id="spreadsheetFormulaValue"></span>
+          </div>
+          <div class="spreadsheet-grid-wrap" id="spreadsheetGridWrap"></div>
+          <div class="spreadsheet-sheetbar" id="spreadsheetSheetbar"></div>
+        </div>
+        <div class="preview-image-stage" id="previewImageStage" hidden>
+          <div class="preview-image-frame">
+            <img id="previewImageContent" alt="" />
+          </div>
+        </div>
+        <div class="preview-package-stage" id="previewPackageStage" hidden>
+          <section class="preview-package-card" aria-label="压缩包文件内容">
+            <header>
+              <span id="previewPackageIcon" class="file-type-icon type-archive" aria-hidden="true"><span class="file-format-mark">ZIP</span></span>
+              <div><strong id="previewPackageName"></strong><span id="previewPackageSummary"></span></div>
+            </header>
+            <div class="preview-package-list" id="previewPackageList"></div>
+          </section>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="../assets/js/common.js"></script>
+  <script src="../assets/js/bid-document-flow-data.js"></script>
+  <script src="../assets/js/file-preview.js"></script>
+</body>
+</html>

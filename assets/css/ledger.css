@@ -58,30 +58,10 @@ body.layer-open {
   border-radius: 50%;
 }
 
-.ledger-price,
 .ledger-score strong,
 .ledger-score span,
 .ledger-result-cell small {
   display: block;
-}
-
-.ledger-price {
-  width: fit-content;
-  padding: 6px 9px;
-  color: var(--amount);
-  background: linear-gradient(135deg, #fffdf8, var(--amount-soft));
-  border: 1px solid var(--amount-border);
-  border-radius: 9px;
-  box-shadow: 0 5px 12px rgba(var(--amount-rgb), .07);
-  font-size: 14px;
-  font-weight: 700;
-  line-height: 1.2;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-.ledger-table thead th:nth-child(4) {
-  color: var(--primary-dark);
 }
 
 .ledger-result-cell small {

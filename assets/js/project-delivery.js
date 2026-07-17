@@ -271,6 +271,16 @@
   function init() {
     renderKnowledgeState();
     all(".knowledge-state-menu, .knowledge-batch-menu").forEach(bindKnowledgeMenu);
+    all("[data-delivery-preview]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        window.BiddingFilePreview.open({
+          profile: button.getAttribute("data-delivery-preview"),
+          name: button.getAttribute("data-preview-name"),
+          size: button.getAttribute("data-preview-size"),
+          context: "交付归档正式文件"
+        });
+      });
+    });
     document.addEventListener("click", function (event) {
       if (event.target.closest(".knowledge-state-menu, .knowledge-batch-menu")) return;
       all(".knowledge-state-menu, .knowledge-batch-menu").forEach(function (menu) { menu.removeAttribute("open"); });
