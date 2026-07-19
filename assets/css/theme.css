@@ -279,6 +279,34 @@ input:focus-visible {
   animation: toastIn .22s cubic-bezier(.2, .8, .2, 1) both;
 }
 
+.toast.toast-compact {
+  width: auto;
+  min-width: 150px;
+  max-width: min(360px, calc(100vw - 32px));
+  min-height: 44px;
+  padding: 7px 40px 7px 10px;
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: 9px;
+}
+
+.toast-compact .toast-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+}
+
+.toast-compact .toast-copy {
+  min-height: 24px;
+  display: flex;
+  align-items: center;
+}
+
+.toast-compact .toast-close {
+  top: 50%;
+  right: 7px;
+  transform: translateY(-50%);
+}
+
 .login-body .toast {
   top: 24px;
 }

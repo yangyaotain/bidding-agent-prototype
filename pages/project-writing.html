@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>标书编制与质量审核 - 投标助手</title>
+  <title>标书编制 - 投标助手</title>
   <link rel="stylesheet" href="../assets/css/theme.css" />
   <link rel="stylesheet" href="../assets/css/layout.css" />
   <link rel="stylesheet" href="../assets/css/projects.css" />
@@ -16,31 +16,43 @@
     <section class="workspace-content bid-writing-content">
       <header class="content-heading bid-writing-heading">
         <div>
-          <h2>标书编制与质量审核</h2>
-          <p>在同一工作区完成技术标、商务标编制、质量审核、问题定位与复检，审核结果始终对应当前保存版本。</p>
+          <h2>标书编制</h2>
+          <p>在同一工作区完成技术标、商务标编制、人工版本保存、AI 智能检查、问题定位与复检，检查结果始终绑定具体版本。</p>
         </div>
         <div class="heading-actions">
+          <button class="ghost-btn bid-version-context-btn" id="viewBidVersions" type="button">
+            <span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/><path d="m17 16 3 3 3-4"/></svg></span><span id="currentBidVersionText">工作稿 · 基于 V1.0.4</span>
+          </button>
           <button class="secondary-btn" id="saveBidDocument" type="button">
-            <span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 4h12l2 2v14H5zM8 4v6h8V4M8 20v-6h8v6"/></svg></span><span>保存当前标书</span>
+            <span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 4h12l2 2v14H5zM8 4v6h8V4M8 20v-6h8v6"/></svg></span><span>保存为版本</span>
           </button>
           <button class="primary-btn" id="submitQualityReview" type="button">
-            <span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M12 3 4 7v5c0 5 3.4 8.3 8 9 4.6-.7 8-4 8-9V7l-8-4z"/><path d="m8.5 12 2.2 2.2 4.8-5"/></svg></span><span>提交质量审核</span>
+            <span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M12 3 4 7v5c0 5 3.4 8.3 8 9 4.6-.7 8-4 8-9V7l-8-4z"/><path d="m8.5 12 2.2 2.2 4.8-5"/></svg></span><span>提交智能检查</span>
           </button>
-          <a class="primary-btn hidden" id="enterDeliveryArchive" href="project-delivery.html">
-            <span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14M14 7l5 5-5 5"/></svg></span><span>进入交付归档</span>
-          </a>
+          <button class="primary-btn hidden" id="submitManualReview" type="button">
+            <span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14M14 7l5 5-5 5"/></svg></span><span>提交人工审核</span>
+          </button>
         </div>
       </header>
+
+      <section class="info-alert warning hidden" id="reviewReturnNotice" aria-live="polite">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+        <div>
+          <strong id="reviewReturnNoticeTitle">质量审核已退回修改</strong>
+          <span id="reviewReturnNoticeReason">退回原因：</span>
+          <span id="reviewReturnNoticeMeta">退回人：— · 退回时间：—</span>
+        </div>
+      </section>
 
       <section class="parse-status-card quality-review-card card" id="qualityReviewStatusCard" data-quality-state="result">
         <div class="parse-status-summary">
           <span class="parse-status-icon" id="qualityReviewStatusIcon"><svg viewBox="0 0 24 24"><path d="M12 3 4 7v5c0 5 3.4 8.3 8 9 4.6-.7 8-4 8-9V7l-8-4z"/><path d="m8.5 12 2.2 2.2 4.8-5"/></svg></span>
-          <div class="parse-status-copy"><strong id="qualityReviewStatusTitle">第 1 次质量审核已完成</strong><span id="qualityReviewStatusDescription">248 项规则已检查，5 项需要人工补充或确认；处理后可再次提交审核。</span></div>
+          <div class="parse-status-copy"><strong id="qualityReviewStatusTitle">第 1 次智能检查已完成</strong><span id="qualityReviewStatusDescription">248 项规则已检查，5 项需要人工补充或确认；处理后可再次提交检查。</span></div>
           <div class="parse-status-actions"><span class="status-tag orange" id="qualityReviewStatusTag">待人工处理 5 项</span><button class="secondary-btn compact-btn" id="toggleQualityReviewDetails" type="button" aria-expanded="false" aria-controls="qualityReviewStatusDetails"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></span><span>展开详情</span></button></div>
         </div>
         <div class="parse-status-details quality-review-details" id="qualityReviewStatusDetails" hidden>
-          <div class="quality-review-metrics" aria-label="质量审核指标">
-            <div><span>质量评分</span><strong id="qualityMetricScore">82</strong><small>当前送审版本</small></div>
+          <div class="quality-review-metrics" aria-label="智能检查指标">
+            <div><span>检查评分</span><strong id="qualityMetricScore">82</strong><small>当前检查版本</small></div>
             <div><span>检查规则</span><strong id="qualityMetricRules">248</strong><small>资格、响应、格式等</small></div>
             <div><span>已通过</span><strong id="qualityMetricPassed">240</strong><small>无需人工处理</small></div>
             <div><span>自动修复</span><strong id="qualityMetricAutoFixed">3</strong><small>已自动复核通过</small></div>
@@ -49,10 +61,10 @@
           </div>
           <div class="quality-review-detail-grid">
             <article class="quality-process-panel">
-              <header><div><h3>审核过程</h3><p id="qualityProcessDescription">本次送审版本 V1.0.3 · 已完成全部 6 个检查步骤</p></div><span class="status-tag green" id="qualityProcessTag">已完成</span></header>
+              <header><div><h3>检查过程</h3><p id="qualityProcessDescription">检查对象 V1.0.4 · 第 2 次检查已完成全部 6 个步骤</p></div><span class="status-tag green" id="qualityProcessTag">已完成</span></header>
               <div class="quality-review-progress"><i><b id="qualityReviewProgressBar" style="width:100%"></b></i><span id="qualityReviewProgressText">100%</span></div>
               <div class="quality-review-steps" id="qualityReviewSteps">
-                <div data-quality-step="1"><span class="quality-step-index">1</span><div><strong>保存版本与建立审核快照</strong><span>锁定技术标、商务标当前保存内容</span></div><em class="status-tag green">已完成</em></div>
+                <div data-quality-step="1"><span class="quality-step-index">1</span><div><strong>保存版本与建立检查快照</strong><span>锁定技术标、商务标当前保存内容</span></div><em class="status-tag green">已完成</em></div>
                 <div data-quality-step="2"><span class="quality-step-index">2</span><div><strong>资格条件与否决项检查</strong><span>核验资格材料、文件组成和强制条款</span></div><em class="status-tag green">已完成</em></div>
                 <div data-quality-step="3"><span class="quality-step-index">3</span><div><strong>评分点与响应覆盖检查</strong><span>比对 93 条采购要求与标书章节</span></div><em class="status-tag green">已完成</em></div>
                 <div data-quality-step="4"><span class="quality-step-index">4</span><div><strong>技术与商务一致性检查</strong><span>核对服务时效、报价、偏离和关键承诺</span></div><em class="status-tag green">已完成</em></div>
@@ -61,10 +73,10 @@
               </div>
             </article>
             <article class="quality-result-panel">
-              <header><div><h3>审核结果</h3><p>点击问题可直接切换到对应标书目录并定位处理。</p></div><span class="status-tag orange" id="qualityResultBatchTag">第 1 次审核</span></header>
+              <header><div><h3>检查结果</h3><p>点击问题可直接切换到对应标书目录并定位处理。</p></div><span class="status-tag orange" id="qualityResultBatchTag">第 1 次检查</span></header>
               <div class="quality-category-summary" id="qualityCategorySummary"></div>
               <div class="quality-issue-list" id="qualityIssueList"></div>
-              <div class="quality-all-passed hidden" id="qualityAllPassed"><span><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/><circle cx="12" cy="12" r="9"/></svg></span><div><strong>全部质量问题已通过复检</strong><p>当前版本满足交付条件，可以进入交付归档。</p></div></div>
+              <div class="quality-all-passed hidden" id="qualityAllPassed"><span><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/><circle cx="12" cy="12" r="9"/></svg></span><div><strong>全部智能检查问题已通过复检</strong><p>当前版本已通过智能检查，可以提交人工质量审核。</p></div></div>
             </article>
           </div>
         </div>
@@ -78,9 +90,10 @@
           <button class="bid-document-tab" type="button" role="tab" aria-selected="false" data-document-id="business">
             <span class="bid-doc-type cyan">B</span><span><strong>商务标</strong><small>23 页 · 正文与原始材料</small></span><i class="status-tag orange bid-quality-count" id="businessQualityCount">待处理 3</i>
           </button>
-          <div class="bid-document-summary">
-            <span><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6zM14 3v5h5"/></svg>共 96 页</span>
-            <span><svg viewBox="0 0 24 24"><path d="M12 3 4 7v5c0 5 3.4 8.3 8 9 4.6-.7 8-4 8-9V7l-8-4z"/></svg>正文可编辑 · 图片独立保留</span>
+          <div class="bid-document-actions">
+            <button class="secondary-btn bid-version-save-button" id="saveCurrentBidVersion" type="button" title="保存当前版本内容">
+              <span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 4h12l2 2v14H5zM8 4v6h8V4M8 20v-6h8v6"/></svg></span><span>保存</span>
+            </button>
           </div>
         </div>
 
@@ -160,6 +173,14 @@
 
             <footer class="bid-editor-statusbar">
               <div><span id="currentPageStatus">第 1 / 73 页</span><span id="currentWordCount">0 字</span><span>中文（简体）</span><span class="bid-save-state" id="bidSaveState"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg>已保存</span></div>
+              <div class="bid-editor-quality-status" id="bidEditorQualityStatus" data-quality-state="result">
+                <span class="bid-editor-quality-indicator" aria-hidden="true"></span>
+                <strong id="bidEditorQualityStatusText">智能检查：待处理 5 项</strong>
+                <button id="bidEditorQualityAction" type="button">
+                  <svg viewBox="0 0 24 24"><path d="M5 5h14v10H9l-4 4z"/><path d="M9 9h6M9 12h4"/></svg>
+                  <span>查看问题</span>
+                </button>
+              </div>
               <div class="zoom-control" aria-label="页面缩放工具栏"><button id="zoomOut" type="button" title="缩小" aria-label="缩小"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button><input id="zoomRange" type="range" min="60" max="160" value="100" step="10" aria-label="页面缩放"/><button id="zoomIn" type="button" title="放大" aria-label="放大"><svg viewBox="0 0 24 24"><path d="M5 12h14M12 5v14"/></svg></button><button class="zoom-value" id="zoomReset" type="button" title="恢复 100%" aria-label="恢复 100%"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="2"/><path d="M8 9h8M8 13h5"/></svg><span id="zoomValue">100%</span></button></div>
             </footer>
           </section>
@@ -237,22 +258,45 @@
     <button type="button" data-ai-action="deep"><span class="ico">深</span><span class="text"><strong>深度写作</strong><em>结合材料整体梳理撰写</em></span></button>
   </div>
 
-  <section class="prototype-modal" id="submitQualityModal" aria-hidden="true" aria-label="提交质量审核">
-    <header class="layer-head"><div><h3 id="submitQualityModalTitle">提交 AI 质量审核</h3><p id="submitQualityModalDescription">技术标和商务标将以当前保存版本建立审核快照，并在本页面展示审核过程和结果。</p></div><button class="layer-close" type="button" data-close-layer aria-label="关闭"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button></header>
-    <div class="layer-body"><div class="quality-submit-version"><span>本次送审文件</span><strong>技术标.docx · 73 页</strong><strong>商务标.docx · 23 页</strong><small id="qualitySubmitVersionText">当前保存版本 V1.0.3</small></div><div class="info-alert warning"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg><div><strong>审核期间锁定本次提交快照</strong><span>编辑区可以浏览但暂时不能修改；人员材料、服务响应、量化指标、赔偿承诺和最终报价不会被自动改写。</span></div></div></div>
-    <footer class="layer-footer"><button class="ghost-btn" type="button" data-close-layer><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></span><span>取消</span></button><button class="primary-btn" id="confirmSubmitQuality" type="button"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M12 3 4 7v5c0 5 3.4 8.3 8 9 4.6-.7 8-4 8-9V7l-8-4z"/><path d="m8.5 12 2.2 2.2 4.8-5"/></svg></span><span>确认提交审核</span></button></footer>
+  <section class="prototype-modal bid-version-save-modal" id="saveBidVersionModal" aria-hidden="true" aria-label="保存标书版本">
+    <header class="layer-head"><div><h3>保存标书版本</h3><p>人工确认后同时锁定技术标和商务标，形成可追溯的版本快照。</p></div><button class="layer-close" type="button" data-close-layer aria-label="关闭"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button></header>
+    <div class="layer-body">
+      <div class="bid-version-save-summary">
+        <div><span>新版本号</span><strong id="nextBidVersionNumber">V1.0.5</strong><small>系统自动生成，不可修改</small></div>
+        <div><span>版本内容</span><strong>技术标.docx · 73 页</strong><strong>商务标.docx · 23 页</strong></div>
+      </div>
+      <label class="bid-version-note-field"><span>版本说明</span><textarea id="bidVersionNote" rows="3" maxlength="120" placeholder="例如：完成售后服务承诺与最终报价复核"></textarea><small>用于识别各次人工保存内容；审核退回后形成新版本时建议说明修改原因。</small></label>
+      <div class="info-alert"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12 2.5 2.5L16 9"/></svg><div><strong>版本保存后保持只读</strong><span>后续修改会继续保存在工作稿中；再次人工确认时生成下一个版本，不覆盖已有记录。</span></div></div>
+    </div>
+    <footer class="layer-footer"><button class="ghost-btn" type="button" data-close-layer><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></span><span>取消</span></button><button class="primary-btn" id="confirmSaveBidVersion" type="button"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/><path d="M5 4h12l2 2v14H5z"/></svg></span><span>确认保存版本</span></button></footer>
   </section>
 
-  <section class="prototype-modal" id="enterDeliveryModal" aria-hidden="true" aria-label="确认进入交付归档">
-    <header class="layer-head"><div><h3>进入交付归档</h3><p>当前标书已通过质量审核，可以进入最终交付环节。</p></div><button class="layer-close" type="button" data-close-layer aria-label="关闭"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button></header>
-    <div class="layer-body"><div class="info-alert"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12 2.5 2.5L16 9"/></svg><div><strong>确认进入交付归档？</strong><span>确认后将以当前审核通过版本进入交付归档，继续完成最终确认与正式文件导出。</span></div></div></div>
-    <footer class="layer-footer"><button class="ghost-btn" type="button" data-close-layer><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></span><span>取消</span></button><button class="primary-btn" id="confirmEnterDelivery" type="button"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14M14 7l5 5-5 5"/></svg></span><span>确认进入</span></button></footer>
+  <section class="prototype-modal bid-version-history-modal" id="bidVersionHistoryModal" aria-hidden="true" aria-label="标书版本记录">
+    <header class="layer-head"><div><h3>标书版本记录</h3><p>查看每次人工保存、智能检查、人工审核和正式交付状态。</p></div><button class="layer-close" type="button" data-close-layer aria-label="关闭"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button></header>
+    <div class="layer-body">
+      <div class="bid-version-history-summary"><div><span>当前工作稿</span><strong id="bidVersionHistoryCurrent">基于 V1.0.4</strong></div><div><span>已保存版本</span><strong id="bidVersionHistoryCount">4 个</strong></div><small>历史版本不会被直接覆盖；需要继续修改时，将所选版本复制为新的工作稿基线。</small></div>
+      <div class="bid-version-history-list" id="bidVersionHistoryList"></div>
+    </div>
+    <footer class="layer-footer"><button class="secondary-btn" type="button" data-close-layer><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></span><span>关闭</span></button></footer>
+  </section>
+
+  <section class="prototype-modal" id="submitQualityModal" aria-hidden="true" aria-label="提交智能检查">
+    <header class="layer-head"><div><h3 id="submitQualityModalTitle">提交 AI 智能检查</h3><p id="submitQualityModalDescription">技术标和商务标将以人工保存版本建立检查任务，并在本页面展示检查过程和结果。</p></div><button class="layer-close" type="button" data-close-layer aria-label="关闭"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button></header>
+    <div class="layer-body"><div class="quality-submit-version"><span>本次检查文件</span><strong>技术标.docx · 73 页</strong><strong>商务标.docx · 23 页</strong><small id="qualitySubmitVersionText">检查对象 V1.0.4 · 第 2 次检查</small></div><div class="info-alert warning"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg><div><strong>检查期间锁定本次提交快照</strong><span>编辑区可以浏览但暂时不能修改；人员材料、服务响应、量化指标、赔偿承诺和最终报价不会被自动改写。</span></div></div></div>
+    <footer class="layer-footer"><button class="ghost-btn" type="button" data-close-layer><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></span><span>取消</span></button><button class="primary-btn" id="confirmSubmitQuality" type="button"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M12 3 4 7v5c0 5 3.4 8.3 8 9 4.6-.7 8-4 8-9V7l-8-4z"/><path d="m8.5 12 2.2 2.2 4.8-5"/></svg></span><span>确认提交检查</span></button></footer>
+  </section>
+
+  <section class="prototype-modal" id="submitManualReviewModal" aria-hidden="true" aria-label="提交人工质量审核">
+    <header class="layer-head"><div><h3>提交人工质量审核</h3><p>当前版本已通过智能检查，提交后由审核人查看技术标和商务标送审成果。</p></div><button class="layer-close" type="button" data-close-layer aria-label="关闭"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button></header>
+    <div class="layer-body"><div class="quality-submit-version"><span>本次送审文件</span><strong>技术标.docx · 73 页</strong><strong>商务标.docx · 23 页</strong><small id="manualReviewVersionText">送审版本 V1.0.4</small></div><div class="info-alert"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12 2.5 2.5L16 9"/></svg><div><strong>提交后锁定本次人工送审版本</strong><span>质量审核页仅供人工查看，不会修改标书正文；审核通过后才能进入交付归档。</span></div></div></div>
+    <footer class="layer-footer"><button class="ghost-btn" type="button" data-close-layer><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></span><span>取消</span></button><button class="primary-btn" id="confirmSubmitManualReview" type="button"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14M14 7l5 5-5 5"/></svg></span><span>确认提交人工审核</span></button></footer>
   </section>
 
   <script src="../assets/js/common.js"></script>
   <script src="../assets/js/project-data.js"></script>
   <script src="../assets/js/project-common.js"></script>
   <script src="../assets/js/project-detail.js"></script>
+  <script src="../assets/js/bid-versioning.js"></script>
   <script src="../assets/js/bid-document-flow-data.js"></script>
   <script src="../assets/js/project-writing-editor.js"></script>
 </body>

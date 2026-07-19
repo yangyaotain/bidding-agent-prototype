@@ -17,7 +17,8 @@
   const tabs = [
     { key: "files", label: "招标文件", href: "project-files.html" },
     { key: "analysis", label: "解析结果", href: "project-analysis.html" },
-    { key: "writing", label: "标书编制与审核", href: "project-writing.html" },
+    { key: "writing", label: "标书编制", href: "project-writing.html" },
+    { key: "quality", label: "质量审核", href: "project-quality.html" },
     { key: "delivery", label: "交付归档", href: "project-delivery.html" }
   ];
 
@@ -28,9 +29,9 @@
 
   function stageRank(project) {
     const stage = String(project.stage || "");
-    if (stage.indexOf("交付") !== -1 || project.status === "archived") return 3;
+    if (stage.indexOf("交付") !== -1 || project.status === "archived") return 4;
     if (isParsingProject(project) || stage.indexOf("解析中") !== -1) return 0;
-    if (stage.indexOf("质量") !== -1 || stage.indexOf("审核") !== -1) return 2;
+    if (stage.indexOf("质量") !== -1 || stage.indexOf("人工审核") !== -1) return 3;
     if (stage.indexOf("编制") !== -1 || stage.indexOf("生成") !== -1) return 2;
     return 1;
   }
@@ -219,6 +220,25 @@
     content.innerHTML = buildParsingEmpty(activeKey, project);
   }
 
+  function applyDeliveryGuard(activeKey, project) {
+    if (activeKey !== "delivery" || stageRank(project) >= 4) return false;
+    const content = document.querySelector(".workspace-content");
+    if (!content) return false;
+    const manualReviewReady = stageRank(project) >= 3;
+    const nextHref = manualReviewReady ? "project-quality.html" : "project-writing.html";
+    const nextLabel = manualReviewReady ? "进入质量审核" : "返回标书编制";
+    content.innerHTML = [
+      '<header class="content-heading"><div><h2>交付归档</h2><p>人工质量审核通过后，系统将开放正式文件交付与归档。</p></div></header>',
+      '<section class="content-card card"><div class="empty-state" style="padding:76px 24px">',
+      icon.wait,
+      '<strong>交付归档尚未解锁</strong>',
+      '<span>' + (manualReviewReady ? "技术标和商务标送审版本仍待人工审核，请先完成质量审核。" : "请先完成标书编制、智能检查并提交人工质量审核。") + '</span>',
+      '<div class="inline-actions" style="justify-content:center;margin-top:20px"><a class="primary-btn" href="' + nextHref + '?id=' + encodeURIComponent(project.id || "BID-202601-001") + '"><span class="btn-icon">' + icon.check + '</span><span>' + nextLabel + '</span></a></div>',
+      '</div></section>'
+    ].join("");
+    return true;
+  }
+
   function closeLayers() {
     document.querySelectorAll(".side-drawer.open, .prototype-modal.open").forEach(function (layer) {
       layer.classList.remove("open");
@@ -266,14 +286,10 @@
   function initWorkspace() {
     const root = document.getElementById("projectWorkspaceHeader");
     const activeKey = document.body.getAttribute("data-project-section") || "files";
-    if (activeKey === "quality") {
-      window.location.replace("project-writing.html" + window.location.search + "#qualityReviewStatusCard");
-      return;
-    }
     const project = selectedProject();
     window.projectPrototype.currentProject = project;
     if (root) root.innerHTML = buildWorkspaceHeader(activeKey, project);
-    applyProjectState(activeKey, project);
+    if (!applyDeliveryGuard(activeKey, project)) applyProjectState(activeKey, project);
     initLayers();
   }
 

@@ -33,6 +33,86 @@
     return number.toLocaleString("zh-CN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " 万元";
   }
 
+  function formatFeeAmount(value) {
+    const number = Number(value || 0);
+    if (!Number.isFinite(number)) return "0.00 元";
+    if (Math.abs(number) >= 10000) return (number / 10000).toLocaleString("zh-CN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " 万元";
+    return number.toLocaleString("zh-CN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " 元";
+  }
+
+  function todayString() {
+    const now = new Date();
+    return now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0") + "-" + String(now.getDate()).padStart(2, "0");
+  }
+
+  function feeIsOverdue(fee) {
+    if (!fee || fee.status === "exception") return fee && fee.status === "exception";
+    const today = todayString();
+    if (fee.status === "pending_payment" && fee.dueDate) return fee.dueDate < today;
+    if ((fee.status === "paid_pending_refund" || fee.status === "refunding") && fee.refundDueDate) return fee.refundDueDate < today;
+    return false;
+  }
+
+  function feeStatusDefinition(fee) {
+    const map = {
+      not_applicable: { label: "不涉及", tone: "gray" },
+      pending_result: { label: "待结果", tone: "gray" },
+      pending_confirm: { label: "待确认", tone: "orange" },
+      pending_payment: { label: "待支付", tone: "blue" },
+      paid: { label: "已支付", tone: "green" },
+      waived: { label: "已减免", tone: "gray" },
+      paid_pending_refund: { label: "已缴纳待退", tone: "blue" },
+      refunding: { label: "退款中", tone: "blue" },
+      refunded: { label: "已退回", tone: "green" },
+      converted: { label: "已转履约保证金", tone: "green" },
+      cancelled: { label: "已取消", tone: "gray" },
+      exception: { label: "异常", tone: "red" }
+    };
+    if (feeIsOverdue(fee)) return { label: fee.status === "pending_payment" ? "逾期未支付" : "逾期未退", tone: "red" };
+    return map[fee.status] || map.pending_confirm;
+  }
+
+  function feeSummary(record) {
+    const fees = Array.isArray(record.fees) ? record.fees : [];
+    const involved = fees.filter(function (fee) { return fee.involved && fee.status !== "not_applicable"; });
+    if (!involved.length) return { label: "无相关费用", tone: "gray" };
+    if (involved.some(feeIsOverdue)) return { label: "费用有异常", tone: "red" };
+    if (involved.some(function (fee) { return fee.status === "pending_confirm"; })) return { label: "费用待维护", tone: "orange" };
+    if (involved.some(function (fee) { return ["pending_payment", "paid_pending_refund", "refunding"].indexOf(fee.status) !== -1; })) return { label: "费用待处理", tone: "blue" };
+    return { label: "费用已结清", tone: "green" };
+  }
+
+  function feeTotals(record) {
+    return (record.fees || []).reduce(function (totals, fee) {
+      if (!fee.involved || fee.status === "not_applicable") return totals;
+      if (fee.type !== "deposit" && fee.status === "paid") totals.paid += Number(fee.actualAmount || 0);
+      if (fee.type !== "deposit" && ["pending_confirm", "pending_payment"].indexOf(fee.status) !== -1) totals.pending += Math.max(0, Number(fee.expectedAmount || 0) - Number(fee.actualAmount || 0));
+      if (fee.type === "deposit" && ["paid_pending_refund", "refunding"].indexOf(fee.status) !== -1) totals.deposit += Number(fee.actualAmount || fee.expectedAmount || 0);
+      if (["pending_confirm", "pending_payment", "paid_pending_refund", "refunding"].indexOf(fee.status) !== -1 || feeIsOverdue(fee)) totals.actions += 1;
+      return totals;
+    }, { paid: 0, pending: 0, deposit: 0, actions: 0 });
+  }
+
+  function renderFeeDetails(record) {
+    const container = document.getElementById("ledgerFeeDetailList");
+    const fees = Array.isArray(record.fees) ? record.fees : [];
+    if (!fees.length) {
+      container.innerHTML = '<div class="ledger-detail-empty-row">暂未维护招标相关费用。</div>';
+      return;
+    }
+    container.innerHTML = fees.map(function (fee) {
+      const status = feeStatusDefinition(fee);
+      const actualText = fee.involved && fee.actualAmount ? formatFeeAmount(fee.actualAmount) : "—";
+      let dateText = fee.paidDate ? "支付 " + fee.paidDate : (fee.dueDate ? "截止 " + fee.dueDate : "日期待补");
+      if (fee.type === "deposit") {
+        if (fee.refundDate) dateText = "退回 " + fee.refundDate;
+        else if (fee.refundDueDate) dateText = "预计退回 " + fee.refundDueDate;
+        else if (fee.status === "paid_pending_refund") dateText = "待结果后退回";
+      }
+      return '<div class="ledger-fee-detail-item"><span class="ledger-fee-detail-icon"><svg viewBox="0 0 24 24"><path d="M4 7h16v12H4zM7 7V5h10v2M4 11h16"/><path d="M15 15h2"/></svg></span><div class="ledger-fee-detail-main"><strong>' + escapeHtml(fee.name || "招标费用") + '</strong><small>' + escapeHtml(fee.basis || "费用说明待补充") + '</small></div><div class="ledger-fee-detail-fact"><span>应付 / 实付</span><strong class="amount-text">' + escapeHtml(formatFeeAmount(fee.expectedAmount)) + " / " + escapeHtml(actualText) + '</strong></div><div class="ledger-fee-detail-fact"><span>关键日期</span><strong>' + escapeHtml(dateText) + '</strong></div><div class="ledger-fee-detail-fact"><span>经办人</span><strong>' + escapeHtml(fee.owner || record.owner || "待分配") + '</strong></div><div class="ledger-fee-detail-fact"><span>凭证</span><strong>' + (Array.isArray(fee.files) ? fee.files.length : 0) + ' 份</strong></div><span class="status-tag ' + status.tone + '">' + status.label + "</span></div>";
+    }).join("");
+  }
+
   function setText(id, value) {
     const element = document.getElementById(id);
     if (element) element.textContent = value == null || value === "" ? "—" : value;
@@ -91,6 +171,45 @@
     }).join("");
   }
 
+  function archiveVersionStatus(version) {
+    const review = version.review || {};
+    const check = version.check || {};
+    if (version.isDeliveryVersion) return { label: "正式交付", tone: "green" };
+    if (review.status === "approved") return { label: "审核通过", tone: "green" };
+    if (review.status === "pending") return { label: "人工审核中", tone: "orange" };
+    if (review.status === "returned") return { label: "审核退回", tone: "orange" };
+    if (check.status === "passed") return { label: "检查通过", tone: "green" };
+    if (check.status === "result") return { label: "待整改", tone: "orange" };
+    return { label: "已保存", tone: "gray" };
+  }
+
+  function formatVersionTime(value) {
+    const date = new Date(Number(value || 0));
+    if (Number.isNaN(date.getTime())) return "时间未记录";
+    const pad = function (number) { return String(number).padStart(2, "0"); };
+    return date.getFullYear() + "-" + pad(date.getMonth() + 1) + "-" + pad(date.getDate()) + " " + pad(date.getHours()) + ":" + pad(date.getMinutes());
+  }
+
+  function renderArchiveVersions(versions) {
+    const list = document.getElementById("ledgerArchiveVersionList");
+    if (!list) return;
+    if (!Array.isArray(versions) || !versions.length) {
+      list.innerHTML = '<div class="ledger-version-empty">暂无标书版本记录。</div>';
+      return;
+    }
+    list.innerHTML = versions.slice().reverse().map(function (version) {
+      const status = archiveVersionStatus(version);
+      const check = version.check || {};
+      const review = version.review || {};
+      const checkText = check.status === "passed" ? "智能检查通过 · " + (check.score || 98) + " 分" : check.status === "result" ? "智能检查完成 · 待整改" : "未提交智能检查";
+      const reviewText = review.status === "approved" ? "人工审核通过" : review.status === "pending" ? "人工审核中" : review.status === "returned" ? "人工审核退回" : "未提交人工审核";
+      return '<article class="ledger-archive-version-item' + (version.isDeliveryVersion ? " is-delivery" : "") + '">' +
+        '<span class="ledger-version-index">' + escapeHtml(String(version.number || "V").replace("V1.0.", "V")) + '</span>' +
+        '<div><header><strong>' + escapeHtml(version.number || "未命名版本") + '</strong><span class="status-tag ' + status.tone + '">' + status.label + '</span></header><p>' + escapeHtml(version.note || "人工保存版本") + '</p><small>' + escapeHtml((version.createdBy || "—") + " · " + formatVersionTime(version.createdAt)) + "</small></div>" +
+        '<div class="ledger-version-state"><span>' + escapeHtml(checkText) + '</span><span>' + escapeHtml(reviewText) + "</span></div></article>";
+    }).join("");
+  }
+
   function previewProfile(file) {
     const name = String(file && file.name || "").toLowerCase();
     if (name.indexOf("商务标") !== -1) return "bid-business";
@@ -126,7 +245,10 @@
   function renderRecord(record) {
     const result = resultDefinition(record.result);
     const review = reviewDefinition(record);
+    const fees = feeSummary(record);
+    const feeAmounts = feeTotals(record);
     const archiveFiles = Array.isArray(record.archiveFiles) ? record.archiveFiles : [];
+    const archiveVersions = Array.isArray(record.archiveVersions) ? record.archiveVersions : [];
     const resultFiles = Array.isArray(record.resultFiles) ? record.resultFiles : [];
     const reviewData = record.review || {};
     const reviewActions = Array.isArray(reviewData.actions) ? reviewData.actions : [];
@@ -138,16 +260,26 @@
     setText("ledgerOverviewProjectName", record.name);
     setText("ledgerOverviewDescription", record.id + " · " + record.purchaser + " · 已完成正式交付归档");
     setTag("ledgerOverviewResult", result);
+    setTag("ledgerOverviewFee", fees);
     setTag("ledgerOverviewReview", review);
     setText("ledgerSummaryBidDate", record.bidDateText);
     setText("ledgerSummaryBidAmount", formatAmount(record.bidAmount));
     setText("ledgerSummaryScore", record.score === "" ? "待公布" : Number(record.score).toFixed(2) + " 分 / 第 " + record.rank + " 名");
     setText("ledgerSummaryOwner", record.owner);
 
+    setTag("feeResultStatus", fees);
+    setText("feePaidTotal", formatFeeAmount(feeAmounts.paid));
+    setText("feePendingTotal", formatFeeAmount(feeAmounts.pending));
+    setText("feeDepositTotal", formatFeeAmount(feeAmounts.deposit));
+    setText("feeActionTotal", feeAmounts.actions + " 项");
+    renderFeeDetails(record);
+
     setText("archiveVersion", record.archiveVersion);
     setText("archiveTime", record.archiveTime);
     setText("archiveOperator", record.archiveOperator);
-    setText("archiveFileTotal", archiveFiles.length + " 份");
+    setText("archiveVersionTotal", archiveVersions.length + " 个");
+    setText("archiveVersionCount", "共 " + archiveVersions.length + " 个版本");
+    renderArchiveVersions(archiveVersions);
     setText("archiveFileCount", "共 " + archiveFiles.length + " 份");
     renderDownloadList(archiveFiles, "archiveResultFileList", "暂无归档文件。", "archive");
 
@@ -455,7 +587,7 @@
       ["项目名称", record.name || "城市运行管理服务平台运维项目"],
       ["项目编号", record.id || "BID-202606-018"],
       ["采购人", record.purchaser || "市城市运行管理中心"],
-      ["归档版本", record.archiveVersion || "正式交付 V1.0"],
+      ["归档版本", record.archiveVersion || "正式交付 V1.0.4"],
       ["归档时间", record.archiveTime || "2026-07-08 18:20"],
       ["归档操作人", record.archiveOperator || record.owner || "李明远"],
       ["文件名称", fileName],

@@ -221,6 +221,11 @@
   background: var(--orange-soft);
 }
 
+.ledger-section-symbol.cyan {
+  color: #126a86;
+  background: #effbff;
+}
+
 .ledger-result-section {
   margin-top: 14px;
   overflow: hidden;
@@ -328,8 +333,189 @@
 }
 
 .ledger-file-panel,
-.ledger-review-actions-panel {
+.ledger-version-panel,
+.ledger-review-actions-panel,
+.ledger-fee-detail-panel {
   padding: 15px 16px 8px;
+}
+
+.ledger-version-panel {
+  background: #fbfcfe;
+  border-bottom: 1px solid var(--line);
+}
+
+.ledger-archive-version-list {
+  display: grid;
+  gap: 8px;
+}
+
+.ledger-archive-version-item {
+  min-height: 76px;
+  padding: 10px 11px;
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) minmax(190px, .72fr);
+  align-items: center;
+  gap: 11px;
+  background: #fff;
+  border: 1px solid var(--ledger-detail-line);
+  border-radius: 10px;
+}
+
+.ledger-archive-version-item.is-delivery {
+  background: linear-gradient(135deg, #fff, var(--primary-soft));
+  border-color: var(--primary-border-soft);
+}
+
+.ledger-version-index {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  color: var(--primary);
+  background: #fff;
+  border: 1px solid var(--primary-border-soft);
+  border-radius: 9px;
+  font-size: 10px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+
+.ledger-archive-version-item header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.ledger-archive-version-item strong,
+.ledger-archive-version-item p,
+.ledger-archive-version-item small,
+.ledger-version-state span {
+  display: block;
+}
+
+.ledger-archive-version-item strong {
+  color: var(--heading);
+  font-size: 13px;
+}
+
+.ledger-archive-version-item p {
+  margin: 5px 0 0;
+  overflow: hidden;
+  color: #526173;
+  font-size: 11px;
+  line-height: 1.45;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ledger-archive-version-item small {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.ledger-version-state {
+  display: grid;
+  justify-items: end;
+  gap: 5px;
+}
+
+.ledger-version-state span {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.ledger-version-empty {
+  min-height: 80px;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  background: #fff;
+  border: 1px dashed var(--ledger-detail-line);
+  border-radius: 10px;
+  font-size: 12px;
+}
+
+.ledger-fee-detail-list {
+  border-top: 1px solid var(--ledger-detail-line);
+}
+
+.ledger-fee-detail-item {
+  min-height: 78px;
+  display: grid;
+  grid-template-columns: 38px minmax(180px, 1.4fr) minmax(180px, 1fr) minmax(145px, .8fr) minmax(90px, .5fr) minmax(70px, .4fr) auto;
+  align-items: center;
+  gap: 11px;
+  border-bottom: 1px solid var(--ledger-detail-line);
+}
+
+.ledger-fee-detail-icon {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  color: #126a86;
+  background: #effbff;
+  border: 1px solid #ccecf5;
+  border-radius: 9px;
+}
+
+.ledger-fee-detail-icon svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ledger-fee-detail-main,
+.ledger-fee-detail-fact {
+  min-width: 0;
+}
+
+.ledger-fee-detail-main strong,
+.ledger-fee-detail-main small,
+.ledger-fee-detail-fact span,
+.ledger-fee-detail-fact strong {
+  display: block;
+}
+
+.ledger-fee-detail-main strong {
+  overflow: hidden;
+  color: var(--heading);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ledger-fee-detail-main small {
+  margin-top: 4px;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ledger-fee-detail-fact span {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.ledger-fee-detail-fact strong {
+  margin-top: 4px;
+  overflow: hidden;
+  color: var(--heading);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ledger-fee-detail-fact strong.amount-text {
+  color: var(--amount);
 }
 
 .ledger-subsection-head {
@@ -626,6 +812,25 @@
   .ledger-result-facts {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .ledger-fee-detail-item {
+    padding: 12px 0;
+    grid-template-columns: 38px minmax(180px, 1fr) repeat(2, minmax(130px, .7fr)) auto;
+  }
+
+  .ledger-archive-version-item {
+    grid-template-columns: 36px minmax(0, 1fr);
+  }
+
+  .ledger-version-state {
+    grid-column: 2;
+    justify-items: start;
+  }
+
+  .ledger-fee-detail-item .ledger-fee-detail-fact:nth-of-type(3),
+  .ledger-fee-detail-item .ledger-fee-detail-fact:nth-of-type(4) {
+    grid-column: auto;
+  }
 }
 
 @media (max-width: 760px) {
@@ -668,6 +873,15 @@
 
   .ledger-review-action-item > span,
   .ledger-review-action-item > .status-tag {
+    grid-column: 2;
+  }
+
+  .ledger-fee-detail-item {
+    grid-template-columns: 36px minmax(0, 1fr);
+  }
+
+  .ledger-fee-detail-item .ledger-fee-detail-fact,
+  .ledger-fee-detail-item > .status-tag {
     grid-column: 2;
   }
 }

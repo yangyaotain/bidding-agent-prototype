@@ -945,9 +945,13 @@
       confirmButton.disabled = true;
       confirmButton.querySelector("span:last-child").textContent = "正在创建标书编制任务";
       const project = saveCurrentProject({ status: "ongoing", stage: "标书编制", stageDetail: "AI 自动生成中", progress: 52 });
-      try { window.sessionStorage.setItem("biddingWritingStartedAt:" + (project.id || "BID-202601-001"), String(Date.now())); } catch (error) { /* storage unavailable */ }
+      const projectId = project.id || "BID-202601-001";
+      try {
+        window.sessionStorage.removeItem("biddingQualityReview:v2:" + projectId);
+        window.sessionStorage.setItem("biddingWritingStartedAt:" + projectId, String(Date.now()));
+      } catch (error) { /* storage unavailable */ }
       window.setTimeout(function () {
-        window.location.href = "project-writing.html?id=" + encodeURIComponent(project.id || "BID-202601-001");
+        window.location.href = "project-writing.html?id=" + encodeURIComponent(projectId);
       }, 700);
     });
   }
@@ -1147,10 +1151,10 @@
     const submit = one("#submitQualityReview");
     submit.addEventListener("click", function () { window.projectPrototype.openLayer("submitQualityModal"); });
     one("#confirmSubmitQuality").addEventListener("click", function () {
-      const project = saveCurrentProject({ stage: "质量审核", stageDetail: "响应文件合规复核", progress: 88 });
+      const project = saveCurrentProject({ stage: "标书编制", stageDetail: "智能检查执行中", progress: 88 });
       const button = this;
       button.disabled = true;
-      button.querySelector("span:last-child").textContent = "正在提交审核";
+      button.querySelector("span:last-child").textContent = "正在提交检查";
       window.setTimeout(function () { window.location.href = "project-writing.html?id=" + encodeURIComponent(project.id || "BID-202601-001") + "#qualityReviewStatusCard"; }, 650);
     });
 
@@ -1166,7 +1170,7 @@
         one("#writingGenerationTag").textContent = ratio >= 1 ? "生成完成" : "生成中 " + progress + "%";
         one("#writingGenerationTag").className = "status-tag " + (ratio >= 1 ? "green" : "blue");
         one("#writingGenerationTitle").textContent = ratio >= 1 ? "投标文件已完成生成" : "AI 正在生成投标文件";
-        one("#writingGenerationText").textContent = ratio >= 1 ? "技术标 73 页、商务标 23 页已导入，可继续合规优化或提交质量审核。" : "AI 正在核对章节、引用采购依据并校验评分点覆盖。";
+        one("#writingGenerationText").textContent = ratio >= 1 ? "技术标 73 页、商务标 23 页已导入，可继续合规优化或提交智能检查。" : "AI 正在核对章节、引用采购依据并校验评分点覆盖。";
         if (ratio < 1) window.requestAnimationFrame(renderWritingProgress);
         else {
           try { window.sessionStorage.removeItem("biddingWritingStartedAt:" + (current.id || "BID-202601-001")); } catch (error) { /* storage unavailable */ }

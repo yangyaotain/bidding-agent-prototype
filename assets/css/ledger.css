@@ -1,9 +1,13 @@
 .ledger-module-page {
-  --ledger-table-min-width: 1120px;
+  --ledger-table-min-width: 1260px;
 }
 
 body.layer-open {
   overflow: hidden;
+}
+
+.ledger-metrics {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .ledger-metrics .project-metric {
@@ -21,6 +25,135 @@ body.layer-open {
   background: radial-gradient(circle, rgba(var(--primary-rgb), .08), transparent 68%);
   border-radius: 50%;
   pointer-events: none;
+}
+
+.ledger-metrics .metric-symbol.amount {
+  color: var(--amount);
+  background: var(--amount-soft);
+  border: 1px solid var(--amount-border);
+}
+
+.ledger-amount-metric {
+  border-color: var(--amount-border);
+  background: linear-gradient(145deg, #fff, #fffaf0);
+}
+
+.ledger-amount-metric .metric-copy > strong {
+  overflow: hidden;
+  color: var(--amount);
+  font-size: clamp(21px, 1.45vw, 27px);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ledger-fee-overview {
+  margin: 16px 0;
+  padding: 16px 18px;
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  align-items: stretch;
+  gap: 18px;
+  overflow: hidden;
+  border-color: #dfe8f4;
+}
+
+.ledger-fee-overview-title {
+  padding-right: 18px;
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  border-right: 1px solid var(--line);
+}
+
+.ledger-fee-overview-icon {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  color: var(--primary);
+  background: var(--primary-soft);
+  border: 1px solid var(--primary-border-soft);
+  border-radius: 12px;
+}
+
+.ledger-fee-overview-icon svg {
+  width: 23px;
+  height: 23px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ledger-fee-overview-title h2,
+.ledger-fee-overview-title p {
+  margin: 0;
+}
+
+.ledger-fee-overview-title h2 {
+  color: var(--heading);
+  font-size: 16px;
+}
+
+.ledger-fee-overview-title p {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.ledger-fee-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.ledger-fee-metric-grid > div {
+  min-width: 0;
+  padding: 9px 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background: #f8fbff;
+  border: 1px solid #e8eef7;
+  border-radius: 11px;
+}
+
+.ledger-fee-metric-grid span,
+.ledger-fee-metric-grid strong,
+.ledger-fee-metric-grid small {
+  display: block;
+}
+
+.ledger-fee-metric-grid span {
+  color: #52657c;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.ledger-fee-metric-grid strong {
+  margin-top: 5px;
+  overflow: hidden;
+  color: var(--heading);
+  font-size: 17px;
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ledger-fee-metric-grid strong.amount-text {
+  color: var(--amount);
+}
+
+.ledger-fee-metric-grid small {
+  margin-top: 4px;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .ledger-panel {
@@ -60,17 +193,23 @@ body.layer-open {
 
 .ledger-score strong,
 .ledger-score span,
-.ledger-result-cell small {
+.ledger-result-cell small,
+.ledger-fee-cell small {
   display: block;
 }
 
-.ledger-result-cell small {
+.ledger-result-cell small,
+.ledger-fee-cell small {
   margin-top: 5px;
   overflow: hidden;
   color: var(--weak);
   font-size: 10px;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.ledger-fee-cell .status-tag {
+  max-width: 100%;
 }
 
 .ledger-result-cell .ledger-result-pending {
@@ -132,6 +271,12 @@ body.layer-open {
   border-color: #bbebca;
 }
 
+.ledger-action-btn.fee-action {
+  color: #126a86;
+  background: #effbff;
+  border-color: #ccecf5;
+}
+
 .ledger-action-btn:hover {
   color: var(--primary);
   background: #fff;
@@ -179,6 +324,427 @@ body.layer-open {
   background: linear-gradient(120deg, #f8fbff, var(--primary-soft));
   border: 1px solid var(--primary-border-soft);
   border-radius: 14px;
+}
+
+.ledger-modal-project-icon.fee-icon {
+  color: #126a86;
+  background: #effbff;
+}
+
+.prototype-modal.wide.ledger-fee-modal {
+  width: min(1360px, calc(100vw - 48px));
+  height: min(900px, calc(100vh - 32px));
+  max-height: calc(100vh - 32px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.ledger-fee-modal .layer-body {
+  min-height: 0;
+  padding: 18px 22px 20px;
+  flex: 1 1 auto;
+  overflow: auto;
+}
+
+.ledger-fee-modal .layer-head {
+  min-height: 76px;
+  padding: 16px 22px;
+  flex: 0 0 auto;
+}
+
+.ledger-fee-modal .layer-head h3 {
+  font-size: 19px;
+  line-height: 1.35;
+}
+
+.ledger-fee-modal .layer-head p {
+  margin-top: 5px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.ledger-fee-modal .layer-close {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+}
+
+.ledger-fee-note {
+  margin-top: 12px;
+  padding: 11px 14px;
+  background: #f7fbff;
+  border-color: #dbeaf8;
+}
+
+.ledger-fee-note strong {
+  font-size: 13px;
+}
+
+.ledger-fee-note span {
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.ledger-fee-workspace {
+  min-height: 520px;
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: 284px minmax(0, 1fr);
+  overflow: hidden;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+
+.ledger-fee-sidebar {
+  min-width: 0;
+  padding: 18px 16px;
+  background: linear-gradient(180deg, #f6faff, #fbfdff);
+  border-right: 1px solid var(--line);
+}
+
+.ledger-fee-sidebar-head {
+  min-height: 44px;
+}
+
+.ledger-fee-sidebar-head strong,
+.ledger-fee-sidebar-head span {
+  display: block;
+}
+
+.ledger-fee-sidebar-head strong {
+  color: var(--heading);
+  font-size: 15px;
+}
+
+.ledger-fee-sidebar-head span {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.ledger-fee-tab-list {
+  margin-top: 14px;
+  display: grid;
+  gap: 9px;
+}
+
+.ledger-fee-tab {
+  width: 100%;
+  min-height: 70px;
+  padding: 10px 11px;
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  background: #fff;
+  border: 1px solid #e2eaf4;
+  border-radius: 12px;
+  transition: background-color .18s ease, border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+}
+
+.ledger-fee-tab:hover {
+  border-color: var(--primary-border);
+  box-shadow: 0 7px 18px rgba(var(--primary-rgb), .07);
+  transform: translateY(-1px);
+}
+
+.ledger-fee-tab.active {
+  background: linear-gradient(135deg, #fff, var(--primary-soft));
+  border-color: #9dc9ff;
+  box-shadow: 0 8px 20px rgba(var(--primary-rgb), .09);
+}
+
+.ledger-fee-tab-icon {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  color: var(--primary);
+  background: #fff;
+  border: 1px solid var(--primary-border-soft);
+  border-radius: 10px;
+}
+
+.ledger-fee-tab-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.ledger-fee-tab strong,
+.ledger-fee-tab small {
+  display: block;
+}
+
+.ledger-fee-tab strong {
+  overflow: hidden;
+  color: var(--heading);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ledger-fee-tab small {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.ledger-fee-tab em {
+  font-size: 10px;
+  font-style: normal;
+  white-space: nowrap;
+}
+
+.ledger-fee-add-btn {
+  width: 100%;
+  min-height: 40px;
+  margin-top: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  color: var(--primary);
+  background: rgba(255,255,255,.72);
+  border: 1px dashed #9fc9f6;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.ledger-fee-add-btn:hover {
+  background: #fff;
+  border-color: var(--primary);
+}
+
+.ledger-fee-add-btn .btn-icon {
+  width: 15px;
+  height: 15px;
+}
+
+.ledger-fee-editor {
+  min-width: 0;
+  padding: 20px 22px 24px;
+  background: #fff;
+}
+
+.ledger-fee-editor-head {
+  min-height: 58px;
+  padding-bottom: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.ledger-fee-editor-head span,
+.ledger-fee-editor-head h4 {
+  display: block;
+  margin: 0;
+}
+
+.ledger-fee-editor-head > div > span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.ledger-fee-editor-head h4 {
+  margin-top: 4px;
+  color: var(--heading);
+  font-size: 18px;
+}
+
+.ledger-fee-editor-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ledger-fee-delete {
+  min-height: 34px;
+  padding: 0 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--red);
+  background: var(--red-soft);
+  border: 1px solid #f7caca;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.ledger-fee-delete:hover {
+  background: #fff;
+  border-color: #ef9a9a;
+}
+
+.ledger-fee-delete svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ledger-fee-form {
+  margin-top: 16px;
+  display: grid;
+  gap: 16px;
+}
+
+.ledger-fee-form-section {
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid #e4ebf4;
+  border-radius: 13px;
+}
+
+.ledger-fee-form-section-head {
+  min-height: 58px;
+  padding: 11px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  background: linear-gradient(110deg, #f8fafc, #fbfdff);
+  border-bottom: 1px solid #e8eef6;
+}
+
+.ledger-fee-form-section-head h5,
+.ledger-fee-form-section-head p {
+  margin: 0;
+}
+
+.ledger-fee-form-section-head h5 {
+  color: var(--heading);
+  font-size: 14px;
+}
+
+.ledger-fee-form-section-head p {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.ledger-fee-form-section-head > span {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  color: var(--primary);
+  background: var(--primary-soft);
+  border: 1px solid var(--primary-border-soft);
+  border-radius: 9px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.ledger-fee-basic-grid,
+.ledger-fee-payment-grid,
+.ledger-fee-support-grid {
+  padding: 16px;
+}
+
+.ledger-fee-basic-grid {
+  grid-template-columns: minmax(180px, 1.35fr) repeat(3, minmax(130px, 1fr));
+  gap: 15px 16px;
+}
+
+.ledger-fee-payment-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 15px 16px;
+}
+
+.ledger-fee-support-grid {
+  grid-template-columns: 1fr;
+  gap: 15px;
+}
+
+.ledger-fee-form .form-field label {
+  margin-bottom: 8px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.ledger-fee-form .form-control,
+.ledger-fee-form .form-select {
+  height: 44px;
+  font-size: 14px;
+}
+
+.ledger-fee-form .form-textarea {
+  min-height: 96px;
+  font-size: 14px;
+}
+
+.ledger-guarantee-caption {
+  grid-column: 1 / -1;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #f7fbff;
+  border-left: 3px solid var(--primary);
+  border-radius: 8px;
+}
+
+.ledger-guarantee-caption strong {
+  color: var(--heading);
+  font-size: 12px;
+}
+
+.ledger-guarantee-caption span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.ledger-fee-upload-field {
+  min-height: 58px;
+  padding: 10px 12px;
+  background: #fbfdff;
+}
+
+.ledger-fee-upload-btn {
+  min-width: 104px;
+  min-height: 36px;
+  flex: 0 0 auto;
+  font-size: 12px;
+}
+
+.ledger-fee-footer {
+  min-height: 72px;
+  padding: 14px 22px;
+  flex: 0 0 auto;
+  background: #fff;
+  box-shadow: 0 -8px 24px rgba(15, 50, 90, .035);
+}
+
+.ledger-fee-footer .secondary-btn,
+.ledger-fee-footer .primary-btn {
+  min-width: 112px;
+  min-height: 42px;
+  font-size: 13px;
+}
+
+.ledger-fee-footer .primary-btn {
+  min-width: 132px;
+}
+
+.ledger-fee-form .form-control:disabled,
+.ledger-fee-form .form-select:disabled,
+.ledger-fee-form .form-textarea:disabled,
+.ledger-fee-form button:disabled {
+  cursor: not-allowed;
+  opacity: .55;
 }
 
 .ledger-modal-project-icon {
@@ -979,12 +1545,60 @@ body.layer-open {
 }
 
 @media (max-width: 1240px) {
+  .ledger-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .ledger-panel .table-wrap {
     overflow-x: auto;
   }
 }
 
+@media (max-width: 1100px) {
+  .ledger-fee-basic-grid,
+  .ledger-fee-payment-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 900px) {
+  .ledger-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ledger-fee-overview {
+    grid-template-columns: 1fr;
+  }
+
+  .ledger-fee-overview-title {
+    padding-right: 0;
+    padding-bottom: 14px;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .ledger-fee-metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ledger-fee-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .ledger-fee-sidebar {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .ledger-fee-tab-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ledger-fee-basic-grid,
+  .ledger-fee-payment-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .ledger-detail-summary,
   .ledger-review-score-grid,
   .ledger-detail-grid {
@@ -1006,6 +1620,29 @@ body.layer-open {
 }
 
 @media (max-width: 720px) {
+  .ledger-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .ledger-fee-metric-grid,
+  .ledger-fee-tab-list,
+  .ledger-fee-basic-grid,
+  .ledger-fee-payment-grid,
+  .ledger-fee-support-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .prototype-modal.wide.ledger-fee-modal {
+    width: calc(100vw - 16px);
+    height: calc(100vh - 16px);
+    max-height: calc(100vh - 16px);
+  }
+
+  .ledger-fee-editor-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
   .ledger-modal-project-summary {
     grid-template-columns: 44px minmax(0, 1fr);
   }

@@ -403,6 +403,36 @@
 
   window.clearInlineFeedback = clearInlineFeedback;
 
+  let transientToastTimer = 0;
+
+  window.showTransientToast = function (message, type, duration) {
+    const text = String(message || "操作完成");
+    const toastType = ["success", "info", "warning", "error"].indexOf(type) !== -1 ? type : inferToastType(text);
+    const timeout = Math.max(1200, Number(duration) || 2200);
+    const existing = document.querySelector(".toast[data-transient-toast]");
+    if (existing) existing.remove();
+    window.clearTimeout(transientToastTimer);
+
+    const toast = document.createElement("div");
+    const toastIcon = toastType === "success" ? icons.check : toastType === "error" ? icons.error : toastType === "warning" ? icons.warning : icons.info;
+    toast.className = "toast toast-compact toast-" + toastType;
+    toast.setAttribute("data-transient-toast", "");
+    toast.setAttribute("role", toastType === "error" ? "alert" : "status");
+    toast.style.setProperty("--toast-duration", timeout + "ms");
+    toast.innerHTML = '<span class="toast-icon" aria-hidden="true">' + toastIcon + '</span><div class="toast-copy"><strong></strong></div><button class="toast-close" type="button" aria-label="关闭提示">' + icons.close + "</button>";
+    toast.querySelector(".toast-copy strong").textContent = text;
+
+    const dismiss = function () {
+      if (!toast.isConnected || toast.classList.contains("is-leaving")) return;
+      toast.classList.add("is-leaving");
+      window.setTimeout(function () { toast.remove(); }, 180);
+    };
+    toast.querySelector(".toast-close").addEventListener("click", dismiss);
+    document.body.appendChild(toast);
+    transientToastTimer = window.setTimeout(dismiss, timeout);
+    return toast;
+  };
+
   window.showToast = function (message, type, target) {
     const text = String(message || "请检查当前填写内容");
     const feedbackType = ["success", "info", "warning", "error"].indexOf(type) !== -1 ? type : inferToastType(text);

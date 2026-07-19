@@ -4,11 +4,28 @@
   const data = window.BidDocumentFlowData || {};
   if (!data.technical || !data.business) return;
 
-  const project = (window.projectPrototype && window.projectPrototype.currentProject) || { id: "BID-202601-001" };
+  const projectData = window.BiddingProjectData || {};
+  const requestedProjectId = new URLSearchParams(window.location.search).get("id");
+  let pendingProject = null;
+  try {
+    const storedPendingProject = window.sessionStorage.getItem("biddingPendingProject");
+    if (storedPendingProject) pendingProject = JSON.parse(storedPendingProject);
+  } catch (error) {
+    pendingProject = null;
+  }
+  const project = (pendingProject && requestedProjectId && pendingProject.id === requestedProjectId ? pendingProject : null) ||
+    (projectData.projects || []).find(function (item) { return item.id === requestedProjectId; }) ||
+    projectData.featuredProject ||
+    { id: "BID-202601-001", owner: "李明远" };
   const storagePrefix = "biddingWordFlow:v1:" + (project.id || "BID-202601-001") + ":";
+  const versionApi = window.BiddingBidVersions || null;
+  let bidVersions = versionApi ? versionApi.load(project) : [];
   const state = {
     activeId: "technical",
     dirty: false,
+    versionDirty: false,
+    baseVersionId: versionApi ? versionApi.getDraftBase(project, bidVersions) : "",
+    submitQualityAfterVersionSave: false,
     saveTimer: 0,
     selection: null,
     caretRange: null,
@@ -41,6 +58,7 @@
   };
 
   const qualityStorageKey = "biddingQualityReview:v2:" + (project.id || "BID-202601-001");
+  const manualReviewStorageKey = "biddingManualQualityReview:v1:" + (project.id || "BID-202601-001");
   const qualityReviewDuration = 7200;
   const qualityIssues = [
     {
@@ -159,6 +177,27 @@
     return next;
   }
 
+  function latestBidVersion() {
+    return versionApi ? versionApi.latest(bidVersions) : null;
+  }
+
+  function baseBidVersion() {
+    return versionApi ? versionApi.find(bidVersions, state.baseVersionId) || latestBidVersion() : null;
+  }
+
+  function qualityBidVersion() {
+    if (!versionApi || !state.quality) return latestBidVersion();
+    return versionApi.find(bidVersions, state.quality.versionId || state.quality.versionNumber) || latestBidVersion();
+  }
+
+  function refreshBidVersions() {
+    if (!versionApi) return;
+    bidVersions = versionApi.load(project);
+    if (!versionApi.find(bidVersions, state.baseVersionId)) {
+      state.baseVersionId = versionApi.getDraftBase(project, bidVersions);
+    }
+  }
+
   function baseIssueStatus(value) {
     return qualityIssues.reduce(function (result, issue) {
       result[issue.id] = value;
@@ -168,9 +207,12 @@
 
   function defaultQualityState() {
     const stage = String(project.stage || "");
-    if (stage.indexOf("交付") !== -1) return { status: "complete", batch: 2, score: 98, startedAt: 0, reviewWillComplete: true, issues: baseIssueStatus("passed") };
-    if (stage.indexOf("质量") !== -1 || stage.indexOf("审核") !== -1) return { status: "result", batch: 1, score: 82, startedAt: 0, reviewWillComplete: false, issues: baseIssueStatus("pending") };
-    return { status: "idle", batch: 0, score: 0, startedAt: 0, reviewWillComplete: false, issues: baseIssueStatus("pending") };
+    const stageDetail = String(project.stageDetail || "");
+    const currentVersion = latestBidVersion();
+    const versionState = { versionId: currentVersion ? currentVersion.id : "", versionNumber: currentVersion ? currentVersion.number : "" };
+    if (stage.indexOf("质量审核") !== -1 || stage.indexOf("交付") !== -1) return Object.assign({ status: "complete", batch: 2, score: 98, startedAt: 0, reviewWillComplete: true, issues: baseIssueStatus("passed") }, versionState);
+    if (stageDetail.indexOf("智能检查") !== -1) return Object.assign({ status: "result", batch: 1, score: 82, startedAt: 0, reviewWillComplete: false, issues: baseIssueStatus("pending") }, versionState);
+    return Object.assign({ status: "idle", batch: 0, score: 0, startedAt: 0, reviewWillComplete: false, issues: baseIssueStatus("pending") }, versionState);
   }
 
   function loadQualityState() {
@@ -180,6 +222,9 @@
       const parsed = JSON.parse(stored);
       if (!parsed || ["idle", "reviewing", "result", "complete"].indexOf(parsed.status) === -1) return defaultQualityState();
       parsed.issues = Object.assign(baseIssueStatus(parsed.status === "complete" ? "passed" : "pending"), parsed.issues || {});
+      const currentVersion = versionApi ? versionApi.find(bidVersions, parsed.versionId || parsed.versionNumber) || latestBidVersion() : null;
+      parsed.versionId = currentVersion ? currentVersion.id : "";
+      parsed.versionNumber = currentVersion ? currentVersion.number : "";
       return parsed;
     } catch (error) {
       return defaultQualityState();
@@ -188,6 +233,37 @@
 
   function saveQualityState() {
     safeStorageSet(qualityStorageKey, JSON.stringify(state.quality));
+  }
+
+  function formatReturnTime(value) {
+    if (!Number(value)) return "—";
+    const date = new Date(Number(value || 0));
+    if (Number.isNaN(date.getTime())) return "—";
+    const pad = function (number) { return String(number).padStart(2, "0"); };
+    return date.getFullYear() + "-" + pad(date.getMonth() + 1) + "-" + pad(date.getDate()) + " " + pad(date.getHours()) + ":" + pad(date.getMinutes());
+  }
+
+  function renderReviewReturnNotice() {
+    const notice = one("#reviewReturnNotice");
+    if (!notice) return;
+    const stored = safeStorageGet(manualReviewStorageKey);
+    let review = null;
+    if (stored) {
+      try { review = JSON.parse(stored); } catch (error) { review = null; }
+    }
+    if (!review || review.status !== "returned" || !String(review.returnReason || "").trim()) {
+      notice.classList.add("hidden");
+      return;
+    }
+
+    const returnedFromDelivery = review.returnSource === "delivery" ||
+      (!review.returnSource && String(project.stageDetail || "").indexOf("交付归档退回") !== -1);
+    const sourceLabel = returnedFromDelivery ? "交付归档" : "质量审核";
+    one("#reviewReturnNoticeTitle").textContent = sourceLabel + "已退回修改";
+    one("#reviewReturnNoticeReason").textContent = "退回原因：" + String(review.returnReason).trim();
+    one("#reviewReturnNoticeMeta").textContent = "退回人：" + (review.returnedBy || project.owner || "李明远") +
+      " · 退回时间：" + formatReturnTime(review.returnedAt);
+    notice.classList.remove("hidden");
   }
 
   function issueById(issueId) {
@@ -247,6 +323,172 @@
     return clone.innerHTML;
   }
 
+  function pagesForVersionSnapshot(documentId) {
+    if (documentId === state.activeId && pagesRoot()) {
+      return all(".bid-page-content", pagesRoot()).map(cleanDocumentClone);
+    }
+    const stored = storedPageHtml(documentId);
+    if (stored) return stored.slice();
+    return (data[documentId].pages || []).map(function (page) { return page.html; });
+  }
+
+  function versionCheckLabel(version) {
+    const check = version.check || {};
+    if (check.status === "passed") return "智能检查：第 " + (check.batch || 1) + " 次检查通过 · " + (check.score || 98) + " 分";
+    if (check.status === "checking") return "智能检查：第 " + (check.batch || 1) + " 次检查中";
+    if (check.status === "result") return "智能检查：第 " + (check.batch || 1) + " 次检查完成 · 待整改";
+    return "智能检查：未提交";
+  }
+
+  function versionReviewLabel(version) {
+    const review = version.review || {};
+    if (review.status === "approved") return "人工审核：已通过";
+    if (review.status === "pending") return "人工审核：审核中";
+    if (review.status === "returned") return "人工审核：已退回";
+    return "人工审核：未提交";
+  }
+
+  function renderBidVersionContext() {
+    if (!versionApi) return;
+    refreshBidVersions();
+    const baseVersion = baseBidVersion();
+    const label = baseVersion ? "工作稿 · 基于 " + baseVersion.number : "当前工作稿";
+    const buttonLabel = one("#currentBidVersionText");
+    if (buttonLabel) buttonLabel.textContent = label;
+    const button = one("#viewBidVersions");
+    if (button) button.title = state.versionDirty ? label + " · 有待保存为版本的修改" : label;
+  }
+
+  function renderBidVersionHistory() {
+    if (!versionApi) return;
+    refreshBidVersions();
+    const list = one("#bidVersionHistoryList");
+    if (!list) return;
+    const baseVersion = baseBidVersion();
+    one("#bidVersionHistoryCurrent").textContent = baseVersion ? "基于 " + baseVersion.number + (state.versionDirty ? " · 待保存新版本" : "") : "尚未建立版本";
+    one("#bidVersionHistoryCount").textContent = bidVersions.length + " 个";
+    list.innerHTML = bidVersions.slice().reverse().map(function (version) {
+      const meta = versionApi.statusMeta(version);
+      const current = baseVersion && version.id === baseVersion.id;
+      return '<article class="bid-version-history-item' + (current ? " current" : "") + '">' +
+        '<header><div class="bid-version-history-title"><strong>' + escapeHtml(version.number) + '</strong><span class="status-tag ' + meta.tone + '">' + meta.label + '</span>' + (version.isDeliveryVersion ? '<span class="status-tag blue">正式交付版本</span>' : "") + '</div><span class="bid-version-history-meta">' + escapeHtml(version.createdBy) + " · " + escapeHtml(versionApi.formatDateTime(version.createdAt)) + "</span></header>" +
+        "<p>" + escapeHtml(version.note || "人工保存版本") + "</p>" +
+        '<div class="bid-version-lifecycle"><span class="' + ((version.check || {}).status === "passed" ? "green" : (version.check || {}).status === "result" ? "orange" : "") + '">' + escapeHtml(versionCheckLabel(version)) + '</span><span class="' + ((version.review || {}).status === "approved" ? "green" : ["pending", "returned"].indexOf((version.review || {}).status) !== -1 ? "orange" : "") + '">' + escapeHtml(versionReviewLabel(version)) + "</span></div>" +
+        '<div class="bid-version-history-actions"><button class="ghost-btn" type="button" data-version-preview="' + escapeHtml(version.id) + '" data-version-document="technical"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z"/><circle cx="12" cy="12" r="2.5"/></svg></span><span>预览技术标</span></button><button class="ghost-btn" type="button" data-version-preview="' + escapeHtml(version.id) + '" data-version-document="business"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z"/><circle cx="12" cy="12" r="2.5"/></svg></span><span>预览商务标</span></button><button class="secondary-btn" type="button" data-version-continue="' + escapeHtml(version.id) + '"' + (current && !state.versionDirty ? " disabled" : "") + '><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14M14 7l5 5-5 5"/></svg></span><span>' + (current && !state.versionDirty ? "当前工作稿基线" : "基于此版本编制") + "</span></button></div>" +
+        "</article>";
+    }).join("");
+  }
+
+  function openSaveBidVersionModal(submitQualityAfterSave) {
+    if (!versionApi) {
+      saveCurrentDocument(true);
+      return;
+    }
+    refreshBidVersions();
+    state.submitQualityAfterVersionSave = Boolean(submitQualityAfterSave);
+    one("#nextBidVersionNumber").textContent = versionApi.nextNumber(bidVersions);
+    one("#bidVersionNote").value = "";
+    if (window.projectPrototype) window.projectPrototype.openLayer("saveBidVersionModal");
+    window.setTimeout(function () { one("#bidVersionNote").focus(); }, 80);
+  }
+
+  function saveBidVersion(options) {
+    const settings = options && typeof options === "object" ? options : {};
+    const direct = Boolean(settings.direct);
+    const notifyDirectSave = function (message, type) {
+      if (window.showTransientToast) window.showTransientToast(message, type);
+    };
+    if (!versionApi) {
+      const saved = saveCurrentDocument(false);
+      if (direct) notifyDirectSave(saved ? "保存成功" : "保存失败", saved ? "success" : "error");
+      return saved;
+    }
+    if (state.dirty && !saveCurrentDocument(false)) {
+      if (direct) notifyDirectSave("保存失败", "error");
+      return false;
+    }
+    const noteField = one("#bidVersionNote");
+    const note = String(settings.note || (!direct && noteField ? noteField.value : "") || "").trim() || "人工确认保存技术标与商务标当前内容。";
+    const result = versionApi.create(project, {
+      createdBy: project.owner || "李明远",
+      note: note,
+      snapshots: {
+        technical: pagesForVersionSnapshot("technical"),
+        business: pagesForVersionSnapshot("business")
+      }
+    });
+    if (!result.saved) {
+      if (direct) notifyDirectSave("保存失败", "error");
+      else toast("版本记录保存空间不足，请清理浏览器存储后重试", "warning", one("#confirmSaveBidVersion"));
+      return false;
+    }
+    bidVersions = result.versions;
+    state.baseVersionId = result.version.id;
+    state.versionDirty = false;
+    state.dirty = false;
+    state.quality = {
+      status: "idle",
+      batch: 0,
+      score: 0,
+      startedAt: 0,
+      reviewWillComplete: false,
+      issues: baseIssueStatus("pending"),
+      versionId: result.version.id,
+      versionNumber: result.version.number
+    };
+    saveQualityState();
+    renderBidVersionContext();
+    renderBidVersionHistory();
+    updateQualityReviewUI();
+    setSaveState("saved", "已保存为 " + result.version.number);
+    if (!direct && window.projectPrototype) window.projectPrototype.closeLayers();
+    if (direct) notifyDirectSave("保存成功", "success");
+    else toast(result.version.number + " 已保存，技术标和商务标版本快照已锁定", "success");
+    const submitQualityAfterSave = !direct && state.submitQualityAfterVersionSave;
+    state.submitQualityAfterVersionSave = false;
+    if (submitQualityAfterSave) {
+      window.setTimeout(function () { one("#submitQualityReview").click(); }, 260);
+    }
+    return true;
+  }
+
+  function continueFromBidVersion(versionId) {
+    if (!versionApi) return;
+    const version = versionApi.find(bidVersions, versionId);
+    if (!version) return;
+    ["technical", "business"].forEach(function (documentId) {
+      const snapshot = versionApi.loadSnapshot(project, version.id, documentId) ||
+        (data[documentId].pages || []).map(function (page) { return page.html; });
+      safeStorageSet(storagePrefix + documentId, JSON.stringify({ pages: snapshot, savedAt: Date.now() }));
+    });
+    state.baseVersionId = version.id;
+    versionApi.setDraftBase(project, version.id);
+    state.versionDirty = true;
+    state.dirty = false;
+    renderDocument();
+    renderBidVersionContext();
+    renderBidVersionHistory();
+    setSaveState("dirty", "已基于 " + version.number + " 创建工作稿 · 待保存新版本");
+    if (window.projectPrototype) window.projectPrototype.closeLayers();
+    toast("已基于 " + version.number + " 创建工作稿，历史版本保持不变");
+  }
+
+  function previewBidVersion(versionId, documentId) {
+    if (!versionApi) return;
+    const version = versionApi.find(bidVersions, versionId);
+    if (!version) return;
+    const profile = documentId === "business" ? "bid-business" : "bid-technical";
+    const name = documentId === "business" ? "商务标.docx" : "技术标.docx";
+    if (window.BiddingFilePreview) {
+      window.BiddingFilePreview.open({
+        profile: profile,
+        name: name,
+        context: "标书编制 " + version.number + " 只读版本",
+        page: 1
+      });
+    }
+  }
+
   function saveCurrentDocument(showMessage) {
     window.clearTimeout(state.saveTimer);
     const pageContent = all(".bid-page-content", pagesRoot()).map(cleanDocumentClone);
@@ -256,8 +498,10 @@
       return false;
     }
     state.dirty = false;
-    setSaveState("saved", "已保存");
-    if (showMessage) toast(currentDocument().name + "已保存");
+    const baseVersion = baseBidVersion();
+    if (state.versionDirty) setSaveState("dirty", "工作稿已自动保存 · 待保存为版本");
+    else setSaveState("saved", baseVersion ? "已保存至 " + baseVersion.number : "工作稿已保存");
+    if (showMessage) toast(currentDocument().name + "工作稿已保存");
     return true;
   }
 
@@ -272,6 +516,7 @@
 
   function markDirty() {
     state.dirty = true;
+    state.versionDirty = true;
     setSaveState("dirty", "有未保存修改");
     updateWordCount();
     window.clearTimeout(state.saveTimer);
@@ -327,7 +572,9 @@
     state.caretRange = null;
     state.candidate = null;
     state.dirty = false;
-    setSaveState("saved", "已保存");
+    const baseVersion = baseBidVersion();
+    if (state.versionDirty) setSaveState("dirty", "工作稿已自动保存 · 待保存为版本");
+    else setSaveState("saved", baseVersion ? "已保存至 " + baseVersion.number : "工作稿已保存");
     decorateFigures();
     decorateQualityContent();
     applyZoom();
@@ -711,7 +958,7 @@
       return;
     }
     if (mode === "idle" || mode === "reviewing") {
-      list.innerHTML = '<div class="quality-empty"><strong>' + (mode === "idle" ? "尚未生成审核结果" : "正在执行检查并归并问题") + '</strong><span>' + (mode === "idle" ? "提交质量审核后，问题将关联到技术标、商务标的具体目录。" : "审核结束后，将在这里展示需要人工补充或确认的事项。") + '</span></div>';
+      list.innerHTML = '<div class="quality-empty"><strong>' + (mode === "idle" ? "尚未生成检查结果" : "正在执行检查并归并问题") + '</strong><span>' + (mode === "idle" ? "提交智能检查后，问题将关联到技术标、商务标的具体目录。" : "检查结束后，将在这里展示需要人工补充或确认的事项。") + '</span></div>';
       return;
     }
     list.innerHTML = qualityIssues.map(function (issue) {
@@ -755,7 +1002,7 @@
     }
     if (mode === "reviewing") {
       element.className = "status-tag blue bid-quality-count";
-      element.textContent = "审核中";
+      element.textContent = "检查中";
       return;
     }
     if (mode === "complete") {
@@ -777,6 +1024,8 @@
   function updateQualityReviewUI() {
     const quality = state.quality;
     const mode = quality.status;
+    const boundVersion = qualityBidVersion();
+    const versionNumber = boundVersion ? boundVersion.number : (quality.versionNumber || "未建立版本");
     const counts = qualityCounts();
     const pending = counts.pending || 0;
     const recheck = counts.done || 0;
@@ -788,88 +1037,104 @@
     const tag = one("#qualityReviewStatusTag");
     const submit = one("#submitQualityReview");
     const submitLabel = one("span:last-child", submit);
-    const delivery = one("#enterDeliveryArchive");
+    const manualReview = one("#submitManualReview");
+    const manualReviewLabel = one("span:last-child", manualReview);
+    const manualReviewStarted = String(project.stage || "").indexOf("质量审核") !== -1 || String(project.stage || "").indexOf("交付") !== -1;
+    const editorStatus = one("#bidEditorQualityStatus");
+    const editorStatusText = one("#bidEditorQualityStatusText");
+    const editorAction = one("#bidEditorQualityAction");
+    const editorActionLabel = one("span", editorAction);
     card.setAttribute("data-quality-state", mode);
-    delivery.href = "project-delivery.html?id=" + encodeURIComponent(project.id || "BID-202601-001");
+    editorStatus.setAttribute("data-quality-state", mode);
     submit.classList.toggle("hidden", mode === "complete");
-    delivery.classList.toggle("hidden", mode !== "complete");
+    manualReview.classList.toggle("hidden", mode !== "complete");
+    manualReviewLabel.textContent = manualReviewStarted ? "查看人工审核" : "提交人工审核";
     submit.disabled = mode === "reviewing" || (mode === "result" && pending > 0);
     submit.title = mode === "result" && pending > 0 ? "请先完成全部人工补充和人工确认" : "";
+    editorAction.disabled = mode === "reviewing";
 
     if (mode === "idle") {
       icon.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 3 4 7v5c0 5 3.4 8.3 8 9 4.6-.7 8-4 8-9V7l-8-4z"/><path d="M12 8v5M12 17h.01"/></svg>';
-      one("#qualityReviewStatusTitle").textContent = "当前标书尚未提交质量审核";
-      one("#qualityReviewStatusDescription").textContent = "保存技术标、商务标后提交审核，系统将在本页面展示过程和结果。";
+      one("#qualityReviewStatusTitle").textContent = "当前标书尚未提交智能检查";
+      one("#qualityReviewStatusDescription").textContent = "将技术标、商务标人工保存为版本后提交检查，系统将在本页面展示过程和结果。";
       tag.className = "status-tag gray";
-      tag.textContent = "未审核";
-      submitLabel.textContent = "提交质量审核";
-      setQualityMetric("#qualityMetricScore", "--", "等待首次审核");
+      tag.textContent = "未检查";
+      submitLabel.textContent = "提交智能检查";
+      editorStatusText.textContent = "智能检查：待提交";
+      editorActionLabel.textContent = "提交检查";
+      setQualityMetric("#qualityMetricScore", "--", "等待首次检查");
       setQualityMetric("#qualityMetricRules", "248", "待执行检查规则");
       setQualityMetric("#qualityMetricPassed", "--", "尚未生成结果");
       setQualityMetric("#qualityMetricAutoFixed", "--", "尚未生成结果");
       setQualityMetric("#qualityMetricManual", "--", "尚未生成结果");
       setQualityMetric("#qualityMetricBlocking", "--", "尚未生成结果");
-      one("#qualityProcessDescription").textContent = "提交后将按 6 个步骤执行质量审核";
+      one("#qualityProcessDescription").textContent = "提交后将按 6 个步骤执行智能检查";
       one("#qualityProcessTag").className = "status-tag gray";
       one("#qualityProcessTag").textContent = "未开始";
       one("#qualityResultBatchTag").className = "status-tag gray";
-      one("#qualityResultBatchTag").textContent = "等待审核";
+      one("#qualityResultBatchTag").textContent = "等待检查";
       renderQualitySteps(mode, 0, 0);
     } else if (mode === "reviewing") {
       icon.innerHTML = '<svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v6h-6"/></svg>';
-      one("#qualityReviewStatusTitle").textContent = "第 " + quality.batch + " 次质量审核中";
-      one("#qualityReviewStatusDescription").textContent = "正在建立审核任务，编辑区已锁定本次送审快照；点击展开可查看实时步骤。";
+      one("#qualityReviewStatusTitle").textContent = "第 " + quality.batch + " 次智能检查中";
+      one("#qualityReviewStatusDescription").textContent = "正在建立检查任务，编辑区已锁定本次检查快照；点击展开可查看实时步骤。";
       tag.className = "status-tag blue";
-      tag.textContent = "审核中 8%";
-      submitLabel.textContent = "质量审核中";
-      setQualityMetric("#qualityMetricScore", "--", "审核完成后生成");
+      tag.textContent = "检查中 8%";
+      submitLabel.textContent = "智能检查中";
+      editorStatusText.textContent = "智能检查：检查中";
+      editorActionLabel.textContent = "检查中";
+      setQualityMetric("#qualityMetricScore", "--", "检查完成后生成");
       setQualityMetric("#qualityMetricRules", "248", "正在逐项执行");
       setQualityMetric("#qualityMetricPassed", "--", "结果归并中");
       setQualityMetric("#qualityMetricAutoFixed", "--", "结果归并中");
       setQualityMetric("#qualityMetricManual", "--", "结果归并中");
       setQualityMetric("#qualityMetricBlocking", "--", "结果归并中");
-      one("#qualityProcessDescription").textContent = "本次送审版本 V1.0." + (quality.batch + 2) + " · 正在执行 6 个检查步骤";
+      one("#qualityProcessDescription").textContent = "检查对象 " + versionNumber + " · 第 " + quality.batch + " 次检查正在执行 6 个步骤";
       one("#qualityProcessTag").className = "status-tag blue";
       one("#qualityProcessTag").textContent = "进行中";
       one("#qualityResultBatchTag").className = "status-tag blue";
-      one("#qualityResultBatchTag").textContent = "第 " + quality.batch + " 次审核";
+      one("#qualityResultBatchTag").textContent = "第 " + quality.batch + " 次检查";
       renderQualitySteps(mode, 1, 8);
     } else if (mode === "result") {
       icon.innerHTML = '<svg viewBox="0 0 24 24"><path d="M10.3 3.8 2.7 17a2 2 0 0 0 1.8 3h15a2 2 0 0 0 1.8-3L13.7 3.8a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>';
-      one("#qualityReviewStatusTitle").textContent = "第 " + quality.batch + " 次质量审核已完成";
-      one("#qualityReviewStatusDescription").textContent = pending ? "248 项规则已检查，" + pending + " 项需要人工补充或确认；处理后可再次提交审核。" : "本轮人工事项均已处理，" + recheck + " 项等待再次质量审核。";
+      one("#qualityReviewStatusTitle").textContent = "第 " + quality.batch + " 次智能检查已完成";
+      one("#qualityReviewStatusDescription").textContent = pending ? "248 项规则已检查，" + pending + " 项需要人工补充或确认；处理后可再次提交检查。" : "本轮人工事项均已处理，" + recheck + " 项等待再次智能检查。";
       tag.className = "status-tag " + (pending ? "orange" : "blue");
       tag.textContent = pending ? "待人工处理 " + pending + " 项" : "待复检 " + recheck + " 项";
-      submitLabel.textContent = pending ? "处理后再次审核" : "再次提交质量审核";
-      setQualityMetric("#qualityMetricScore", String(Math.min(90, 82 + recheck * 2)), "当前送审版本");
+      submitLabel.textContent = pending ? "处理后再次检查" : "再次提交智能检查";
+      editorStatusText.textContent = pending ? "智能检查：待处理 " + pending + " 项" : "智能检查：待复检 " + recheck + " 项";
+      editorActionLabel.textContent = pending ? "查看问题" : "重新检查";
+      setQualityMetric("#qualityMetricScore", String(Math.min(90, 82 + recheck * 2)), "当前检查版本");
       setQualityMetric("#qualityMetricRules", "248", "全部执行完成");
       setQualityMetric("#qualityMetricPassed", "240", "无需人工处理");
       setQualityMetric("#qualityMetricAutoFixed", "3", "已自动复核通过");
       setQualityMetric("#qualityMetricManual", String(pending), recheck ? "待复检 " + recheck + " 项" : "补充 " + pendingSupplement + " · 确认 " + pendingConfirm);
       setQualityMetric("#qualityMetricBlocking", "0", "暂无资格阻断问题");
-      one("#qualityProcessDescription").textContent = "本次送审版本 V1.0." + (quality.batch + 2) + " · 已完成全部 6 个检查步骤";
+      one("#qualityProcessDescription").textContent = "检查对象 " + versionNumber + " · 第 " + quality.batch + " 次检查已完成全部 6 个步骤";
       one("#qualityProcessTag").className = "status-tag green";
       one("#qualityProcessTag").textContent = "已完成";
       one("#qualityResultBatchTag").className = "status-tag " + (pending ? "orange" : "blue");
-      one("#qualityResultBatchTag").textContent = "第 " + quality.batch + " 次审核";
+      one("#qualityResultBatchTag").textContent = "第 " + quality.batch + " 次检查";
       renderQualitySteps(mode, 6, 100);
     } else {
       icon.innerHTML = '<svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/><circle cx="12" cy="12" r="9"/></svg>';
-      one("#qualityReviewStatusTitle").textContent = "质量审核全部完成";
-      one("#qualityReviewStatusDescription").textContent = "第 " + quality.batch + " 次审核已通过，248 项规则全部完成，当前版本可以进入交付归档。";
+      one("#qualityReviewStatusTitle").textContent = "智能检查全部完成";
+      one("#qualityReviewStatusDescription").textContent = "第 " + quality.batch + " 次检查已通过，248 项规则全部完成，当前版本可以提交人工质量审核。";
       tag.className = "status-tag green";
       tag.textContent = "全部通过";
-      setQualityMetric("#qualityMetricScore", "98", "最终送审版本");
+      editorStatusText.textContent = "智能检查：全部通过";
+      editorActionLabel.textContent = "查看结果";
+      setQualityMetric("#qualityMetricScore", "98", "最终检查版本");
       setQualityMetric("#qualityMetricRules", "248", "全部执行完成");
       setQualityMetric("#qualityMetricPassed", "248", "全部复检通过");
       setQualityMetric("#qualityMetricAutoFixed", "3", "已保留修改记录");
       setQualityMetric("#qualityMetricManual", "0", "人工事项已清零");
       setQualityMetric("#qualityMetricBlocking", "0", "满足交付条件");
-      one("#qualityProcessDescription").textContent = "最终送审版本 V1.0." + (quality.batch + 2) + " · 已完成全部 6 个检查步骤";
+      one("#qualityProcessDescription").textContent = "检查对象 " + versionNumber + " · 第 " + quality.batch + " 次检查已全部通过";
       one("#qualityProcessTag").className = "status-tag green";
       one("#qualityProcessTag").textContent = "已完成";
       one("#qualityResultBatchTag").className = "status-tag green";
-      one("#qualityResultBatchTag").textContent = "第 " + quality.batch + " 次审核通过";
+      one("#qualityResultBatchTag").textContent = "第 " + quality.batch + " 次检查通过";
       renderQualitySteps(mode, 6, 100);
     }
 
@@ -893,22 +1158,24 @@
     shell.classList.toggle("quality-review-locked", locked);
     pagesRoot().setAttribute("contenteditable", locked ? "false" : "true");
     all("button, select, input", one("#bidRichToolbar")).forEach(function (control) { control.disabled = locked; });
-    ["#saveBidDocument", "#insertImageButton", "#bidAiLauncher"].forEach(function (selector) {
+    ["#saveBidDocument", "#saveCurrentBidVersion", "#insertImageButton", "#bidAiLauncher"].forEach(function (selector) {
       const control = one(selector);
       if (control) control.disabled = locked;
     });
     if (locked) {
-      setSaveState("saving", "送审版本已锁定");
+      setSaveState("saving", "检查版本已锁定");
       setAiPanel(false);
     } else if (!state.dirty) {
-      setSaveState("saved", "已保存");
+      const baseVersion = baseBidVersion();
+      if (state.versionDirty) setSaveState("dirty", "工作稿已自动保存 · 待保存为版本");
+      else setSaveState("saved", baseVersion ? "已保存至 " + baseVersion.number : "工作稿已保存");
     }
   }
 
   function updateReviewProgress(progress, activeStep) {
-    const stepNames = ["保存版本与建立审核快照", "资格条件与否决项检查", "评分点与响应覆盖检查", "技术与商务一致性检查", "目录、页码与格式检查", "结果归并与人工任务生成"];
-    one("#qualityReviewStatusDescription").textContent = "当前执行第 " + activeStep + " / 6 步：" + stepNames[activeStep - 1] + "。编辑区已锁定本次送审快照。";
-    one("#qualityReviewStatusTag").textContent = "审核中 " + progress + "%";
+    const stepNames = ["保存版本与建立检查快照", "资格条件与否决项检查", "评分点与响应覆盖检查", "技术与商务一致性检查", "目录、页码与格式检查", "结果归并与人工任务生成"];
+    one("#qualityReviewStatusDescription").textContent = "当前执行第 " + activeStep + " / 6 步：" + stepNames[activeStep - 1] + "。编辑区已锁定本次检查快照。";
+    one("#qualityReviewStatusTag").textContent = "检查中 " + progress + "%";
     renderQualitySteps("reviewing", activeStep, progress);
   }
 
@@ -919,16 +1186,32 @@
       quality.status = "complete";
       quality.score = 98;
       qualityIssues.forEach(function (issue) { quality.issues[issue.id] = "passed"; });
-      saveProjectPatch({ stage: "交付归档", stageDetail: "质量审核通过，待交付确认", progress: 96 });
-      toast("第 " + quality.batch + " 次质量审核完成，全部问题已通过复检");
+      saveProjectPatch({ stage: "标书编制", stageDetail: "智能检查通过，待提交人工审核", progress: 90 });
+      toast("第 " + quality.batch + " 次智能检查完成，全部问题已通过复检");
     } else {
       quality.status = "result";
       quality.score = 82;
       qualityIssues.forEach(function (issue) { quality.issues[issue.id] = "pending"; });
-      saveProjectPatch({ stage: "质量审核", stageDetail: "待人工补充与确认", progress: 88 });
+      saveProjectPatch({ stage: "标书编制", stageDetail: "智能检查待人工补充与确认", progress: 88 });
     }
     quality.startedAt = 0;
     quality.reviewWillComplete = false;
+    if (versionApi && quality.versionId) {
+      const version = versionApi.find(bidVersions, quality.versionId);
+      if (version) {
+        versionApi.update(project, version.id, {
+          check: Object.assign({}, version.check || {}, {
+            status: quality.status === "complete" ? "passed" : "result",
+            batch: quality.batch,
+            score: quality.score,
+            updatedAt: Date.now()
+          })
+        });
+        refreshBidVersions();
+        renderBidVersionContext();
+        renderBidVersionHistory();
+      }
+    }
     saveQualityState();
     setEditorQualityLocked(false);
     updateQualityReviewUI();
@@ -951,13 +1234,31 @@
   function startQualityReview() {
     const counts = qualityCounts();
     const isRecheck = state.quality.status === "result";
+    const version = baseBidVersion() || latestBidVersion();
+    if (version) {
+      state.quality.versionId = version.id;
+      state.quality.versionNumber = version.number;
+    }
     hideQualityComment(true);
     state.quality.status = "reviewing";
     state.quality.batch = isRecheck ? state.quality.batch + 1 : 1;
     state.quality.startedAt = Date.now();
     state.quality.reviewWillComplete = isRecheck && counts.pending === 0 && counts.done > 0;
+    if (versionApi && version) {
+      versionApi.update(project, version.id, {
+        check: Object.assign({}, version.check || {}, {
+          status: "checking",
+          batch: state.quality.batch,
+          score: 0,
+          updatedAt: Date.now()
+        })
+      });
+      refreshBidVersions();
+      renderBidVersionContext();
+      renderBidVersionHistory();
+    }
     saveQualityState();
-    saveProjectPatch({ stage: "质量审核", stageDetail: "第 " + state.quality.batch + " 次审核中", progress: 88 });
+    saveProjectPatch({ stage: "标书编制", stageDetail: "第 " + state.quality.batch + " 次智能检查中", progress: 88 });
     setEditorQualityLocked(true);
     updateQualityReviewUI();
     one("#qualityReviewStatusCard").scrollIntoView({ behavior: "smooth", block: "start" });
@@ -973,7 +1274,7 @@
     one("span:last-child", toggle).textContent = "收起详情";
   }
 
-  function focusQualityIssue(issueId) {
+  function focusQualityIssue(issueId, revealEditor) {
     const issue = issueById(issueId);
     if (!issue) return;
     state.focusedIssueId = issue.id;
@@ -981,7 +1282,10 @@
     showQualityComment(issue);
     window.setTimeout(function () {
       scrollToQualityContent(issue);
-    }, 60);
+    }, revealEditor ? 280 : 60);
+    if (revealEditor) {
+      one(".bid-editor-shell").scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   }
 
   function completeFocusedQualityIssue() {
@@ -991,7 +1295,7 @@
     saveQualityState();
     updateQualityReviewUI();
     focusQualityIssue(issue.id);
-    toast(issue.type === "supplement" ? "已标记为人工补充完成，等待再次质量审核" : "已完成人工确认，等待再次质量审核");
+    toast(issue.type === "supplement" ? "已标记为人工补充完成，等待再次智能检查" : "已完成人工确认，等待再次智能检查");
   }
 
   function nodeElement(node) {
@@ -1898,7 +2202,22 @@
     });
     one("#bidDocumentCanvas").addEventListener("scroll", function () { window.requestAnimationFrame(updateActivePageFromScroll); });
 
-    one("#saveBidDocument").addEventListener("click", function () { saveCurrentDocument(true); });
+    one("#saveBidDocument").addEventListener("click", function () { openSaveBidVersionModal(false); });
+    one("#saveCurrentBidVersion").addEventListener("click", function () { saveBidVersion({ direct: true }); });
+    one("#viewBidVersions").addEventListener("click", function () {
+      renderBidVersionHistory();
+      if (window.projectPrototype) window.projectPrototype.openLayer("bidVersionHistoryModal");
+    });
+    one("#confirmSaveBidVersion").addEventListener("click", saveBidVersion);
+    one("#bidVersionHistoryList").addEventListener("click", function (event) {
+      const preview = event.target.closest("[data-version-preview]");
+      if (preview) {
+        previewBidVersion(preview.getAttribute("data-version-preview"), preview.getAttribute("data-version-document"));
+        return;
+      }
+      const continueButton = event.target.closest("[data-version-continue]");
+      if (continueButton && !continueButton.disabled) continueFromBidVersion(continueButton.getAttribute("data-version-continue"));
+    });
     one("#insertImageButton").addEventListener("click", function () { one("#insertImageInput").click(); });
     one("#insertImageInput").addEventListener("change", function (event) {
       insertImageFile(event.target.files && event.target.files[0]);
@@ -1969,7 +2288,7 @@
     });
     one("#qualityIssueList").addEventListener("click", function (event) {
       const trigger = event.target.closest("[data-quality-locate]");
-      if (trigger) focusQualityIssue(trigger.getAttribute("data-quality-locate"));
+      if (trigger) focusQualityIssue(trigger.getAttribute("data-quality-locate"), true);
     });
     one("#qualityFocusTitle").addEventListener("click", function () {
       if (state.focusedIssueId) focusQualityIssue(state.focusedIssueId);
@@ -1978,37 +2297,100 @@
     one("#nextQualityIssue").addEventListener("click", function () { moveFocusedQualityIssue(1); });
     one("#completeQualityIssue").addEventListener("click", completeFocusedQualityIssue);
 
-    one("#submitQualityReview").addEventListener("click", function () {
+    function openSubmitQualityModal() {
       if (state.quality.status === "reviewing" || state.quality.status === "complete") return;
       const counts = qualityCounts();
       if (state.quality.status === "result" && counts.pending > 0) {
         openQualityDetails();
         return;
       }
-      if (state.dirty) saveCurrentDocument(false);
+      if (state.versionDirty || state.dirty || !baseBidVersion()) {
+        toast("请先将技术标和商务标人工保存为新版本，再提交智能检查", "warning", one("#saveBidDocument"));
+        openSaveBidVersionModal(true);
+        return;
+      }
+      const targetVersion = baseBidVersion();
+      state.quality.versionId = targetVersion.id;
+      state.quality.versionNumber = targetVersion.number;
+      saveQualityState();
       const nextBatch = state.quality.status === "result" ? state.quality.batch + 1 : 1;
-      one("#submitQualityModalTitle").textContent = state.quality.status === "result" ? "再次提交 AI 质量审核" : "提交 AI 质量审核";
-      one("#submitQualityModalDescription").textContent = "技术标和商务标将以当前保存版本建立第 " + nextBatch + " 次审核快照，并在本页面展示审核过程和结果。";
-      one("#qualitySubmitVersionText").textContent = "当前保存版本 V1.0." + (nextBatch + 2);
+      one("#submitQualityModalTitle").textContent = state.quality.status === "result" ? "再次提交 AI 智能检查" : "提交 AI 智能检查";
+      one("#submitQualityModalDescription").textContent = "技术标和商务标将以 " + targetVersion.number + " 建立第 " + nextBatch + " 次检查任务，并在本页面展示检查过程和结果。";
+      one("#qualitySubmitVersionText").textContent = "检查对象 " + targetVersion.number + " · 第 " + nextBatch + " 次检查";
       if (window.projectPrototype) window.projectPrototype.openLayer("submitQualityModal");
+    }
+    one("#submitQualityReview").addEventListener("click", openSubmitQualityModal);
+    one("#bidEditorQualityAction").addEventListener("click", function () {
+      if (state.quality.status === "result" && qualityCounts().pending === 0) {
+        openSubmitQualityModal();
+        return;
+      }
+      if (state.quality.status === "idle") {
+        openSubmitQualityModal();
+        return;
+      }
+      openQualityDetails();
+      one("#qualityReviewStatusCard").scrollIntoView({ behavior: "smooth", block: "start" });
     });
-    one("#enterDeliveryArchive").addEventListener("click", function (event) {
-      event.preventDefault();
-      if (window.projectPrototype) window.projectPrototype.openLayer("enterDeliveryModal");
+    one("#submitManualReview").addEventListener("click", function () {
+      if (String(project.stage || "").indexOf("质量审核") !== -1 || String(project.stage || "").indexOf("交付") !== -1) {
+        window.location.href = "project-quality.html?id=" + encodeURIComponent(project.id || "BID-202601-001");
+        return;
+      }
+      if (state.versionDirty || state.dirty) {
+        toast("当前工作稿有未进入检查版本的修改，请先保存为新版本并完成智能检查", "warning", one("#saveBidDocument"));
+        openSaveBidVersionModal(false);
+        return;
+      }
+      const version = qualityBidVersion();
+      if (!version || state.quality.status !== "complete") {
+        toast("请先完成当前版本的智能检查", "warning", one("#submitManualReview"));
+        return;
+      }
+      one("#manualReviewVersionText").textContent = "送审版本 " + version.number + " · 第 " + state.quality.batch + " 次检查通过";
+      if (window.projectPrototype) window.projectPrototype.openLayer("submitManualReviewModal");
     });
-    one("#confirmEnterDelivery").addEventListener("click", function () {
-      const deliveryProject = saveProjectPatch({
-        stage: "交付归档",
-        stageDetail: "质量审核通过，待交付确认",
-        progress: 96,
+    one("#confirmSubmitManualReview").addEventListener("click", function () {
+      const projectId = project.id || "BID-202601-001";
+      const submittedAt = Date.now();
+      const version = qualityBidVersion();
+      if (!version) {
+        toast("未找到可提交的标书版本", "warning", one("#confirmSubmitManualReview"));
+        return;
+      }
+      const manualReviewState = {
+        status: "pending",
+        versionId: version.id,
+        version: version.number,
+        submittedAt: submittedAt,
+        submittedBy: project.owner || "李明远",
+        returnReason: ""
+      };
+      safeStorageSet("biddingManualQualityReview:v1:" + projectId, JSON.stringify(manualReviewState));
+      if (versionApi) {
+        versionApi.update(project, version.id, {
+          review: Object.assign({}, version.review || {}, {
+            status: "pending",
+            submittedAt: submittedAt,
+            submittedBy: project.owner || "李明远",
+            returnReason: ""
+          })
+        });
+        refreshBidVersions();
+      }
+      const reviewProject = saveProjectPatch({
+        stage: "质量审核",
+        stageDetail: version.number + " 技术标、商务标送审版本待人工审核",
+        progress: 92,
         status: project.status === "archived" ? "archived" : "ongoing"
       });
       if (window.projectPrototype) window.projectPrototype.closeLayers();
-      window.location.href = "project-delivery.html?id=" + encodeURIComponent(deliveryProject.id || "BID-202601-001");
+      window.location.href = "project-quality.html?id=" + encodeURIComponent(reviewProject.id || "BID-202601-001");
     });
     one("#confirmSubmitQuality").addEventListener("click", function () {
       if (window.projectPrototype) window.projectPrototype.closeLayers();
-      toast("当前保存版本已提交质量审核");
+      const version = baseBidVersion();
+      toast((version ? version.number : "当前保存版本") + " 已提交智能检查");
       startQualityReview();
     });
 
@@ -2032,6 +2414,9 @@
   }
 
   state.quality = loadQualityState();
+  renderReviewReturnNotice();
+  renderBidVersionContext();
+  renderBidVersionHistory();
   syncAiPanelTop();
   renderOutline();
   renderDocument();

@@ -15,7 +15,7 @@
     <header class="module-heading">
       <div>
         <h1>投标项目</h1>
-        <p>统一管理招标解析、投标决策、响应策划、标书编制、质量审核与交付归档。</p>
+        <p>统一管理招标解析、投标决策、响应策划、标书编制、智能检查、人工质量审核与交付归档。</p>
       </div>
       <div class="heading-actions">
         <a class="primary-btn" href="project-create.html">
@@ -32,7 +32,7 @@
       </article>
       <article class="project-metric card">
         <div class="metric-symbol cyan"><svg viewBox="0 0 24 24"><path d="M4 19V9M10 19V5M16 19v-7M22 19V3"/></svg></div>
-        <div class="metric-copy"><span>进行中</span><strong id="ongoingProjectMetric">6</strong><small>其中 3 个处于标书编制与审核阶段</small></div>
+        <div class="metric-copy"><span>进行中</span><strong id="ongoingProjectMetric">6</strong><small>其中 3 个处于标书编制或质量审核阶段</small></div>
       </article>
       <article class="project-metric card">
         <div class="metric-symbol orange"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
@@ -62,7 +62,8 @@
             <option value="all">全部阶段</option>
             <option value="解析中">解析中</option>
             <option value="解析结果">解析结果</option>
-            <option value="标书编制与审核">标书编制与审核</option>
+            <option value="标书编制">标书编制</option>
+            <option value="质量审核">质量审核</option>
             <option value="交付归档">交付归档</option>
           </select>
           <select class="toolbar-select" id="ownerFilter" aria-label="按负责人筛选">

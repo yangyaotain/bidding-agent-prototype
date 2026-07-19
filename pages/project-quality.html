@@ -7,68 +7,106 @@
   <link rel="stylesheet" href="../assets/css/theme.css" />
   <link rel="stylesheet" href="../assets/css/layout.css" />
   <link rel="stylesheet" href="../assets/css/projects.css" />
+  <link rel="stylesheet" href="../assets/css/project-writing-editor.css" />
+  <link rel="stylesheet" href="../assets/css/project-quality-review.css" />
 </head>
-<body class="app-page project-module-page" data-page="projects" data-project-section="quality">
+<body class="app-page project-module-page manual-quality-page" data-page="projects" data-project-section="quality">
   <div id="appHeader"></div>
   <main class="app-main project-workspace-main">
     <div id="projectWorkspaceHeader"></div>
-    <section class="workspace-content">
+    <section class="workspace-content manual-quality-content">
       <header class="content-heading">
-        <div><h2>质量审核</h2><p>AI 已自动完成资格、评分覆盖、内容一致性和交付格式检查，并修复可自动处理的问题。</p></div>
+        <div>
+          <h2>质量审核</h2>
+          <p>人工查看已通过智能检查的技术标、商务标送审成果，审核通过后进入交付归档。</p>
+        </div>
         <div class="heading-actions">
-          <button class="primary-btn" id="enterDeliveryReview" type="button">
-            <span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14M14 7l5 5-5 5"/></svg></span><span>进入交付确认</span>
+          <button class="secondary-btn manual-return-btn" id="returnForRevision" type="button">
+            <span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M9 7 4 12l5 5M4 12h10a6 6 0 0 1 6 6"/></svg></span><span>退回修改</span>
+          </button>
+          <button class="primary-btn" id="approveManualReview" type="button">
+            <span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/><circle cx="12" cy="12" r="9"/></svg></span><span>审核通过</span>
           </button>
         </div>
       </header>
 
-      <section class="quality-ai-hero card">
-        <div class="quality-ai-score"><div class="quality-ai-ring"><strong>82</strong><span>质量评分</span></div><div><span class="result-eyebrow">AI 全面审核已完成</span><strong>响应文件可继续整改后交付</strong><p>9 类规则检查全部完成，共发现 7 项问题，AI 已自动修复 3 项一般问题；4 项材料、偏差和关键承诺需要在正式交付前人工确认。</p></div></div>
-        <div class="quality-ai-metrics"><div><span>检查规则</span><strong>248</strong><small>全部执行完成</small></div><div><span>自动修复</span><strong>3</strong><small>已重新复核通过</small></div><div><span>人工确认</span><strong class="orange-text">4</strong><small>集中在交付确认</small></div><div><span>阻断问题</span><strong class="green-text">0</strong><small>资格满足，无阻断问题</small></div></div>
+      <section class="manual-review-status card" aria-label="人工质量审核状态">
+        <div class="manual-review-status-main">
+          <span class="manual-review-status-icon"><svg viewBox="0 0 24 24"><path d="M12 3 4 7v5c0 5 3.4 8.3 8 9 4.6-.7 8-4 8-9V7l-8-4z"/><path d="M8 12h8M12 8v8"/></svg></span>
+          <div>
+            <span class="result-eyebrow">人工质量审核</span>
+            <strong id="manualReviewStatusTitle">送审版本待审核</strong>
+            <p id="manualReviewStatusDescription">技术标和商务标已通过 AI 智能检查，本页仅展示锁定的送审内容，不会修改标书正文。</p>
+          </div>
+        </div>
+        <div class="manual-review-facts">
+          <div><span>送审版本</span><strong id="manualReviewVersion">V1.0.4</strong><small id="manualReviewVersionNote">技术标与商务标同一人工保存版本</small></div>
+          <div><span>提交人</span><strong id="manualReviewSubmitter">李明远</strong><small id="manualReviewSubmittedAt">今天 11:08 提交</small></div>
+          <div><span>智能检查</span><strong class="green-text">248 / 248</strong><small>全部规则已通过</small></div>
+          <div><span>审核状态</span><strong class="orange-text" id="manualReviewStatusValue">待人工审核</strong><small>审核通过后开放交付归档</small></div>
+        </div>
       </section>
 
-      <div class="quality-ai-grid">
-        <article class="content-card card">
-          <header class="panel-heading"><div><h3>AI 审核结果</h3><p>从招标要求、标书内容到交付格式进行全链路校验。</p></div><span class="status-tag green">9 / 9 完成</span></header>
-          <div class="quality-check-list">
-            <div class="quality-check-row"><span class="quality-check-icon green"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg></span><div><strong>资格与否决项</strong><span>唯一资格条件已由营业执照满足，无废标级材料缺口。</span></div><em>100</em></div>
-            <div class="quality-check-row"><span class="quality-check-icon green"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg></span><div><strong>评分项覆盖</strong><span>7 项评分因素均已建立响应，人员和企业认证仍存在得分缺口。</span></div><em>64</em></div>
-            <div class="quality-check-row"><span class="quality-check-icon green"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg></span><div><strong>技术与商务响应</strong><span>93 项要求已关联，P2-P4 服务响应存在 1 项关键偏差。</span></div><em>78</em></div>
-            <div class="quality-check-row"><span class="quality-check-icon green"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg></span><div><strong>企业事实与知识引用</strong><span>21 份知识材料均已核验，人员与强承诺未发现无来源补写。</span></div><em>84</em></div>
-            <div class="quality-check-row"><span class="quality-check-icon green"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg></span><div><strong>前后一致性</strong><span>报价和服务期限一致，部分性能、资源与赔偿承诺仍待核实。</span></div><em>76</em></div>
-            <div class="quality-check-row"><span class="quality-check-icon green"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg></span><div><strong>目录、页码与文件格式</strong><span>技术标 73 页、商务标 23 页，目录与页码结构检查通过。</span></div><em>95</em></div>
+      <section class="manual-review-shell card">
+        <div class="manual-review-document-tabs" role="tablist" aria-label="人工审核文件">
+          <button class="manual-review-document-tab active" type="button" role="tab" aria-selected="true" data-review-document="technical">
+            <span class="bid-doc-type blue">T</span>
+            <span><strong>技术标</strong><small>技术标.docx · 73 页</small></span>
+            <i class="status-tag green">智能检查通过</i>
+          </button>
+          <button class="manual-review-document-tab" type="button" role="tab" aria-selected="false" data-review-document="business">
+            <span class="bid-doc-type cyan">B</span>
+            <span><strong>商务标</strong><small>商务标.docx · 23 页</small></span>
+            <i class="status-tag green">智能检查通过</i>
+          </button>
+          <div class="manual-review-lock-note">
+            <svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+            <span><strong>只读送审版本</strong><small>如需调整，请退回标书编制</small></span>
           </div>
-        </article>
-
-        <div class="content-grid">
-          <article class="content-card card">
-            <header class="panel-heading"><div><h3>需要最终确认</h3><p>AI 不替用户决定企业事实、报价和关键承诺。</p></div><span class="status-tag orange">4 项</span></header>
-            <div class="final-confirm-list">
-              <div><span class="final-confirm-index">1</span><div><strong>P1-P4 服务响应矩阵</strong><p>确认已按 15 分钟、30 分钟、1 小时、2 小时完成修正。</p><small>技术响应 · JS-031</small></div><span class="status-tag orange">待确认</span></div>
-              <div><span class="final-confirm-index">2</span><div><strong>项目人员证明材料</strong><p>仅在证书及近三个月社保真实可核验时纳入正式响应。</p><small>技术评分 · PF-004</small></div><span class="status-tag orange">待确认</span></div>
-              <div><span class="final-confirm-index">3</span><div><strong>量化指标与赔偿承诺</strong><p>核实服务器配置、场景库、性能目标、到场时限和赔偿比例，无法举证的内容应删除。</p><small>技术标 · 强承诺检查</small></div><span class="status-tag orange">待确认</span></div>
-              <div><span class="final-confirm-index">4</span><div><strong>最终报价与税率</strong><p>确认含税总价 <b class="amount-text">597,600 元</b>、四项分项报价、6% 税率和 90 日有效期一致。</p><small>商务标 · BJ-001</small></div><span class="status-tag orange">待确认</span></div>
-            </div>
-          </article>
-
-          <article class="content-card card">
-            <header class="panel-heading"><div><h3>AI 自动修复记录</h3><p>无需人工逐项处理，修复后已自动重新检查。</p></div><span class="status-tag green">3 项已完成</span></header>
-            <div class="ai-fix-list">
-              <div><span class="quality-check-icon green"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg></span><div><strong>漏洞清单去重归并</strong><span>32 条记录归并为 17 个唯一漏洞并保留原始映射</span></div><small>10:48</small></div>
-              <div><span class="quality-check-icon green"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg></span><div><strong>统一付款与服务期限口径</strong><span>按季度验收支付 25%，服务期限统一为 365 日历日</span></div><small>10:49</small></div>
-              <div><span class="quality-check-icon green"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg></span><div><strong>核验企业知识材料</strong><span>企业、客户、人员与证照信息均已核验</span></div><small>10:51</small></div>
-            </div>
-          </article>
         </div>
-      </div>
 
-      <div class="info-alert quality-next-alert"><svg viewBox="0 0 24 24"><path d="M12 3 9.8 8.8 4 11l5.8 2.2L12 19l2.2-5.8L20 11l-5.8-2.2L12 3z"/></svg><div><strong>下一步完成一次集中人工确认</strong><span>进入交付归档后，集中确认以上 4 项关键信息，即可生成正式 Word、PDF 和投标文件包。</span></div></div>
+        <div class="manual-review-layout">
+          <aside class="manual-review-outline" aria-label="送审文件目录">
+            <div class="manual-review-outline-list" id="manualReviewOutline"></div>
+          </aside>
+
+          <section class="manual-review-document">
+            <div class="manual-review-canvas" id="manualReviewCanvas">
+              <div class="manual-review-pages" id="manualReviewPages" aria-label="技术标人工审核预览"></div>
+            </div>
+            <footer class="manual-review-statusbar">
+              <span id="manualReviewPageStatus">第 1 / 73 页</span>
+              <span>当前内容来自标书编制提交的锁定版本</span>
+            </footer>
+          </section>
+        </div>
+      </section>
     </section>
   </main>
+
+  <section class="prototype-modal" id="returnRevisionModal" aria-hidden="true" aria-label="退回标书修改">
+    <header class="layer-head"><div><h3>退回标书修改</h3><p>退回后将返回标书编制，修改完成后需要重新执行智能检查并再次提交人工审核。</p></div><button class="layer-close" type="button" data-close-layer aria-label="关闭"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button></header>
+    <div class="layer-body">
+      <label class="manual-review-reason-field"><span>退回原因</span><textarea id="returnRevisionReason" rows="4" placeholder="请输入需要修改的内容，例如：请复核商务标报价表与最终审批金额是否一致。"></textarea></label>
+      <div class="info-alert warning"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg><div><strong>送审版本将结束本轮审核</strong><span>退回原因会保留给编制人员，本轮人工审核不会进入交付归档。</span></div></div>
+    </div>
+    <footer class="layer-footer"><button class="ghost-btn" type="button" data-close-layer><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></span><span>取消</span></button><button class="primary-btn danger" id="confirmReturnRevision" type="button"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M9 7 4 12l5 5M4 12h10a6 6 0 0 1 6 6"/></svg></span><span>确认退回修改</span></button></footer>
+  </section>
+
+  <section class="prototype-modal" id="approveManualReviewModal" aria-hidden="true" aria-label="确认人工质量审核通过">
+    <header class="layer-head"><div><h3>确认质量审核通过</h3><p>确认技术标和商务标送审成果无问题后，当前版本将进入交付归档。</p></div><button class="layer-close" type="button" data-close-layer aria-label="关闭"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button></header>
+    <div class="layer-body">
+      <div class="manual-review-approval-files"><span>本次审核文件</span><strong>技术标.docx · 73 页</strong><strong>商务标.docx · 23 页</strong><small id="manualReviewApproveVersion">送审版本 V1.0.4</small></div>
+      <div class="info-alert"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12 2.5 2.5L16 9"/></svg><div><strong>审核通过后进入交付归档</strong><span>交付归档将使用当前人工审核通过版本，继续完成正式文件下载与归档确认。</span></div></div>
+    </div>
+    <footer class="layer-footer"><button class="ghost-btn" type="button" data-close-layer><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></span><span>取消</span></button><button class="primary-btn" id="confirmApproveManualReview" type="button"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/><circle cx="12" cy="12" r="9"/></svg></span><span>确认审核通过</span></button></footer>
+  </section>
 
   <script src="../assets/js/common.js"></script>
   <script src="../assets/js/project-data.js"></script>
   <script src="../assets/js/project-common.js"></script>
-  <script src="../assets/js/project-detail.js"></script>
+  <script src="../assets/js/bid-versioning.js"></script>
+  <script src="../assets/js/bid-document-flow-data.js"></script>
+  <script src="../assets/js/project-quality-review.js"></script>
 </body>
 </html>

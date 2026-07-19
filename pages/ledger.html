@@ -16,7 +16,7 @@
     <header class="module-heading">
       <div>
         <h1>投标台账</h1>
-        <p>集中维护已投项目结果、交付归档、评审得分和相关佐证材料。</p>
+        <p>集中维护已投项目结果、交付归档、评审得分和招标相关费用。</p>
       </div>
       <div class="heading-actions">
         <button class="secondary-btn" id="exportLedgerBtn" type="button">
@@ -32,17 +32,30 @@
         <div class="metric-copy"><span>年度已投项目</span><strong id="ledgerYearTotal">0</strong><small>以正式交付归档时间统计</small></div>
       </article>
       <article class="project-metric card">
-        <div class="metric-symbol orange"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
-        <div class="metric-copy"><span>结果待维护</span><strong id="ledgerPendingTotal">0</strong><small>需跟进公告或评审反馈</small></div>
-      </article>
-      <article class="project-metric card">
         <div class="metric-symbol green"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/><circle cx="12" cy="12" r="9"/></svg></div>
-        <div class="metric-copy"><span>中标项目</span><strong id="ledgerWonTotal">0</strong><small id="ledgerWonAmount">年度中标金额 <b class="amount-text">0 万元</b></small></div>
+        <div class="metric-copy"><span>中标项目</span><strong id="ledgerWonTotal">0</strong><small>以正式投标结果统计</small></div>
+      </article>
+      <article class="project-metric card ledger-amount-metric">
+        <div class="metric-symbol amount"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M7 10h.01M17 14h.01"/></svg></div>
+        <div class="metric-copy"><span>年度中标金额</span><strong class="amount-text" id="ledgerWonAmount">0.00 万元</strong><small>以正式中标金额统计</small></div>
       </article>
       <article class="project-metric card">
         <div class="metric-symbol cyan"><svg viewBox="0 0 24 24"><path d="M4 19V9M10 19V5M16 19v-7M22 19V3"/></svg></div>
         <div class="metric-copy"><span>年度中标率</span><strong id="ledgerWinRate">0%</strong><small>不含结果待公布项目</small></div>
       </article>
+    </section>
+
+    <section class="ledger-fee-overview card" aria-label="年度招标费用概览">
+      <div class="ledger-fee-overview-title">
+        <span class="ledger-fee-overview-icon"><svg viewBox="0 0 24 24"><path d="M4 7h16v12H4zM7 7V5h10v2M4 11h16"/><path d="M15 15h2"/></svg></span>
+        <div><h2>年度招标费用</h2><p>保证金单独统计，不计入招标费用支出。</p></div>
+      </div>
+      <div class="ledger-fee-metric-grid">
+        <div><span>已支付费用</span><strong class="amount-text" id="ledgerFeePaidAmount">0.00 元</strong><small>标书费、服务费及其他费用</small></div>
+        <div><span>待支付金额</span><strong class="amount-text" id="ledgerFeePendingAmount">0.00 元</strong><small>已确认但尚未完成支付</small></div>
+        <div><span>在途保证金</span><strong class="amount-text" id="ledgerDepositInTransit">0.00 元</strong><small>已缴纳但尚未退回</small></div>
+        <div><span>待处理事项</span><strong id="ledgerFeeActionTotal">0</strong><small id="ledgerFeeActionHint">当前无费用异常</small></div>
+      </div>
     </section>
 
     <section class="projects-panel ledger-panel card">
@@ -74,6 +87,14 @@
             <option value="陈思远">陈思远</option>
             <option value="赵嘉怡">赵嘉怡</option>
           </select>
+          <select class="toolbar-select" id="ledgerFeeFilter" aria-label="按费用状态筛选">
+            <option value="all">全部费用状态</option>
+            <option value="maintain">费用待维护</option>
+            <option value="processing">费用待处理</option>
+            <option value="settled">费用已结清</option>
+            <option value="exception">费用有异常</option>
+            <option value="none">无相关费用</option>
+          </select>
           <button class="ghost-btn compact-btn" id="resetLedgerFilters" type="button">
             <span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M4 4v6h6M20 20v-6h-6"/><path d="M19 9a8 8 0 0 0-13.5-3L4 10M5 15a8 8 0 0 0 13.5 3L20 14"/></svg></span>
             <span>重置</span>
@@ -84,12 +105,12 @@
       <div class="table-wrap" id="ledgerTableWrap">
         <table class="data-table ledger-table" aria-label="投标台账列表">
           <colgroup>
-            <col style="width:20%" /><col style="width:13%" /><col style="width:10%" />
-            <col style="width:10%" /><col style="width:10%" /><col style="width:10%" />
-            <col style="width:9%" /><col style="width:18%" />
+            <col style="width:18%" /><col style="width:11%" /><col style="width:10%" />
+            <col style="width:10%" /><col style="width:13%" /><col style="width:13%" />
+            <col style="width:8%" /><col style="width:17%" />
           </colgroup>
           <thead>
-            <tr><th>项目名称</th><th>采购人</th><th>投标时间</th><th class="amount-column-heading">投标报价</th><th>投标结果</th><th>得分 / 排名</th><th>负责人</th><th>操作</th></tr>
+            <tr><th>项目名称</th><th>采购人</th><th>投标时间</th><th class="amount-column-heading">投标报价</th><th>结果 / 得分</th><th>费用状态</th><th>负责人</th><th>操作</th></tr>
           </thead>
           <tbody id="ledgerTableBody"></tbody>
         </table>
@@ -177,6 +198,141 @@
     <footer class="layer-footer">
       <button class="ghost-btn" type="button" data-close-ledger-layer><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></span><span>取消</span></button>
       <button class="primary-btn" id="saveLedgerResult" type="button"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg></span><span>保存结果</span></button>
+    </footer>
+  </section>
+
+  <section class="prototype-modal wide ledger-fee-modal" id="ledgerFeeModal" aria-hidden="true" aria-labelledby="ledgerFeeModalTitle">
+    <header class="layer-head">
+      <div><h3 id="ledgerFeeModalTitle">维护招标费用</h3><p>人工维护费用金额、支付与保证金退回状态，项目费用状态将自动汇总。</p></div>
+      <button class="layer-close" type="button" data-close-ledger-layer title="关闭" aria-label="关闭弹窗"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+    </header>
+    <div class="layer-body ledger-fee-modal-body">
+      <div class="ledger-modal-project-summary">
+        <span class="ledger-modal-project-icon fee-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 7h16v12H4zM7 7V5h10v2M4 11h16"/><path d="M15 15h2"/></svg></span>
+        <div class="ledger-modal-project-copy"><strong id="ledgerFeeProjectName">项目名称</strong><span id="ledgerFeeProjectMeta">项目编号 · 采购人</span></div>
+        <span class="status-tag orange" id="ledgerCurrentFeeTag">费用待维护</span>
+      </div>
+
+      <div class="ledger-result-note ledger-fee-note">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
+        <div><strong>费用事实由人工确认</strong><span>系统仅根据已维护的状态和日期进行汇总提醒，不自动修改应付金额、实付金额或保证金退款结果。</span></div>
+      </div>
+
+      <div class="ledger-fee-workspace">
+        <aside class="ledger-fee-sidebar" aria-label="费用项目">
+          <div class="ledger-fee-sidebar-head">
+            <div><strong>费用项目</strong><span>选择费用后维护明细</span></div>
+          </div>
+          <div class="ledger-fee-tab-list" id="ledgerFeeTabList"></div>
+          <button class="ledger-fee-add-btn" id="addLedgerOtherFee" type="button"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span><span>新增其他费用</span></button>
+        </aside>
+
+        <section class="ledger-fee-editor">
+          <header class="ledger-fee-editor-head">
+            <div><span id="ledgerFeeTypeEyebrow">费用项目</span><h4 id="ledgerFeeEditorTitle">标书费用</h4></div>
+            <div class="ledger-fee-editor-actions">
+              <span class="status-tag orange" id="ledgerFeeEditorStatus">待确认</span>
+              <button class="ledger-fee-delete hidden" id="deleteLedgerOtherFee" type="button"><svg viewBox="0 0 24 24"><path d="M5 7h14M9 7V4h6v3M8 10v8M12 10v8M16 10v8M6 7l1 13h10l1-13"/></svg><span>删除费用</span></button>
+            </div>
+          </header>
+
+          <div class="ledger-fee-form">
+            <section class="ledger-fee-form-section">
+              <header class="ledger-fee-form-section-head"><div><h5>基本信息</h5><p>确认费用是否涉及、当前处理状态和经办人员。</p></div><span>01</span></header>
+              <div class="form-grid ledger-fee-basic-grid">
+                <div class="form-field">
+                  <label for="ledgerFeeName"><em>*</em>费用名称</label>
+                  <input class="form-control" id="ledgerFeeName" type="text" />
+                </div>
+                <div class="form-field">
+                  <label for="ledgerFeeInvolved"><em>*</em>是否涉及</label>
+                  <select class="form-select" id="ledgerFeeInvolved"><option value="true">涉及</option><option value="false">不涉及</option></select>
+                </div>
+                <div class="form-field">
+                  <label for="ledgerFeeStatus"><em>*</em>当前状态</label>
+                  <select class="form-select" id="ledgerFeeStatus"></select>
+                </div>
+                <div class="form-field">
+                  <label for="ledgerFeeOwner">经办人</label>
+                  <select class="form-select" id="ledgerFeeOwner">
+                    <option value="李明远">李明远</option><option value="周晓雯">周晓雯</option><option value="王子谦">王子谦</option><option value="陈思远">陈思远</option><option value="赵嘉怡">赵嘉怡</option>
+                  </select>
+                </div>
+                <div class="form-field full">
+                  <label for="ledgerFeeBasis">费用说明 / 计费依据</label>
+                  <input class="form-control" id="ledgerFeeBasis" type="text" placeholder="例如：招标文件售价，或按中标金额及代理服务收费标准计取" />
+                </div>
+              </div>
+            </section>
+
+            <section class="ledger-fee-form-section">
+              <header class="ledger-fee-form-section-head"><div><h5>支付信息</h5><p>维护应付、实付、收款单位及关键支付日期。</p></div><span>02</span></header>
+              <div class="form-grid ledger-fee-payment-grid">
+                <div class="form-field">
+                  <label for="ledgerFeeExpectedAmount">应付金额（元）</label>
+                  <input class="form-control" id="ledgerFeeExpectedAmount" type="number" min="0" step="0.01" placeholder="0.00" />
+                </div>
+                <div class="form-field">
+                  <label for="ledgerFeeActualAmount">实际支付金额（元）</label>
+                  <input class="form-control" id="ledgerFeeActualAmount" type="number" min="0" step="0.01" placeholder="0.00" />
+                </div>
+                <div class="form-field">
+                  <label for="ledgerFeePayee">收款单位</label>
+                  <input class="form-control" id="ledgerFeePayee" type="text" placeholder="填写收款单位" />
+                </div>
+                <div class="form-field">
+                  <label for="ledgerFeeDueDate">付款截止日期</label>
+                  <input class="form-control" id="ledgerFeeDueDate" type="date" />
+                </div>
+                <div class="form-field">
+                  <label for="ledgerFeePaidDate">实际支付日期</label>
+                  <input class="form-control" id="ledgerFeePaidDate" type="date" />
+                </div>
+                <div class="form-field ledger-guarantee-field hidden">
+                  <label for="ledgerGuaranteeMethod">保证金形式</label>
+                  <select class="form-select" id="ledgerGuaranteeMethod"><option value="">请选择</option><option value="银行转账">银行转账</option><option value="现金">现金</option><option value="电子保函">电子保函</option><option value="银行保函">银行保函</option><option value="保险保函">保险保函</option></select>
+                </div>
+                <div class="ledger-guarantee-caption ledger-guarantee-field hidden"><strong>保证金退回信息</strong><span>记录应退金额及预计、实际退回日期。</span></div>
+                <div class="form-field ledger-guarantee-field hidden">
+                  <label for="ledgerFeeRefundAmount">应退金额（元）</label>
+                  <input class="form-control" id="ledgerFeeRefundAmount" type="number" min="0" step="0.01" placeholder="0.00" />
+                </div>
+                <div class="form-field ledger-guarantee-field hidden">
+                  <label for="ledgerFeeRefundDueDate">预计退回日期</label>
+                  <input class="form-control" id="ledgerFeeRefundDueDate" type="date" />
+                </div>
+                <div class="form-field ledger-guarantee-field hidden">
+                  <label for="ledgerFeeRefundDate">实际退回日期</label>
+                  <input class="form-control" id="ledgerFeeRefundDate" type="date" />
+                </div>
+              </div>
+            </section>
+
+            <section class="ledger-fee-form-section">
+              <header class="ledger-fee-form-section-head"><div><h5>凭证与备注</h5><p>补充付款、保函或退款凭证，记录特殊约定和跟进说明。</p></div><span>03</span></header>
+              <div class="form-grid ledger-fee-support-grid">
+                <div class="form-field full">
+                  <label for="ledgerFeeFiles">支付 / 退款凭证</label>
+                  <div class="ledger-upload-field ledger-fee-upload-field">
+                    <input id="ledgerFeeFiles" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg" multiple />
+                    <button class="secondary-btn compact-btn ledger-fee-upload-btn" id="selectLedgerFeeFiles" type="button"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M5 20h14"/></svg></span><span>选择附件</span></button>
+                    <span>支持付款回单、电子保函、退款凭证等材料</span>
+                  </div>
+                  <div class="ledger-result-file-list" id="ledgerFeeFileList"></div>
+                </div>
+                <div class="form-field full">
+                  <label for="ledgerFeeRemark">备注</label>
+                  <textarea class="form-textarea" id="ledgerFeeRemark" placeholder="填写费用特殊约定、退款跟进或异常说明"></textarea>
+                </div>
+              </div>
+            </section>
+          </div>
+        </section>
+      </div>
+    </div>
+    <footer class="layer-footer ledger-fee-footer">
+      <button class="secondary-btn" type="button" data-close-ledger-layer><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></span><span>取消</span></button>
+      <button class="primary-btn" id="saveLedgerFees" type="button"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg></span><span>保存费用</span></button>
     </footer>
   </section>
 

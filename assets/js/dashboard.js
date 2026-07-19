@@ -44,7 +44,8 @@
     const stage = String(project.stage || "");
     if (project.status === "parsing" || stage.indexOf("解析中") !== -1 || stage.indexOf("招标文件") !== -1) return "files";
     if (stage.indexOf("交付") !== -1) return "delivery";
-    if (stage.indexOf("编制") !== -1 || stage.indexOf("质量") !== -1 || stage.indexOf("审核") !== -1) return "writing";
+    if (stage.indexOf("质量审核") !== -1 || stage.indexOf("人工审核") !== -1) return "quality";
+    if (stage.indexOf("编制") !== -1) return "writing";
     return "analysis";
   }
 
@@ -52,21 +53,21 @@
     const key = stageKey(project);
     if (key === "files") return { label: "招标文件", tone: "blue", action: "查看解析进度" };
     if (key === "delivery") return { label: "交付归档", tone: "green", action: "确认最终交付" };
-    if (key === "writing") return { label: "标书编制与审核", tone: "blue", action: String(project.stage || "").indexOf("质量") !== -1 ? "处理质检问题" : "继续标书编制" };
+    if (key === "quality") return { label: "质量审核", tone: "orange", action: "审核送审标书" };
+    if (key === "writing") return { label: "标书编制", tone: "blue", action: "继续标书编制" };
     return { label: "解析结果", tone: "orange", action: "确认解析结论" };
   }
 
   function projectEntry(project) {
     const key = stageKey(project);
-    const file = key === "files" ? "project-files.html" : key === "analysis" ? "project-analysis.html" : key === "writing" ? "project-writing.html" : "project-delivery.html";
-    const hash = key === "writing" && String(project.stage || "").indexOf("质量") !== -1 ? "#qualityReviewStatusCard" : "";
-    return file + "?id=" + encodeURIComponent(project.id) + hash;
+    const file = key === "files" ? "project-files.html" : key === "analysis" ? "project-analysis.html" : key === "writing" ? "project-writing.html" : key === "quality" ? "project-quality.html" : "project-delivery.html";
+    return file + "?id=" + encodeURIComponent(project.id);
   }
 
   function priorityRank(project) {
     if (project.status === "deadline") return 0;
     if (stageKey(project) === "delivery") return 1;
-    if (String(project.stage || "").indexOf("质量") !== -1) return 2;
+    if (stageKey(project) === "quality") return 2;
     if (stageKey(project) === "analysis") return 3;
     return 4;
   }
@@ -134,11 +135,12 @@
   }
 
   function renderStageSummary() {
-    const counts = { files: 0, analysis: 0, writing: 0, delivery: 0 };
+    const counts = { files: 0, analysis: 0, writing: 0, quality: 0, delivery: 0 };
     activeProjects().forEach(function (project) { counts[stageKey(project)] += 1; });
     setText("stageFilesCount", counts.files);
     setText("stageAnalysisCount", counts.analysis);
     setText("stageWritingCount", counts.writing);
+    setText("stageQualityCount", counts.quality);
     setText("stageDeliveryCount", counts.delivery);
   }
 

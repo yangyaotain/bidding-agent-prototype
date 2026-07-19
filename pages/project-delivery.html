@@ -17,13 +17,19 @@
       <header class="content-heading">
         <div><h2>交付归档</h2><p>正式文件按 Word、PDF 两套统一组织，可分别整套下载；确认后归档投标台账与知识沉淀结果。</p></div>
         <div class="heading-actions">
+          <button class="secondary-btn delivery-review-passed-btn" type="button" disabled>
+            <span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/><circle cx="12" cy="12" r="9"/></svg></span><span>人工审核通过</span>
+          </button>
+          <button class="secondary-btn delivery-return-btn" id="returnDeliveryRevision" type="button">
+            <span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M9 7 4 12l5 5M4 12h10a6 6 0 0 1 6 6"/></svg></span><span>退回修改</span>
+          </button>
           <button class="primary-btn" id="confirmDeliveryArchive" type="button"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M4 5h16v14H4zM8 9h8M8 13h5"/><path d="m14 16 2 2 4-5"/></svg></span><span>确认交付归档</span></button>
         </div>
       </header>
 
       <section class="delivery-summary-cards">
-        <article class="card"><span class="summary-icon green"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg></span><div><span>质量审核</span><strong>82 分</strong><small>248 项规则检查完成</small></div></article>
-        <article class="card"><span class="summary-icon"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6zM14 3v5h5"/></svg></span><div><span>正式文档</span><strong>4 份</strong><small>技术标、商务标各含 DOCX 与 PDF</small></div></article>
+        <article class="card"><span class="summary-icon green"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg></span><div><span>人工质量审核</span><strong>已通过</strong><small>技术标、商务标送审版本已确认</small></div></article>
+        <article class="card"><span class="summary-icon"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6zM14 3v5h5"/><path d="M9 13h6M9 17h4"/></svg></span><div><span>正式交付版本</span><strong id="deliveryVersionNumber">V1.0.4</strong><small id="deliveryVersionMeta">人工质量审核已通过</small></div></article>
         <article class="card"><span class="summary-icon cyan"><svg viewBox="0 0 24 24"><path d="M4 5h16v14H4zM8 9h8M8 13h5"/></svg></span><div><span>交付套件</span><strong>2 套</strong><small>支持 Word、PDF 整套下载</small></div></article>
       </section>
 
@@ -34,27 +40,27 @@
 
         <div class="formal-export-note">
           <svg viewBox="0 0 24 24"><path d="M4 5h6l2 2h8v12H4z"/></svg>
-          <div><span>交付文件目录</span><strong>某港口集团2026年度集装箱业务平台运维项目 / Word 文件套、PDF 文件套</strong></div>
+          <div><span>交付文件目录</span><strong id="deliveryPackageDirectory">某港口集团2026年度集装箱业务平台运维项目 / V1.0.4 / Word 文件套、PDF 文件套</strong></div>
           <small>2 套 · 4 份正式文件</small>
         </div>
 
         <div class="delivery-package-grid" id="formalFileTree">
           <section class="delivery-package-card word-package-card">
-            <header><span class="file-type-icon type-word delivery-package-format-icon" role="img" aria-label="DOCX 文件套" title="DOCX 文件套"><span class="file-format-mark">DOCX</span></span><div><strong>Word 文件套</strong><small>标书编制最终保存版本 · 保留正文、表格及图片</small></div></header>
+            <header><span class="file-type-icon type-word delivery-package-format-icon" role="img" aria-label="DOCX 文件套" title="DOCX 文件套"><span class="file-format-mark">DOCX</span></span><div><strong>Word 文件套</strong><small id="wordPackageVersionMeta">正式交付版本 V1.0.4 · 保留正文、表格及图片</small></div></header>
             <div class="delivery-package-files">
-              <div><span class="file-type-icon type-word package-file-type" role="img" aria-label="DOCX 文件" title="DOCX 文件"><span class="file-format-mark">DOCX</span></span><div><strong>技术标.docx</strong><small>标书编制最终保存内容 · 共 73 页</small></div><button class="text-btn compact-btn delivery-file-preview" type="button" data-delivery-preview="bid-technical" data-preview-name="技术标.docx" data-preview-size="2.57 MB"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z"/><circle cx="12" cy="12" r="2.5"/></svg></span><span>预览</span></button></div>
-              <div><span class="file-type-icon type-word package-file-type" role="img" aria-label="DOCX 文件" title="DOCX 文件"><span class="file-format-mark">DOCX</span></span><div><strong>商务标.docx</strong><small>标书编制最终保存内容 · 共 23 页</small></div><button class="text-btn compact-btn delivery-file-preview" type="button" data-delivery-preview="bid-business" data-preview-name="商务标.docx" data-preview-size="6.40 MB"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z"/><circle cx="12" cy="12" r="2.5"/></svg></span><span>预览</span></button></div>
+              <div><span class="file-type-icon type-word package-file-type" role="img" aria-label="DOCX 文件" title="DOCX 文件"><span class="file-format-mark">DOCX</span></span><div><strong id="deliveryTechnicalDocxName">技术标_V1.0.4.docx</strong><small>人工审核通过内容 · 共 73 页</small></div><button class="text-btn compact-btn delivery-file-preview" type="button" data-delivery-preview="bid-technical" data-preview-name="技术标_V1.0.4.docx" data-preview-size="2.57 MB"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z"/><circle cx="12" cy="12" r="2.5"/></svg></span><span>预览</span></button></div>
+              <div><span class="file-type-icon type-word package-file-type" role="img" aria-label="DOCX 文件" title="DOCX 文件"><span class="file-format-mark">DOCX</span></span><div><strong id="deliveryBusinessDocxName">商务标_V1.0.4.docx</strong><small>人工审核通过内容 · 共 23 页</small></div><button class="text-btn compact-btn delivery-file-preview" type="button" data-delivery-preview="bid-business" data-preview-name="商务标_V1.0.4.docx" data-preview-size="6.40 MB"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z"/><circle cx="12" cy="12" r="2.5"/></svg></span><span>预览</span></button></div>
             </div>
-            <footer><span>2 份文件 · 8.96 MB</span><a class="secondary-btn" href="../assets/bid-documents/packages/某港口集团2026年度集装箱业务平台运维项目_Word文件套.zip" download="某港口集团2026年度集装箱业务平台运维项目_Word文件套.zip" aria-label="下载 Word 文件套"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M12 4v12M7 11l5 5 5-5M4 20h16"/></svg></span><span>下载 Word 文件套</span></a></footer>
+            <footer><span>2 份文件 · 8.96 MB</span><a class="secondary-btn" id="downloadWordPackage" href="../assets/bid-documents/packages/某港口集团2026年度集装箱业务平台运维项目_Word文件套.zip" download="某港口集团2026年度集装箱业务平台运维项目_V1.0.4_Word文件套.zip" aria-label="下载 Word 文件套"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M12 4v12M7 11l5 5 5-5M4 20h16"/></svg></span><span>下载 Word 文件套</span></a></footer>
           </section>
 
           <section class="delivery-package-card pdf-package-card">
-            <header><span class="file-type-icon type-pdf delivery-package-format-icon" role="img" aria-label="PDF 文件套" title="PDF 文件套"><span class="file-format-mark">PDF</span></span><div><strong>PDF 文件套</strong><small>原始正式版本 · 保持上传文件页序与内容</small></div></header>
+            <header><span class="file-type-icon type-pdf delivery-package-format-icon" role="img" aria-label="PDF 文件套" title="PDF 文件套"><span class="file-format-mark">PDF</span></span><div><strong>PDF 文件套</strong><small id="pdfPackageVersionMeta">正式交付版本 V1.0.4 · 保持文件页序与内容</small></div></header>
             <div class="delivery-package-files">
-              <div><span class="file-type-icon type-pdf package-file-type" role="img" aria-label="PDF 文件" title="PDF 文件"><span class="file-format-mark">PDF</span></span><div><strong>技术标.pdf</strong><small>原始 PDF · 共 73 页</small></div><button class="text-btn compact-btn delivery-file-preview" type="button" data-delivery-preview="bid-technical" data-preview-name="技术标.pdf" data-preview-size="1.73 MB"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z"/><circle cx="12" cy="12" r="2.5"/></svg></span><span>预览</span></button></div>
-              <div><span class="file-type-icon type-pdf package-file-type" role="img" aria-label="PDF 文件" title="PDF 文件"><span class="file-format-mark">PDF</span></span><div><strong>商务标.pdf</strong><small>原始 PDF · 共 23 页</small></div><button class="text-btn compact-btn delivery-file-preview" type="button" data-delivery-preview="bid-business" data-preview-name="商务标.pdf" data-preview-size="2.44 MB"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z"/><circle cx="12" cy="12" r="2.5"/></svg></span><span>预览</span></button></div>
+              <div><span class="file-type-icon type-pdf package-file-type" role="img" aria-label="PDF 文件" title="PDF 文件"><span class="file-format-mark">PDF</span></span><div><strong id="deliveryTechnicalPdfName">技术标_V1.0.4.pdf</strong><small>正式导出 PDF · 共 73 页</small></div><button class="text-btn compact-btn delivery-file-preview" type="button" data-delivery-preview="bid-technical" data-preview-name="技术标_V1.0.4.pdf" data-preview-size="1.73 MB"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z"/><circle cx="12" cy="12" r="2.5"/></svg></span><span>预览</span></button></div>
+              <div><span class="file-type-icon type-pdf package-file-type" role="img" aria-label="PDF 文件" title="PDF 文件"><span class="file-format-mark">PDF</span></span><div><strong id="deliveryBusinessPdfName">商务标_V1.0.4.pdf</strong><small>正式导出 PDF · 共 23 页</small></div><button class="text-btn compact-btn delivery-file-preview" type="button" data-delivery-preview="bid-business" data-preview-name="商务标_V1.0.4.pdf" data-preview-size="2.44 MB"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z"/><circle cx="12" cy="12" r="2.5"/></svg></span><span>预览</span></button></div>
             </div>
-            <footer><span>2 份文件 · 3.54 MB</span><a class="secondary-btn" href="../assets/bid-documents/packages/某港口集团2026年度集装箱业务平台运维项目_PDF文件套.zip" download="某港口集团2026年度集装箱业务平台运维项目_PDF文件套.zip" aria-label="下载 PDF 文件套"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M12 4v12M7 11l5 5 5-5M4 20h16"/></svg></span><span>下载 PDF 文件套</span></a></footer>
+            <footer><span>2 份文件 · 3.54 MB</span><a class="secondary-btn" id="downloadPdfPackage" href="../assets/bid-documents/packages/某港口集团2026年度集装箱业务平台运维项目_PDF文件套.zip" download="某港口集团2026年度集装箱业务平台运维项目_V1.0.4_PDF文件套.zip" aria-label="下载 PDF 文件套"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M12 4v12M7 11l5 5 5-5M4 20h16"/></svg></span><span>下载 PDF 文件套</span></a></footer>
           </section>
         </div>
 
@@ -70,7 +76,7 @@
           <section class="archive-group-card ledger-archive-group">
             <header class="archive-group-head">
               <span class="archive-group-icon"><svg viewBox="0 0 24 24"><path d="M4 5h16v14H4zM8 9h8M8 13h5"/></svg></span>
-              <div><strong>投标台账归档内容</strong><p>同步项目基础信息与本次正式交付附件，便于后续维护投标结果、得分和复盘。</p></div>
+              <div><strong>投标台账归档内容</strong><p>同步项目基础信息、全部人工保存版本与正式交付附件，便于后续追溯和维护投标结果。</p></div>
               <span class="status-tag blue" id="ledgerArchiveState">待自动归档</span>
             </header>
 
@@ -88,15 +94,16 @@
                 <div><span>投标有效期</span><strong>90 日</strong></div>
               </div>
 
-              <div class="archive-subheading archive-attachment-heading"><strong>台账附件</strong><span>7 份文件</span></div>
+              <div class="archive-subheading archive-version-heading"><strong>标书版本记录</strong><span id="deliveryArchiveVersionCount">4 个版本 · 8 份 DOCX</span></div>
+              <div class="delivery-version-archive-list" id="deliveryVersionArchiveList"></div>
+
+              <div class="archive-subheading archive-attachment-heading"><strong>招标文件原件</strong><span>5 份文件</span></div>
               <div class="archive-attachment-list">
                 <div><span class="file-type-icon type-word compact-file-icon" role="img" aria-label="DOC 文件" title="DOC 文件"><span class="file-format-mark">DOC</span></span><div><strong>采购文件.doc</strong><small>主招标文件 · 372 KB · 34 页</small></div><span class="status-tag blue">招标文件</span></div>
                 <div><span class="file-type-icon type-pdf compact-file-icon" role="img" aria-label="PDF 文件" title="PDF 文件"><span class="file-format-mark">PDF</span></span><div><strong>技术需求及服务规范.pdf</strong><small>技术需求附件 · 1.8 MB · 22 页</small></div><span class="status-tag blue">招标文件</span></div>
                 <div><span class="file-type-icon type-excel compact-file-icon" role="img" aria-label="XLSX 文件" title="XLSX 文件"><span class="file-format-mark">XLSX</span></span><div><strong>投标文件格式及报价清单.xlsx</strong><small>投标格式模板 · 86 KB · 3 个工作表</small></div><span class="status-tag blue">招标文件</span></div>
                 <div><span class="file-type-icon type-pdf compact-file-icon" role="img" aria-label="PDF 文件" title="PDF 文件"><span class="file-format-mark">PDF</span></span><div><strong>合同主要条款.pdf</strong><small>合同附件 · 620 KB · 12 页</small></div><span class="status-tag blue">招标文件</span></div>
                 <div><span class="file-type-icon type-pdf compact-file-icon" role="img" aria-label="PDF 文件" title="PDF 文件"><span class="file-format-mark">PDF</span></span><div><strong>澄清答疑纪要.pdf</strong><small>澄清答疑文件 · 428 KB · 6 页</small></div><span class="status-tag blue">招标文件</span></div>
-                <div><span class="file-type-icon type-word compact-file-icon" role="img" aria-label="DOCX 文件" title="DOCX 文件"><span class="file-format-mark">DOCX</span></span><div><strong>技术标.docx</strong><small>正式交付文件 · 73 页</small></div><span class="status-tag green">技术标</span></div>
-                <div><span class="file-type-icon type-word compact-file-icon" role="img" aria-label="DOCX 文件" title="DOCX 文件"><span class="file-format-mark">DOCX</span></span><div><strong>商务标.docx</strong><small>正式交付文件 · 23 页</small></div><span class="status-tag green">商务标</span></div>
               </div>
             </div>
           </section>
@@ -132,6 +139,15 @@
     </section>
   </main>
 
+  <section class="prototype-modal" id="deliveryReturnRevisionModal" aria-hidden="true" aria-label="从交付归档退回修改">
+    <header class="layer-head"><div><h3>退回标书修改</h3><p>退回后将结束当前交付版本，返回标书编制并重新执行智能检查和人工质量审核。</p></div><button class="layer-close" type="button" data-close-layer aria-label="关闭"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button></header>
+    <div class="layer-body">
+      <label class="delivery-return-reason-field"><span>退回原因</span><textarea id="deliveryReturnReason" rows="4" placeholder="请输入需要修改的内容，例如：请调整技术标售后服务承诺，并重新核对商务标报价。"></textarea></label>
+      <div class="info-alert warning"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg><div><strong>当前人工审核通过状态将失效</strong><span>修改完成后需重新执行智能检查，并再次提交人工质量审核；审核通过后才能重新进入交付归档。</span></div></div>
+    </div>
+    <footer class="layer-footer"><button class="ghost-btn" type="button" data-close-layer><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></span><span>取消</span></button><button class="primary-btn delivery-return-confirm" id="confirmDeliveryReturnRevision" type="button"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M9 7 4 12l5 5M4 12h10a6 6 0 0 1 6 6"/></svg></span><span>确认退回修改</span></button></footer>
+  </section>
+
   <section class="prototype-modal archive-confirm-modal" id="deliveryArchiveConfirmModal" aria-hidden="true" aria-label="确认交付归档">
     <header class="layer-head"><div><h3>确认交付归档</h3><p>请核对台账基础信息、归档附件及知识沉淀附件，确认后完成项目归档。</p></div><button class="layer-close" type="button" data-close-layer aria-label="关闭"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button></header>
     <div class="layer-body">
@@ -155,15 +171,18 @@
       </section>
 
       <section class="archive-confirm-section">
-        <header class="archive-confirm-section-head"><div><h4>投标台账归档附件</h4><p>上传的招标文件保持原格式，技术标与商务标归档 DOCX 文件。</p></div><span class="status-tag blue">7 份文件</span></header>
+        <header class="archive-confirm-section-head"><div><h4>标书版本记录</h4><p>全部人工保存版本将随项目归档；正式交付文件仍只使用审核通过版本。</p></div><span class="status-tag blue" id="archiveConfirmVersionCount">4 个版本</span></header>
+        <div class="archive-confirm-version-list" id="archiveConfirmVersionList"></div>
+      </section>
+
+      <section class="archive-confirm-section">
+        <header class="archive-confirm-section-head"><div><h4>招标文件原件</h4><p>上传的招标文件保持原格式，与标书多版本记录分开归档。</p></div><span class="status-tag blue">5 份文件</span></header>
         <div class="archive-confirm-file-list">
           <div><span class="file-type-icon type-word compact-file-icon" role="img" aria-label="DOC 文件" title="DOC 文件"><span class="file-format-mark">DOC</span></span><div><strong>采购文件.doc</strong><small>主招标文件 · 372 KB · 34 页</small></div><span class="status-tag blue">招标文件</span></div>
           <div><span class="file-type-icon type-pdf compact-file-icon" role="img" aria-label="PDF 文件" title="PDF 文件"><span class="file-format-mark">PDF</span></span><div><strong>技术需求及服务规范.pdf</strong><small>技术需求附件 · 1.8 MB · 22 页</small></div><span class="status-tag blue">招标文件</span></div>
           <div><span class="file-type-icon type-excel compact-file-icon" role="img" aria-label="XLSX 文件" title="XLSX 文件"><span class="file-format-mark">XLSX</span></span><div><strong>投标文件格式及报价清单.xlsx</strong><small>投标格式模板 · 86 KB · 3 个工作表</small></div><span class="status-tag blue">招标文件</span></div>
           <div><span class="file-type-icon type-pdf compact-file-icon" role="img" aria-label="PDF 文件" title="PDF 文件"><span class="file-format-mark">PDF</span></span><div><strong>合同主要条款.pdf</strong><small>合同附件 · 620 KB · 12 页</small></div><span class="status-tag blue">招标文件</span></div>
           <div><span class="file-type-icon type-pdf compact-file-icon" role="img" aria-label="PDF 文件" title="PDF 文件"><span class="file-format-mark">PDF</span></span><div><strong>澄清答疑纪要.pdf</strong><small>澄清答疑文件 · 428 KB · 6 页</small></div><span class="status-tag blue">招标文件</span></div>
-          <div><span class="file-type-icon type-word compact-file-icon" role="img" aria-label="DOCX 文件" title="DOCX 文件"><span class="file-format-mark">DOCX</span></span><div><strong>技术标.docx</strong><small>正式交付文件 · 73 页</small></div><span class="status-tag green">技术标</span></div>
-          <div><span class="file-type-icon type-word compact-file-icon" role="img" aria-label="DOCX 文件" title="DOCX 文件"><span class="file-format-mark">DOCX</span></span><div><strong>商务标.docx</strong><small>正式交付文件 · 23 页</small></div><span class="status-tag green">商务标</span></div>
         </div>
       </section>
 
@@ -178,6 +197,7 @@
   <script src="../assets/js/common.js"></script>
   <script src="../assets/js/project-data.js"></script>
   <script src="../assets/js/project-common.js"></script>
+  <script src="../assets/js/bid-versioning.js"></script>
   <script src="../assets/js/project-delivery.js"></script>
 </body>
 </html>

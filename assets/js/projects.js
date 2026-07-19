@@ -49,7 +49,8 @@
 
   function listStage(project) {
     const stage = String(project.stage || "");
-    if (stage.indexOf("编制") !== -1 || stage.indexOf("质量审核") !== -1) return "标书编制与审核";
+    if (stage.indexOf("编制") !== -1) return "标书编制";
+    if (stage.indexOf("质量审核") !== -1) return "质量审核";
     return stage || "解析中";
   }
 
@@ -93,7 +94,7 @@
     if (project.status === "parsing" || stage === "解析中") return "project-files.html";
     if (stage.indexOf("解析") !== -1 || stage.indexOf("投标决策") !== -1 || stage.indexOf("资格") !== -1 || stage.indexOf("响应策划") !== -1 || stage.indexOf("知识匹配") !== -1) return "project-analysis.html";
     if (stage.indexOf("编制") !== -1) return "project-writing.html";
-    if (stage.indexOf("质量审核") !== -1) return "project-writing.html";
+    if (stage.indexOf("质量审核") !== -1) return "project-quality.html";
     if (stage.indexOf("交付归档") !== -1) return "project-delivery.html";
     return "project-analysis.html";
   }
@@ -102,7 +103,8 @@
     if (project.stageDetail) return project.stageDetail;
     if (project.stage === "解析中") return "AI 正在逐页识别采购文件";
     if (project.stage === "解析结果") return "待确认综合投标结论";
-    if (listStage(project) === "标书编制与审核") return "投标文件编制与质量审核中";
+    if (listStage(project) === "标书编制") return "技术标、商务标编制与智能检查中";
+    if (listStage(project) === "质量审核") return "技术标、商务标送审版本待人工审核";
     if (project.stage === "交付归档") return project.status === "archived" ? "已完成交付并归档" : "待确认最终交付文件";
     return "项目持续推进中";
   }

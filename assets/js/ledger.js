@@ -8,15 +8,20 @@
   let activeFilter = "all";
   let currentPage = 1;
   let editingId = null;
+  let feeId = null;
   let reviewId = null;
   let activeLayerId = null;
   let resultDirty = false;
+  let feeDirty = false;
   let reviewDirty = false;
   let pendingResultFiles = [];
+  let pendingFees = [];
+  let activeFeeIndex = 0;
 
   const icons = {
     edit: '<svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4z"/></svg>',
     view: '<svg viewBox="0 0 24 24"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z"/><circle cx="12" cy="12" r="2.5"/></svg>',
+    fee: '<svg viewBox="0 0 24 24"><path d="M4 7h16v12H4zM7 7V5h10v2M4 11h16"/><path d="M15 15h2"/></svg>',
     review: '<svg viewBox="0 0 24 24"><path d="M5 4h14v16H5zM8 8h8M8 12h8M8 16h5"/></svg>',
     previous: '<svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>',
     next: '<svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>'
@@ -88,6 +93,165 @@
     return number.toLocaleString("zh-CN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " 万元";
   }
 
+  function formatFeeAmount(value) {
+    const number = Number(value || 0);
+    if (!Number.isFinite(number)) return "0.00 元";
+    if (Math.abs(number) >= 10000) return (number / 10000).toLocaleString("zh-CN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " 万元";
+    return number.toLocaleString("zh-CN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " 元";
+  }
+
+  function cloneValue(value) {
+    return JSON.parse(JSON.stringify(value));
+  }
+
+  function feeStatusDefinition(status, fee) {
+    const map = {
+      not_applicable: { label: "不涉及", tone: "gray" },
+      pending_result: { label: "待结果", tone: "gray" },
+      pending_confirm: { label: "待确认", tone: "orange" },
+      pending_payment: { label: "待支付", tone: "blue" },
+      paid: { label: "已支付", tone: "green" },
+      waived: { label: "已减免", tone: "gray" },
+      paid_pending_refund: { label: "已缴纳待退", tone: "blue" },
+      refunding: { label: "退款中", tone: "blue" },
+      refunded: { label: "已退回", tone: "green" },
+      converted: { label: "已转履约保证金", tone: "green" },
+      cancelled: { label: "已取消", tone: "gray" },
+      exception: { label: "异常", tone: "red" }
+    };
+    const definition = map[status] || map.pending_confirm;
+    if (feeIsOverdue(fee)) return { label: status === "pending_payment" ? "逾期未支付" : "逾期未退", tone: "red" };
+    return definition;
+  }
+
+  function feeStatusOptions(type) {
+    if (type === "deposit") {
+      return [
+        ["not_applicable", "不涉及"], ["pending_confirm", "待确认"], ["pending_payment", "待缴纳"],
+        ["paid_pending_refund", "已缴纳待退"], ["refunding", "退款中"], ["refunded", "已退回"],
+        ["converted", "已转履约保证金"], ["exception", "异常"]
+      ];
+    }
+    if (type === "service") {
+      return [
+        ["pending_result", "待结果"], ["not_applicable", "不涉及"], ["pending_confirm", "待确认"],
+        ["pending_payment", "待支付"], ["paid", "已支付"], ["waived", "已减免"], ["exception", "异常"]
+      ];
+    }
+    return [
+      ["not_applicable", "不涉及"], ["pending_confirm", "待确认"], ["pending_payment", "待支付"],
+      ["paid", "已支付"], ["waived", "已减免"], ["cancelled", "已取消"], ["exception", "异常"]
+    ];
+  }
+
+  function normalizeFee(fee, index, record) {
+    const type = ["document", "deposit", "service", "other"].indexOf(fee.type) === -1 ? "other" : fee.type;
+    const names = { document: "标书费用", deposit: "投标保证金", service: "中标服务费", other: "其他招标费用" };
+    const involved = fee.involved !== false && fee.status !== "not_applicable";
+    return {
+      id: fee.id || type + "-" + record.id + "-" + index,
+      type: type,
+      name: fee.name || names[type],
+      involved: involved,
+      status: fee.status || (involved ? "pending_confirm" : "not_applicable"),
+      basis: fee.basis || "",
+      expectedAmount: Number(fee.expectedAmount || 0),
+      actualAmount: Number(fee.actualAmount || 0),
+      payee: fee.payee || "",
+      dueDate: fee.dueDate || "",
+      paidDate: fee.paidDate || "",
+      owner: fee.owner || record.owner || ownerOptions[0],
+      guaranteeMethod: fee.guaranteeMethod || "",
+      refundAmount: Number(fee.refundAmount || 0),
+      refundDueDate: fee.refundDueDate || "",
+      refundDate: fee.refundDate || "",
+      files: Array.isArray(fee.files) ? fee.files.map(function (file) { return Object.assign({}, file); }) : [],
+      remark: fee.remark || ""
+    };
+  }
+
+  function defaultFees(record) {
+    const documentAmount = record.bidAmount > 1000 ? 800 : 500;
+    const depositAmount = record.bidAmount > 1000 ? 80000 : record.bidAmount > 700 ? 50000 : 40000;
+    const isPending = record.result === "pending";
+    const isWon = record.result === "won";
+    const pendingRefund = isPending || record.id === "BID-202605-012";
+    const serviceAmount = isWon ? Math.round(Number(record.winningAmount || record.bidAmount || 0) * 10000 * 0.015) : 0;
+    const servicePending = record.id === "BID-202605-014";
+    const documentFee = {
+      id: "document-" + record.id, type: "document", name: "标书费用", involved: true, status: "paid",
+      basis: "招标文件获取及制作费用", expectedAmount: documentAmount, actualAmount: documentAmount,
+      payee: record.purchaser, dueDate: addDays(record.bidDate, -14), paidDate: addDays(record.bidDate, -13),
+      owner: record.owner, files: [{ name: "标书费用付款回单.pdf", description: "银行付款回单", category: "支付凭证", tone: "green" }],
+      remark: "已按招标文件要求完成支付。"
+    };
+    const depositFee = {
+      id: "deposit-" + record.id, type: "deposit", name: "投标保证金", involved: true,
+      status: pendingRefund ? (record.id === "BID-202605-012" ? "refunding" : "paid_pending_refund") : (isWon && record.id === "BID-202606-016" ? "converted" : "refunded"),
+      basis: "按招标文件投标保证金要求缴纳", expectedAmount: depositAmount, actualAmount: depositAmount,
+      payee: record.purchaser, dueDate: addDays(record.bidDate, -3), paidDate: addDays(record.bidDate, -5),
+      owner: record.owner, guaranteeMethod: "银行转账", refundAmount: depositAmount,
+      refundDueDate: record.id === "BID-202605-012" ? "2026-07-12" : (isPending ? "" : addDays(record.resultDate || record.bidDate, 20)),
+      refundDate: pendingRefund || (isWon && record.id === "BID-202606-016") ? "" : addDays(record.resultDate || record.bidDate, 12),
+      files: [{ name: "投标保证金缴纳凭证.pdf", description: "保证金支付凭证", category: "保证金凭证", tone: "blue" }],
+      remark: isPending ? "已缴纳，待采购结果公布后跟进退回。" : "保证金状态已根据项目结果维护。"
+    };
+    const serviceFee = {
+      id: "service-" + record.id, type: "service", name: "中标服务费", involved: isPending || isWon,
+      status: isPending ? "pending_result" : (isWon ? (servicePending ? "pending_payment" : "paid") : "not_applicable"),
+      basis: "按中标金额及招标代理服务收费标准计取", expectedAmount: serviceAmount,
+      actualAmount: isWon && !servicePending ? serviceAmount : 0, payee: isWon ? "项目招标代理机构" : "",
+      dueDate: servicePending ? "2026-07-15" : (isWon ? addDays(record.resultDate, 7) : ""),
+      paidDate: isWon && !servicePending ? addDays(record.resultDate, 5) : "", owner: record.owner,
+      files: isWon && !servicePending ? [{ name: "中标服务费付款凭证.pdf", description: "服务费付款回单", category: "支付凭证", tone: "green" }] : [],
+      remark: isPending ? "待投标结果公布后确认是否涉及。" : (isWon ? "按正式收费通知维护。" : "项目未中标，不涉及中标服务费。")
+    };
+    return [documentFee, depositFee, serviceFee].map(function (fee, index) { return normalizeFee(fee, index, record); });
+  }
+
+  function feeIsOverdue(fee) {
+    if (!fee || fee.status === "exception") return fee && fee.status === "exception";
+    const today = todayString();
+    if (fee.status === "pending_payment" && fee.dueDate) return fee.dueDate < today;
+    if ((fee.status === "paid_pending_refund" || fee.status === "refunding") && fee.refundDueDate) return fee.refundDueDate < today;
+    return false;
+  }
+
+  function feeSummary(record) {
+    const fees = Array.isArray(record.fees) ? record.fees : [];
+    const involved = fees.filter(function (fee) { return fee.involved && fee.status !== "not_applicable"; });
+    if (!involved.length) return { key: "none", label: "无相关费用", tone: "gray", hint: "均不涉及", pending: 0, exception: 0 };
+    const exception = involved.filter(feeIsOverdue).length;
+    const maintain = involved.filter(function (fee) { return fee.status === "pending_confirm"; }).length;
+    const processing = involved.filter(function (fee) {
+      return ["pending_payment", "paid_pending_refund", "refunding"].indexOf(fee.status) !== -1 && !feeIsOverdue(fee);
+    }).length;
+    const inTransit = involved.filter(function (fee) {
+      return fee.type === "deposit" && ["paid_pending_refund", "refunding"].indexOf(fee.status) !== -1;
+    }).reduce(function (sum, fee) { return sum + Number(fee.actualAmount || fee.expectedAmount || 0); }, 0);
+    if (exception) return { key: "exception", label: "费用有异常", tone: "red", hint: exception + " 项已逾期", pending: maintain + processing, exception: exception };
+    if (maintain) return { key: "maintain", label: "费用待维护", tone: "orange", hint: maintain + " 项待确认", pending: maintain + processing, exception: 0 };
+    if (processing) return { key: "processing", label: "费用待处理", tone: "blue", hint: inTransit ? "保证金 " + formatFeeAmount(inTransit) + " 在途" : processing + " 项待处理", pending: processing, exception: 0 };
+    return { key: "settled", label: "费用已结清", tone: "green", hint: "相关费用均已完成", pending: 0, exception: 0 };
+  }
+
+  function feeTotals(record) {
+    const fees = Array.isArray(record.fees) ? record.fees : [];
+    return fees.reduce(function (totals, fee) {
+      if (!fee.involved || fee.status === "not_applicable") return totals;
+      if (fee.type !== "deposit" && fee.status === "paid") totals.paid += Number(fee.actualAmount || 0);
+      if (fee.type !== "deposit" && ["pending_confirm", "pending_payment"].indexOf(fee.status) !== -1) {
+        totals.pending += Math.max(0, Number(fee.expectedAmount || 0) - Number(fee.actualAmount || 0));
+      }
+      if (fee.type === "deposit" && ["paid_pending_refund", "refunding"].indexOf(fee.status) !== -1) {
+        totals.deposit += Number(fee.actualAmount || fee.expectedAmount || 0);
+      }
+      if (["pending_confirm", "pending_payment", "paid_pending_refund", "refunding"].indexOf(fee.status) !== -1 || feeIsOverdue(fee)) totals.actions += 1;
+      if (feeIsOverdue(fee)) totals.exceptions += 1;
+      return totals;
+    }, { paid: 0, pending: 0, deposit: 0, actions: 0, exceptions: 0 });
+  }
+
   function defaultArchiveFiles(record) {
     return [
       { name: "招标文件及附件.pdf", description: "主招标文件 · 归档原格式", category: "招标文件", tone: "blue" },
@@ -95,6 +259,34 @@
       { name: "技术标.docx", description: "正式交付版本 · 已完成终审", category: "技术标", tone: "green" },
       { name: "商务标.docx", description: "正式交付版本 · 已完成终审", category: "商务标", tone: "green" },
       { name: record.id + "-最终交付文件包.zip", description: "Word、PDF 与签章文件汇总", category: "交付文件包", tone: "gray" }
+    ];
+  }
+
+  function defaultArchiveVersions(record) {
+    const formalNumber = String(record.archiveVersion || "正式交付 V1.0.4").replace(/^正式交付\s*/, "") || "V1.0.4";
+    return [
+      {
+        id: record.id + "-VER-001",
+        number: "V1.0.1",
+        createdAt: new Date(record.archiveDate + " 09:10").getTime(),
+        createdBy: record.owner,
+        note: "完成技术标与商务标初稿。",
+        check: { status: "result", batch: 1, score: 82 },
+        review: { status: "not_submitted" },
+        isDeliveryVersion: false,
+        archiveStatus: "archived"
+      },
+      {
+        id: record.id + "-VER-FORMAL",
+        number: formalNumber,
+        createdAt: new Date(record.archiveTime || record.archiveDate + " 18:20").getTime(),
+        createdBy: record.archiveOperator || record.owner,
+        note: "完成智能检查与人工质量审核，形成正式交付版本。",
+        check: { status: "passed", batch: 2, score: 98 },
+        review: { status: "approved" },
+        isDeliveryVersion: true,
+        archiveStatus: "archived"
+      }
     ];
   }
 
@@ -147,11 +339,15 @@
       record.reviewTone = review.tone;
     }
     record.archiveTime = record.archiveTime || record.archiveDate + " 18:20";
-    record.archiveVersion = record.archiveVersion || "正式交付 V1.0";
+    record.archiveVersion = record.archiveVersion || "正式交付 V1.0.4";
     record.archiveOperator = record.archiveOperator || record.owner;
+    record.archiveVersions = Array.isArray(record.archiveVersions) && record.archiveVersions.length ? record.archiveVersions : defaultArchiveVersions(record);
     record.archiveFiles = Array.isArray(record.archiveFiles) ? record.archiveFiles : defaultArchiveFiles(record);
     record.resultFiles = Array.isArray(record.resultFiles) ? record.resultFiles : defaultResultFiles(record);
     record.knowledgeItems = Array.isArray(record.knowledgeItems) ? record.knowledgeItems : defaultKnowledgeItems();
+    record.fees = Array.isArray(record.fees) && record.fees.length
+      ? record.fees.map(function (fee, index) { return normalizeFee(fee, index, record); })
+      : defaultFees(record);
     record.review = Object.assign(defaultReview(record), record.review || {});
     record.review.actions = Array.isArray(record.review.actions) ? record.review.actions : [];
     return record;
@@ -188,10 +384,12 @@
     const query = (document.getElementById("ledgerSearch").value || "").trim().toLowerCase();
     const year = document.getElementById("ledgerYearFilter").value;
     const owner = document.getElementById("ledgerOwnerFilter").value;
+    const feeFilter = document.getElementById("ledgerFeeFilter").value;
     const searchable = [record.id, record.name, record.purchaser].join(" ").toLowerCase();
     return (!query || searchable.indexOf(query) !== -1) &&
       (year === "all" || record.bidDate.slice(0, 4) === year) &&
-      (owner === "all" || record.owner === owner);
+      (owner === "all" || record.owner === owner) &&
+      (feeFilter === "all" || feeSummary(record).key === feeFilter);
   }
 
   function tabMatches(record) {
@@ -205,15 +403,29 @@
 
   function renderMetrics() {
     const yearly = records.filter(function (record) { return record.archiveDate.slice(0, 4) === currentYear; });
-    const pending = yearly.filter(function (record) { return record.result === "pending"; });
     const won = yearly.filter(function (record) { return record.result === "won"; });
     const decided = yearly.filter(function (record) { return record.result === "won" || record.result === "lost"; });
     const winningAmount = won.reduce(function (sum, record) { return sum + Number(record.winningAmount || 0); }, 0);
+    const feeMetrics = yearly.reduce(function (totals, record) {
+      const recordTotals = feeTotals(record);
+      totals.paid += recordTotals.paid;
+      totals.pending += recordTotals.pending;
+      totals.deposit += recordTotals.deposit;
+      totals.actions += recordTotals.actions;
+      totals.exceptions += recordTotals.exceptions;
+      return totals;
+    }, { paid: 0, pending: 0, deposit: 0, actions: 0, exceptions: 0 });
     document.getElementById("ledgerYearTotal").textContent = yearly.length;
-    document.getElementById("ledgerPendingTotal").textContent = pending.length;
     document.getElementById("ledgerWonTotal").textContent = won.length;
-    document.getElementById("ledgerWonAmount").innerHTML = '年度中标金额 <b class="amount-text">' + formatAmount(winningAmount) + "</b>";
+    document.getElementById("ledgerWonAmount").textContent = formatAmount(winningAmount);
     document.getElementById("ledgerWinRate").textContent = decided.length ? (won.length / decided.length * 100).toFixed(1) + "%" : "0%";
+    document.getElementById("ledgerFeePaidAmount").textContent = formatFeeAmount(feeMetrics.paid);
+    document.getElementById("ledgerFeePendingAmount").textContent = formatFeeAmount(feeMetrics.pending);
+    document.getElementById("ledgerDepositInTransit").textContent = formatFeeAmount(feeMetrics.deposit);
+    document.getElementById("ledgerFeeActionTotal").textContent = feeMetrics.actions;
+    document.getElementById("ledgerFeeActionHint").textContent = feeMetrics.exceptions
+      ? feeMetrics.exceptions + " 项费用已逾期"
+      : (feeMetrics.actions ? feeMetrics.actions + " 项费用待跟进" : "当前无费用异常");
   }
 
   function renderTabCounts() {
@@ -234,21 +446,23 @@
 
   function rowTemplate(record) {
     const result = resultDefinition(record.result);
+    const fees = feeSummary(record);
     const resultClass = record.result === "pending" ? " ledger-result-pending" : "";
     const score = record.score === "" ? "—" : Number(record.score).toFixed(2);
     const rank = record.rank === "" ? "排名待补" : "第 " + record.rank + " 名";
     const resultHint = record.resultDate ? record.resultDate + " 公布" : "公告待跟进";
+    const resultScoreHint = record.score === "" ? resultHint : score + " 分 · " + rank;
     const resultText = record.result === "pending" ? "维护结果" : "更新结果";
     return [
       '<tr data-ledger-id="' + escapeHtml(record.id) + '">',
-      '<td><div class="table-primary"><div><strong title="' + escapeHtml(record.name) + '">' + escapeHtml(record.name) + '</strong><span class="ledger-project-subline">' + escapeHtml(record.id) + '<i></i>归档于 ' + escapeHtml(record.archiveDate) + "</span></div></div></td>",
+      '<td><div class="table-primary"><div><strong title="' + escapeHtml(record.name) + '">' + escapeHtml(record.name) + '</strong><span class="ledger-project-subline">' + escapeHtml(record.id) + '<i></i>归档于 ' + escapeHtml(record.archiveDate) + '<i></i>' + record.archiveVersions.length + " 个版本</span></div></div></td>",
       '<td><strong class="purchaser-name" title="' + escapeHtml(record.purchaser) + '">' + escapeHtml(record.purchaser) + "</strong></td>",
       '<td><div class="cell-stack"><strong>' + escapeHtml(record.bidDateText.slice(0, 10)) + '</strong><span>' + escapeHtml(record.bidDateText.slice(11)) + " 截止</span></div></td>",
       '<td><strong class="table-amount amount-text">' + formatAmount(record.bidAmount) + "</strong></td>",
-      '<td><div class="ledger-result-cell"><span class="status-tag ' + result.tone + resultClass + '">' + result.label + "</span><small>" + escapeHtml(resultHint) + "</small></div></td>",
-      '<td><div class="ledger-score"><strong>' + score + "</strong><span>" + rank + "</span></div></td>",
+      '<td><div class="ledger-result-cell"><span class="status-tag ' + result.tone + resultClass + '">' + result.label + "</span><small>" + escapeHtml(resultScoreHint) + "</small></div></td>",
+      '<td><div class="ledger-fee-cell"><span class="status-tag ' + fees.tone + '">' + fees.label + "</span><small>" + escapeHtml(fees.hint) + "</small></div></td>",
       '<td><div class="owner-cell"><span class="person-avatar">' + escapeHtml(record.owner.slice(0, 1)) + "</span><span>" + escapeHtml(record.owner) + "</span></div></td>",
-      '<td><div class="row-actions"><button class="ledger-action-btn primary-action" type="button" data-edit-result="' + escapeHtml(record.id) + '"><span class="btn-icon">' + icons.edit + "</span><span>" + resultText + '</span></button><button class="ledger-action-btn" type="button" data-ledger-detail="' + escapeHtml(record.id) + '"><span class="btn-icon">' + icons.view + "</span><span>详情</span></button></div></td>",
+      '<td><div class="row-actions"><button class="ledger-action-btn primary-action" type="button" data-edit-result="' + escapeHtml(record.id) + '"><span class="btn-icon">' + icons.edit + "</span><span>" + resultText + '</span></button><button class="ledger-action-btn fee-action" type="button" data-edit-fee="' + escapeHtml(record.id) + '"><span class="btn-icon">' + icons.fee + '</span><span>维护费用</span></button><button class="ledger-action-btn" type="button" data-ledger-detail="' + escapeHtml(record.id) + '"><span class="btn-icon">' + icons.view + "</span><span>详情</span></button></div></td>",
       "</tr>"
     ].join("");
   }
@@ -288,7 +502,9 @@
   }
 
   function hasUnsavedChanges() {
-    return (activeLayerId === "ledgerResultModal" && resultDirty) || (activeLayerId === "ledgerReviewModal" && reviewDirty);
+    return (activeLayerId === "ledgerResultModal" && resultDirty) ||
+      (activeLayerId === "ledgerFeeModal" && feeDirty) ||
+      (activeLayerId === "ledgerReviewModal" && reviewDirty);
   }
 
   function closeLayer(force) {
@@ -302,6 +518,7 @@
     document.body.classList.remove("layer-open");
     activeLayerId = null;
     resultDirty = false;
+    feeDirty = false;
     reviewDirty = false;
     return true;
   }
@@ -335,6 +552,224 @@
     list.innerHTML = pendingResultFiles.map(function (file, index) {
       return '<div class="ledger-result-file-item">' + fileIcon(file.name) + '<div><strong title="' + escapeHtml(file.name) + '">' + escapeHtml(file.name) + '</strong><small>' + escapeHtml(file.description || "结果佐证附件") + '</small></div><button type="button" data-remove-result-file="' + index + '">移除</button></div>';
     }).join("");
+  }
+
+  function currentPendingFee() {
+    return pendingFees[activeFeeIndex] || null;
+  }
+
+  function renderFeeStatusOptions(fee) {
+    const select = document.getElementById("ledgerFeeStatus");
+    const options = feeStatusOptions(fee.type);
+    select.innerHTML = options.map(function (option) {
+      return '<option value="' + option[0] + '">' + option[1] + "</option>";
+    }).join("");
+    select.value = options.some(function (option) { return option[0] === fee.status; }) ? fee.status : "pending_confirm";
+  }
+
+  function renderFeeFiles() {
+    const fee = currentPendingFee();
+    const list = document.getElementById("ledgerFeeFileList");
+    const files = fee && Array.isArray(fee.files) ? fee.files : [];
+    list.innerHTML = files.map(function (file, index) {
+      return '<div class="ledger-result-file-item">' + fileIcon(file.name) + '<div><strong title="' + escapeHtml(file.name) + '">' + escapeHtml(file.name) + '</strong><small>' + escapeHtml(file.description || "费用佐证附件") + '</small></div><button type="button" data-remove-fee-file="' + index + '">移除</button></div>';
+    }).join("");
+  }
+
+  function renderFeeTabs() {
+    const list = document.getElementById("ledgerFeeTabList");
+    list.innerHTML = pendingFees.map(function (fee, index) {
+      const definition = feeStatusDefinition(fee.status, fee);
+      return '<button class="ledger-fee-tab' + (index === activeFeeIndex ? " active" : "") + '" type="button" data-fee-tab="' + index + '"><span class="ledger-fee-tab-icon">' + icons.fee + '</span><span><strong>' + escapeHtml(fee.name) + '</strong><small>' + escapeHtml(fee.type === "deposit" ? "保证金缴纳与退回" : "应付与实付信息") + '</small></span><em class="status-tag ' + definition.tone + '">' + definition.label + "</em></button>";
+    }).join("");
+  }
+
+  function updateFeeEditorState() {
+    const fee = currentPendingFee();
+    if (!fee) return;
+    const involvedSelect = document.getElementById("ledgerFeeInvolved");
+    const involved = involvedSelect.value === "true";
+    const statusSelect = document.getElementById("ledgerFeeStatus");
+    if (!involved && statusSelect.value !== "not_applicable") statusSelect.value = "not_applicable";
+    if (involved && statusSelect.value === "not_applicable") statusSelect.value = fee.type === "service" && recordById(feeId).result === "pending" ? "pending_result" : "pending_confirm";
+    fee.involved = involved;
+    fee.status = involved ? statusSelect.value : "not_applicable";
+    statusSelect.disabled = !involved;
+    [
+      "ledgerFeeBasis", "ledgerFeeExpectedAmount", "ledgerFeeActualAmount", "ledgerFeePayee",
+      "ledgerFeeDueDate", "ledgerFeePaidDate", "ledgerFeeOwner", "ledgerGuaranteeMethod",
+      "ledgerFeeRefundAmount", "ledgerFeeRefundDueDate", "ledgerFeeRefundDate",
+      "selectLedgerFeeFiles", "ledgerFeeRemark"
+    ].forEach(function (id) {
+      const element = document.getElementById(id);
+      if (element) element.disabled = !involved;
+    });
+    document.querySelectorAll(".ledger-guarantee-field").forEach(function (field) {
+      field.classList.toggle("hidden", fee.type !== "deposit");
+    });
+    const definition = feeStatusDefinition(statusSelect.value, Object.assign({}, fee, {
+      status: statusSelect.value,
+      involved: involved,
+      dueDate: document.getElementById("ledgerFeeDueDate").value,
+      refundDueDate: document.getElementById("ledgerFeeRefundDueDate").value
+    }));
+    const tag = document.getElementById("ledgerFeeEditorStatus");
+    tag.className = "status-tag " + definition.tone;
+    tag.textContent = definition.label;
+  }
+
+  function populateFeeEditor() {
+    const fee = currentPendingFee();
+    if (!fee) return;
+    document.getElementById("ledgerFeeTypeEyebrow").textContent = fee.type === "other" ? "其他招标费用" : "固定费用项目";
+    document.getElementById("ledgerFeeEditorTitle").textContent = fee.name;
+    document.getElementById("ledgerFeeName").value = fee.name;
+    document.getElementById("ledgerFeeName").readOnly = fee.type !== "other";
+    document.getElementById("ledgerFeeInvolved").value = fee.involved ? "true" : "false";
+    renderFeeStatusOptions(fee);
+    document.getElementById("ledgerFeeBasis").value = fee.basis || "";
+    document.getElementById("ledgerFeeExpectedAmount").value = fee.expectedAmount || "";
+    document.getElementById("ledgerFeeActualAmount").value = fee.actualAmount || "";
+    document.getElementById("ledgerFeePayee").value = fee.payee || "";
+    document.getElementById("ledgerFeeDueDate").value = fee.dueDate || "";
+    document.getElementById("ledgerFeePaidDate").value = fee.paidDate || "";
+    document.getElementById("ledgerFeeOwner").value = fee.owner || recordById(feeId).owner;
+    document.getElementById("ledgerGuaranteeMethod").value = fee.guaranteeMethod || "";
+    document.getElementById("ledgerFeeRefundAmount").value = fee.refundAmount || "";
+    document.getElementById("ledgerFeeRefundDueDate").value = fee.refundDueDate || "";
+    document.getElementById("ledgerFeeRefundDate").value = fee.refundDate || "";
+    document.getElementById("ledgerFeeRemark").value = fee.remark || "";
+    document.getElementById("deleteLedgerOtherFee").classList.toggle("hidden", fee.type !== "other");
+    renderFeeFiles();
+    updateFeeEditorState();
+  }
+
+  function syncFeeEditor() {
+    const fee = currentPendingFee();
+    if (!fee) return;
+    fee.name = document.getElementById("ledgerFeeName").value.trim() || fee.name;
+    fee.involved = document.getElementById("ledgerFeeInvolved").value === "true";
+    fee.status = fee.involved ? document.getElementById("ledgerFeeStatus").value : "not_applicable";
+    fee.basis = document.getElementById("ledgerFeeBasis").value.trim();
+    fee.expectedAmount = Number(document.getElementById("ledgerFeeExpectedAmount").value || 0);
+    fee.actualAmount = Number(document.getElementById("ledgerFeeActualAmount").value || 0);
+    fee.payee = document.getElementById("ledgerFeePayee").value.trim();
+    fee.dueDate = document.getElementById("ledgerFeeDueDate").value;
+    fee.paidDate = document.getElementById("ledgerFeePaidDate").value;
+    fee.owner = document.getElementById("ledgerFeeOwner").value;
+    fee.guaranteeMethod = document.getElementById("ledgerGuaranteeMethod").value;
+    fee.refundAmount = Number(document.getElementById("ledgerFeeRefundAmount").value || 0);
+    fee.refundDueDate = document.getElementById("ledgerFeeRefundDueDate").value;
+    fee.refundDate = document.getElementById("ledgerFeeRefundDate").value;
+    fee.remark = document.getElementById("ledgerFeeRemark").value.trim();
+  }
+
+  function updateCurrentFeeSummary() {
+    const summary = feeSummary({ fees: pendingFees });
+    const tag = document.getElementById("ledgerCurrentFeeTag");
+    tag.className = "status-tag " + summary.tone;
+    tag.textContent = summary.label;
+  }
+
+  function switchFeeEditor(index) {
+    if (index < 0 || index >= pendingFees.length || index === activeFeeIndex) return;
+    syncFeeEditor();
+    activeFeeIndex = index;
+    renderFeeTabs();
+    populateFeeEditor();
+    updateCurrentFeeSummary();
+  }
+
+  function openFeeEditor(id) {
+    const record = recordById(id);
+    if (!record) return;
+    feeId = id;
+    pendingFees = cloneValue(record.fees);
+    activeFeeIndex = 0;
+    document.getElementById("ledgerFeeProjectName").textContent = record.name;
+    document.getElementById("ledgerFeeProjectMeta").textContent = record.id + " · " + record.purchaser;
+    renderFeeTabs();
+    populateFeeEditor();
+    updateCurrentFeeSummary();
+    feeDirty = false;
+    openLayer("ledgerFeeModal", "#ledgerFeeInvolved");
+  }
+
+  function addOtherFee() {
+    syncFeeEditor();
+    const record = recordById(feeId);
+    pendingFees.push(normalizeFee({
+      id: "other-" + record.id + "-" + Date.now(),
+      type: "other",
+      name: "其他招标费用",
+      involved: true,
+      status: "pending_confirm",
+      owner: record.owner
+    }, pendingFees.length, record));
+    activeFeeIndex = pendingFees.length - 1;
+    renderFeeTabs();
+    populateFeeEditor();
+    updateCurrentFeeSummary();
+    feeDirty = true;
+  }
+
+  function deleteOtherFee() {
+    const fee = currentPendingFee();
+    if (!fee || fee.type !== "other") return;
+    pendingFees.splice(activeFeeIndex, 1);
+    activeFeeIndex = Math.max(0, Math.min(activeFeeIndex, pendingFees.length - 1));
+    renderFeeTabs();
+    populateFeeEditor();
+    updateCurrentFeeSummary();
+    feeDirty = true;
+  }
+
+  function focusFeeValidation(index, selector, message) {
+    if (index !== activeFeeIndex) {
+      activeFeeIndex = index;
+      renderFeeTabs();
+      populateFeeEditor();
+    }
+    notify(message, "warning", selector);
+    const element = document.querySelector(selector);
+    if (element) element.focus();
+  }
+
+  function saveFees() {
+    const record = recordById(feeId);
+    if (!record) return;
+    syncFeeEditor();
+    for (let index = 0; index < pendingFees.length; index += 1) {
+      const fee = pendingFees[index];
+      if (!fee.name.trim()) {
+        focusFeeValidation(index, "#ledgerFeeName", "请填写费用名称");
+        return;
+      }
+      if (!fee.involved) continue;
+      if (["pending_payment", "paid", "paid_pending_refund", "refunding", "refunded", "converted"].indexOf(fee.status) !== -1 && !fee.expectedAmount) {
+        focusFeeValidation(index, "#ledgerFeeExpectedAmount", "请填写" + fee.name + "的应付金额");
+        return;
+      }
+      if (fee.status === "paid" && (!fee.actualAmount || !fee.paidDate)) {
+        focusFeeValidation(index, !fee.actualAmount ? "#ledgerFeeActualAmount" : "#ledgerFeePaidDate", "请补充" + fee.name + "的实际支付金额和日期");
+        return;
+      }
+      if (fee.type === "deposit" && ["paid_pending_refund", "refunding", "refunded", "converted"].indexOf(fee.status) !== -1 && (!fee.actualAmount || !fee.paidDate)) {
+        focusFeeValidation(index, !fee.actualAmount ? "#ledgerFeeActualAmount" : "#ledgerFeePaidDate", "请补充投标保证金的实际缴纳金额和日期");
+        return;
+      }
+      if (fee.type === "deposit" && fee.status === "refunded" && !fee.refundDate) {
+        focusFeeValidation(index, "#ledgerFeeRefundDate", "请填写投标保证金实际退回日期");
+        return;
+      }
+    }
+    record.fees = pendingFees.map(function (fee, index) { return normalizeFee(fee, index, record); });
+    persistRecords();
+    renderMetrics();
+    renderTable();
+    feeDirty = false;
+    closeLayer(true);
+    notify("招标费用已保存，台账费用状态已更新", "success");
   }
 
   function updateResultFieldState() {
@@ -409,6 +844,18 @@
       record.reviewStatus = "待复盘";
       record.reviewTone = "orange";
     }
+    record.fees.forEach(function (fee) {
+      if (fee.type !== "service" || fee.status !== "pending_result") return;
+      if (result === "won") {
+        fee.involved = true;
+        fee.status = "pending_confirm";
+        fee.remark = "项目已中标，请根据正式收费通知确认服务费。";
+      } else if (result === "lost") {
+        fee.involved = false;
+        fee.status = "not_applicable";
+        fee.remark = "项目未中标，不涉及中标服务费。";
+      }
+    });
     persistRecords();
     renderMetrics();
     renderTable();
@@ -423,7 +870,8 @@
       currentPage: currentPage,
       search: document.getElementById("ledgerSearch").value,
       year: document.getElementById("ledgerYearFilter").value,
-      owner: document.getElementById("ledgerOwnerFilter").value
+      owner: document.getElementById("ledgerOwnerFilter").value,
+      fee: document.getElementById("ledgerFeeFilter").value
     };
     try { window.sessionStorage.setItem("biddingLedgerListState", JSON.stringify(state)); } catch (error) { /* storage unavailable */ }
   }
@@ -439,6 +887,8 @@
     if (!document.getElementById("ledgerYearFilter").value) document.getElementById("ledgerYearFilter").value = currentYear;
     document.getElementById("ledgerOwnerFilter").value = state.owner || "all";
     if (!document.getElementById("ledgerOwnerFilter").value) document.getElementById("ledgerOwnerFilter").value = "all";
+    document.getElementById("ledgerFeeFilter").value = state.fee || "all";
+    if (!document.getElementById("ledgerFeeFilter").value) document.getElementById("ledgerFeeFilter").value = "all";
     document.querySelectorAll("[data-ledger-filter]").forEach(function (button) {
       const active = button.getAttribute("data-ledger-filter") === activeFilter;
       button.classList.toggle("active", active);
@@ -556,9 +1006,45 @@
       { label: "投标报价（万元）", width: 18, value: function (record) { return Number(record.bidAmount).toFixed(2); } },
       { label: "投标结果", width: 14, value: function (record) { return resultDefinition(record.result).label; } },
       { label: "得分与排名", width: 20, value: function (record) { return record.score === "" ? "待公布" : Number(record.score).toFixed(2) + (record.rank === "" ? " / 排名待补" : " / 第 " + record.rank + " 名"); } },
+      { label: "费用状态", width: 16, value: function (record) { return feeSummary(record).label; } },
+      { label: "已支付招标费用（元）", width: 22, value: function (record) { return feeTotals(record).paid.toFixed(2); } },
+      { label: "在途保证金（元）", width: 20, value: function (record) { return feeTotals(record).deposit.toFixed(2); } },
       { label: "项目负责人", width: 14, value: function (record) { return record.owner; } },
       { label: "结果来源", width: 30, value: function (record) { return record.source || "待补充"; } }
     ];
+  }
+
+  function feeExportFields() {
+    return [
+      { label: "项目编号", width: 18, value: function (row) { return row.record.id; } },
+      { label: "项目名称", width: 34, value: function (row) { return row.record.name; } },
+      { label: "费用类型", width: 18, value: function (row) { return row.fee.name; } },
+      { label: "是否涉及", width: 12, value: function (row) { return row.fee.involved ? "涉及" : "不涉及"; } },
+      { label: "当前状态", width: 18, value: function (row) { return feeStatusDefinition(row.fee.status, row.fee).label; } },
+      { label: "费用说明 / 计费依据", width: 38, value: function (row) { return row.fee.basis || ""; } },
+      { label: "应付金额（元）", width: 18, value: function (row) { return Number(row.fee.expectedAmount || 0).toFixed(2); } },
+      { label: "实际支付金额（元）", width: 22, value: function (row) { return Number(row.fee.actualAmount || 0).toFixed(2); } },
+      { label: "收款单位", width: 28, value: function (row) { return row.fee.payee || ""; } },
+      { label: "付款截止日期", width: 18, value: function (row) { return row.fee.dueDate || ""; } },
+      { label: "实际支付日期", width: 18, value: function (row) { return row.fee.paidDate || ""; } },
+      { label: "保证金形式", width: 16, value: function (row) { return row.fee.guaranteeMethod || ""; } },
+      { label: "应退金额（元）", width: 18, value: function (row) { return Number(row.fee.refundAmount || 0).toFixed(2); } },
+      { label: "预计退回日期", width: 18, value: function (row) { return row.fee.refundDueDate || ""; } },
+      { label: "实际退回日期", width: 18, value: function (row) { return row.fee.refundDate || ""; } },
+      { label: "经办人", width: 14, value: function (row) { return row.fee.owner || row.record.owner; } },
+      { label: "凭证数量", width: 14, value: function (row) { return Array.isArray(row.fee.files) ? row.fee.files.length : 0; } },
+      { label: "备注", width: 42, value: function (row) { return row.fee.remark || ""; } }
+    ];
+  }
+
+  function feeExportRows(recordsToExport) {
+    const rows = [];
+    recordsToExport.forEach(function (record) {
+      (record.fees || []).forEach(function (fee) {
+        rows.push({ record: record, fee: fee });
+      });
+    });
+    return rows;
   }
 
   function xmlEscape(value) {
@@ -675,14 +1161,16 @@
     return new Blob(localParts.concat(centralParts, [end]), { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
   }
 
-  function buildLedgerWorkbook(fields, records) {
+  function buildLedgerWorkbook(recordsToExport) {
+    const feeRows = feeExportRows(recordsToExport);
     const styles = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="2"><font><sz val="11"/><name val="Microsoft YaHei"/></font><font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Microsoft YaHei"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF1677FF"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
     return buildZipBlob([
-      { name: "[Content_Types].xml", content: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>' },
+      { name: "[Content_Types].xml", content: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/worksheets/sheet2.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>' },
       { name: "_rels/.rels", content: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>' },
-      { name: "xl/workbook.xml", content: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="投标台账" sheetId="1" r:id="rId1"/></sheets></workbook>' },
-      { name: "xl/_rels/workbook.xml.rels", content: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>' },
-      { name: "xl/worksheets/sheet1.xml", content: buildWorksheetXml(fields, records) },
+      { name: "xl/workbook.xml", content: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="投标台账" sheetId="1" r:id="rId1"/><sheet name="招标费用明细" sheetId="2" r:id="rId2"/></sheets></workbook>' },
+      { name: "xl/_rels/workbook.xml.rels", content: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet2.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>' },
+      { name: "xl/worksheets/sheet1.xml", content: buildWorksheetXml(coreExportFields(), recordsToExport) },
+      { name: "xl/worksheets/sheet2.xml", content: buildWorksheetXml(feeExportFields(), feeRows) },
       { name: "xl/styles.xml", content: styles }
     ]);
   }
@@ -693,7 +1181,8 @@
       notify("当前筛选范围暂无可导出的台账记录", "warning", "#exportLedgerBtn");
       return;
     }
-    const blob = buildLedgerWorkbook(coreExportFields(), recordsToExport);
+    const feeRows = feeExportRows(recordsToExport);
+    const blob = buildLedgerWorkbook(recordsToExport);
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
     link.href = url;
@@ -702,7 +1191,7 @@
     link.click();
     link.remove();
     window.setTimeout(function () { URL.revokeObjectURL(url); }, 0);
-    notify("投标台账 Excel 已下载，共 " + recordsToExport.length + " 条记录", "success");
+    notify("投标台账 Excel 已下载，共 " + recordsToExport.length + " 条项目记录、" + feeRows.length + " 条费用明细", "success");
   }
 
   function resetFilters() {
@@ -711,6 +1200,7 @@
     document.getElementById("ledgerSearch").value = "";
     document.getElementById("ledgerYearFilter").value = currentYear;
     document.getElementById("ledgerOwnerFilter").value = "all";
+    document.getElementById("ledgerFeeFilter").value = "all";
     document.querySelectorAll("[data-ledger-filter]").forEach(function (button) {
       const active = button.getAttribute("data-ledger-filter") === "all";
       button.classList.toggle("active", active);
@@ -742,7 +1232,7 @@
       });
     });
     document.getElementById("ledgerSearch").addEventListener("input", function () { currentPage = 1; renderTable(); });
-    ["ledgerYearFilter", "ledgerOwnerFilter"].forEach(function (id) {
+    ["ledgerYearFilter", "ledgerOwnerFilter", "ledgerFeeFilter"].forEach(function (id) {
       document.getElementById(id).addEventListener("change", function () { currentPage = 1; renderTable(); });
     });
     document.getElementById("resetLedgerFilters").addEventListener("click", resetFilters);
@@ -761,10 +1251,38 @@
     });
     document.getElementById("ledgerResultModal").addEventListener("input", function () { resultDirty = true; });
     document.getElementById("ledgerResultModal").addEventListener("change", function () { resultDirty = true; });
+    document.getElementById("ledgerFeeModal").addEventListener("input", function () {
+      feeDirty = true;
+      syncFeeEditor();
+      renderFeeTabs();
+      updateCurrentFeeSummary();
+    });
+    document.getElementById("ledgerFeeModal").addEventListener("change", function () {
+      feeDirty = true;
+      syncFeeEditor();
+      updateFeeEditorState();
+      renderFeeTabs();
+      updateCurrentFeeSummary();
+    });
     document.getElementById("ledgerReviewModal").addEventListener("input", function () { reviewDirty = true; });
     document.getElementById("ledgerReviewModal").addEventListener("change", function () { reviewDirty = true; });
     document.getElementById("saveLedgerReviewDraft").addEventListener("click", function () { saveReview(false); });
     document.getElementById("completeLedgerReview").addEventListener("click", function () { saveReview(true); });
+    document.getElementById("addLedgerOtherFee").addEventListener("click", addOtherFee);
+    document.getElementById("deleteLedgerOtherFee").addEventListener("click", deleteOtherFee);
+    document.getElementById("saveLedgerFees").addEventListener("click", saveFees);
+    document.getElementById("selectLedgerFeeFiles").addEventListener("click", function () { document.getElementById("ledgerFeeFiles").click(); });
+    document.getElementById("ledgerFeeFiles").addEventListener("change", function (event) {
+      const fee = currentPendingFee();
+      if (!fee) return;
+      Array.from(event.target.files || []).forEach(function (file) {
+        if (fee.files.some(function (item) { return item.name === file.name; })) return;
+        fee.files.push({ name: file.name, description: "本次新增 · " + formatBytes(file.size), category: "费用凭证", tone: "blue" });
+      });
+      event.target.value = "";
+      feeDirty = true;
+      renderFeeFiles();
+    });
     document.getElementById("addLedgerReviewAction").addEventListener("click", function () {
       const actions = collectReviewActions();
       const record = recordById(reviewId);
@@ -783,6 +1301,16 @@
         openResultEditor(editButton.getAttribute("data-edit-result"));
         return;
       }
+      const feeButton = event.target.closest("[data-edit-fee]");
+      if (feeButton) {
+        openFeeEditor(feeButton.getAttribute("data-edit-fee"));
+        return;
+      }
+      const feeTab = event.target.closest("[data-fee-tab]");
+      if (feeTab) {
+        switchFeeEditor(Number(feeTab.getAttribute("data-fee-tab")));
+        return;
+      }
       const reviewButton = event.target.closest("[data-ledger-review]");
       if (reviewButton) {
         openReviewEditor(reviewButton.getAttribute("data-ledger-review"));
@@ -798,6 +1326,15 @@
         pendingResultFiles.splice(Number(removeResultFile.getAttribute("data-remove-result-file")), 1);
         resultDirty = true;
         renderResultFiles();
+        return;
+      }
+      const removeFeeFile = event.target.closest("[data-remove-fee-file]");
+      if (removeFeeFile) {
+        const fee = currentPendingFee();
+        if (!fee) return;
+        fee.files.splice(Number(removeFeeFile.getAttribute("data-remove-fee-file")), 1);
+        feeDirty = true;
+        renderFeeFiles();
         return;
       }
       const removeReviewAction = event.target.closest("[data-remove-review-action]");

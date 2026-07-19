@@ -10,14 +10,117 @@
     });
   }
 
-  let currentProject = (window.projectPrototype && window.projectPrototype.currentProject) || { id: "BID-202601-001" };
+  const projectData = window.BiddingProjectData || {};
+  const requestedProjectId = new URLSearchParams(window.location.search).get("id");
+  let pendingProject = null;
+  try {
+    const storedPendingProject = window.sessionStorage.getItem("biddingPendingProject");
+    if (storedPendingProject) pendingProject = JSON.parse(storedPendingProject);
+  } catch (error) {
+    pendingProject = null;
+  }
+  let currentProject = (pendingProject && requestedProjectId && pendingProject.id === requestedProjectId ? pendingProject : null) ||
+    (projectData.projects || []).find(function (item) { return item.id === requestedProjectId; }) ||
+    projectData.featuredProject ||
+    { id: "BID-202601-001", owner: "李明远" };
+  const versionApi = window.BiddingBidVersions || null;
+  let bidVersions = versionApi ? versionApi.load(currentProject) : [];
+  const issueIds = ["Q-T-001", "Q-T-002", "Q-B-001", "Q-B-002", "Q-B-003"];
   let archiveCompleted = false;
+
+  function selectedDeliveryVersion() {
+    if (!versionApi) return null;
+    return bidVersions.find(function (version) { return version.isDeliveryVersion; }) ||
+      bidVersions.find(function (version) { return version.review && version.review.status === "approved"; }) ||
+      versionApi.latest(bidVersions);
+  }
 
   function saveProject(patch) {
     const next = Object.assign({}, currentProject, patch || {});
     try { window.sessionStorage.setItem("biddingPendingProject", JSON.stringify(next)); } catch (error) { /* storage unavailable */ }
     currentProject = next;
     if (window.projectPrototype) window.projectPrototype.currentProject = next;
+    return next;
+  }
+
+  function safeStorageGet(key) {
+    try { return window.sessionStorage.getItem(key) || ""; } catch (error) { return ""; }
+  }
+
+  function safeStorageSet(key, value) {
+    try {
+      window.sessionStorage.setItem(key, value);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function markSmartCheckForRecheck() {
+    const smartCheckStorageKey = "biddingQualityReview:v2:" + (currentProject.id || "BID-202601-001");
+    let smartCheck = null;
+    const stored = safeStorageGet(smartCheckStorageKey);
+    if (stored) {
+      try { smartCheck = JSON.parse(stored); } catch (error) { smartCheck = null; }
+    }
+    if (!smartCheck || typeof smartCheck !== "object") {
+      smartCheck = { status: "result", batch: 2, score: 98, startedAt: 0, reviewWillComplete: false, issues: {} };
+    }
+    smartCheck.status = "result";
+    smartCheck.score = 98;
+    smartCheck.startedAt = 0;
+    smartCheck.reviewWillComplete = false;
+    smartCheck.issues = smartCheck.issues || {};
+    issueIds.forEach(function (issueId) { smartCheck.issues[issueId] = "done"; });
+    safeStorageSet(smartCheckStorageKey, JSON.stringify(smartCheck));
+  }
+
+  function returnDeliveryForRevision() {
+    const reason = (one("#deliveryReturnReason").value || "").trim();
+    if (!reason) {
+      toast("请填写退回原因", "warning", one("#deliveryReturnReason"));
+      one("#deliveryReturnReason").focus();
+      return;
+    }
+    const manualReviewStorageKey = "biddingManualQualityReview:v1:" + (currentProject.id || "BID-202601-001");
+    let manualReview = {};
+    const stored = safeStorageGet(manualReviewStorageKey);
+    if (stored) {
+      try { manualReview = JSON.parse(stored) || {}; } catch (error) { manualReview = {}; }
+    }
+    manualReview.status = "returned";
+    manualReview.returnReason = reason;
+    manualReview.returnedAt = Date.now();
+    manualReview.returnedBy = currentProject.owner || "李明远";
+    manualReview.returnSource = "delivery";
+    safeStorageSet(manualReviewStorageKey, JSON.stringify(manualReview));
+    if (versionApi) {
+      const deliveryVersion = versionApi.find(bidVersions, manualReview.versionId || manualReview.version) || selectedDeliveryVersion();
+      if (deliveryVersion) {
+        versionApi.update(currentProject, deliveryVersion.id, {
+          review: Object.assign({}, deliveryVersion.review || {}, {
+            status: "returned",
+            returnedAt: manualReview.returnedAt,
+            returnedBy: manualReview.returnedBy,
+            returnReason: reason
+          }),
+          isDeliveryVersion: false
+        });
+        bidVersions = versionApi.load(currentProject);
+      }
+    }
+    markSmartCheckForRecheck();
+    const next = saveProject({
+      stage: "标书编制",
+      stageDetail: "交付归档退回，待修改并重新智能检查",
+      progress: 88,
+      status: currentProject.status === "archived" ? "archived" : "ongoing"
+    });
+    if (window.projectPrototype) window.projectPrototype.closeLayers();
+    toast("已从交付归档退回标书编制");
+    window.setTimeout(function () {
+      window.location.href = "project-writing.html?id=" + encodeURIComponent(next.id || "BID-202601-001");
+    }, 300);
   }
 
   function numericAmount(value) {
@@ -25,8 +128,67 @@
     return match ? Number(match[0]) : 0;
   }
 
+  function versionArchiveMarkup(version) {
+    const status = versionApi.statusMeta(version);
+    const check = version.check || {};
+    const review = version.review || {};
+    const metaParts = [
+      version.createdBy || currentProject.owner || "李明远",
+      versionApi.formatDateTime(version.createdAt),
+      "技术标、商务标 · 2 份 DOCX"
+    ];
+    let secondary = "未提交人工审核";
+    if (review.status === "approved") secondary = "人工审核已通过";
+    else if (review.status === "pending") secondary = "人工审核中";
+    else if (review.status === "returned") secondary = "人工审核已退回";
+    else if (check.status === "passed") secondary = "智能检查已通过";
+    return '<div class="delivery-version-record' + (version.isDeliveryVersion ? " is-delivery" : "") + '">' +
+      '<span class="delivery-version-index">' + escapeHtml(version.number.replace("V1.0.", "V")) + '</span>' +
+      '<div><strong>' + escapeHtml(version.number) + (version.isDeliveryVersion ? " · 正式交付版本" : "") + '</strong><small>' + escapeHtml(metaParts.join(" · ")) + '</small><p>' + escapeHtml(version.note || "人工保存版本") + "</p></div>" +
+      '<div class="delivery-version-record-status"><span class="status-tag ' + status.tone + '">' + status.label + '</span><small>' + escapeHtml(secondary) + "</small></div></div>";
+  }
+
+  function renderDeliveryVersionState() {
+    if (!versionApi) return;
+    bidVersions = versionApi.load(currentProject);
+    let selected = selectedDeliveryVersion();
+    if (selected && !selected.isDeliveryVersion) {
+      versionApi.setDeliveryVersion(currentProject, selected.id);
+      bidVersions = versionApi.load(currentProject);
+      selected = selectedDeliveryVersion();
+    }
+    if (!selected) return;
+
+    const number = selected.number;
+    const projectName = currentProject.name || "某港口集团2026年度集装箱业务平台运维项目";
+    one("#deliveryVersionNumber").textContent = number;
+    one("#deliveryVersionMeta").textContent = (selected.review && selected.review.status === "approved" ? "人工质量审核已通过" : "当前交付候选版本") + " · 共归档 " + bidVersions.length + " 个版本";
+    one("#deliveryPackageDirectory").textContent = projectName + " / " + number + " / Word 文件套、PDF 文件套";
+    one("#wordPackageVersionMeta").textContent = "正式交付版本 " + number + " · 保留正文、表格及图片";
+    one("#pdfPackageVersionMeta").textContent = "正式交付版本 " + number + " · 保持文件页序与内容";
+    one("#deliveryTechnicalDocxName").textContent = "技术标_" + number + ".docx";
+    one("#deliveryBusinessDocxName").textContent = "商务标_" + number + ".docx";
+    one("#deliveryTechnicalPdfName").textContent = "技术标_" + number + ".pdf";
+    one("#deliveryBusinessPdfName").textContent = "商务标_" + number + ".pdf";
+    const previewNames = {
+      "bid-technical": "技术标_" + number,
+      "bid-business": "商务标_" + number
+    };
+    all("[data-delivery-preview]").forEach(function (button) {
+      const extension = String(button.getAttribute("data-preview-name") || "").toLowerCase().endsWith(".pdf") ? ".pdf" : ".docx";
+      button.setAttribute("data-preview-name", previewNames[button.getAttribute("data-delivery-preview")] + extension);
+    });
+    one("#downloadWordPackage").setAttribute("download", projectName + "_" + number + "_Word文件套.zip");
+    one("#downloadPdfPackage").setAttribute("download", projectName + "_" + number + "_PDF文件套.zip");
+    one("#deliveryArchiveVersionCount").textContent = bidVersions.length + " 个版本 · " + (bidVersions.length * 2) + " 份 DOCX";
+    one("#archiveConfirmVersionCount").textContent = bidVersions.length + " 个版本";
+    const markup = bidVersions.slice().reverse().map(versionArchiveMarkup).join("");
+    one("#deliveryVersionArchiveList").innerHTML = markup;
+    one("#archiveConfirmVersionList").innerHTML = markup;
+  }
+
   function archiveFilesFromPage() {
-    return all(".ledger-archive-group .archive-attachment-list > div").map(function (item) {
+    const sourceFiles = all(".ledger-archive-group .archive-attachment-list > div").map(function (item) {
       const name = one("strong", item).textContent.trim();
       const description = one("small", item).textContent.trim();
       const tag = one(".status-tag", item);
@@ -37,6 +199,23 @@
         tone: tag && tag.classList.contains("green") ? "green" : "blue"
       };
     });
+    const versionFiles = versionApi ? bidVersions.reduce(function (files, version) {
+      const category = version.isDeliveryVersion ? "正式交付" : "历史版本";
+      const tone = version.isDeliveryVersion ? "green" : "gray";
+      ["技术标", "商务标"].forEach(function (documentName) {
+        files.push({
+          name: documentName + "_" + version.number + ".docx",
+          description: version.number + " · " + (version.note || "人工保存版本"),
+          category: category,
+          tone: tone,
+          versionId: version.id,
+          versionNumber: version.number,
+          documentType: documentName
+        });
+      });
+      return files;
+    }, []) : [];
+    return sourceFiles.concat(versionFiles);
   }
 
   function knowledgeItemsForLedger() {
@@ -64,6 +243,7 @@
     const bidDate = bidDateText.slice(0, 10);
     const existingIndex = stored.findIndex(function (record) { return record.id === currentProject.id; });
     const existing = existingIndex === -1 ? null : stored[existingIndex];
+    const deliveryVersion = selectedDeliveryVersion();
     const baseRecord = {
       id: currentProject.id,
       name: currentProject.name || "某港口集团2026年度集装箱业务平台运维项目",
@@ -72,7 +252,21 @@
       bidDateText: bidDateText,
       archiveDate: bidDate,
       archiveTime: bidDate + " 10:12",
-      archiveVersion: "正式交付 V1.0",
+      archiveVersion: "正式交付 " + (deliveryVersion ? deliveryVersion.number : "V1.0"),
+      deliveryVersionId: deliveryVersion ? deliveryVersion.id : "",
+      archiveVersions: bidVersions.map(function (version) {
+        return {
+          id: version.id,
+          number: version.number,
+          createdAt: version.createdAt,
+          createdBy: version.createdBy,
+          note: version.note,
+          check: version.check,
+          review: version.review,
+          isDeliveryVersion: Boolean(version.isDeliveryVersion),
+          archiveStatus: version.archiveStatus
+        };
+      }),
       archiveOperator: currentProject.owner || "李明远",
       bidAmount: currentProject.id === "BID-202601-001" ? 59.76 : numericAmount(currentProject.budget),
       owner: currentProject.owner || "李明远",
@@ -233,6 +427,7 @@
 
   function openArchiveConfirm() {
     const counts = renderKnowledgeState();
+    renderDeliveryVersionState();
     renderArchiveConfirmState(counts);
     if (window.projectPrototype) window.projectPrototype.openLayer("deliveryArchiveConfirmModal");
   }
@@ -243,6 +438,11 @@
       renderArchiveConfirmState(beforeArchive);
       return;
     }
+    const deliveryVersion = selectedDeliveryVersion();
+    if (versionApi && deliveryVersion) {
+      bidVersions = versionApi.archiveAll(currentProject, deliveryVersion.id);
+      renderDeliveryVersionState();
+    }
     archiveCompleted = true;
     const counts = renderKnowledgeState();
     const archiveTag = one("#autoArchiveTag");
@@ -252,7 +452,7 @@
       archiveTag.className = "status-tag green";
       archiveTag.textContent = "已完成归档";
     }
-    if (archiveDescription) archiveDescription.textContent = "投标台账已完成归档，" + counts.confirmed + " 项知识内容已沉淀" + (counts.canceled ? "，" + counts.canceled + " 项未沉淀。" : "。");
+    if (archiveDescription) archiveDescription.textContent = "投标台账已归档 " + bidVersions.length + " 个标书版本，" + counts.confirmed + " 项知识内容已沉淀" + (counts.canceled ? "，" + counts.canceled + " 项未沉淀。" : "。");
     if (ledgerState) {
       ledgerState.className = "status-tag green";
       ledgerState.textContent = "已归档";
@@ -262,14 +462,32 @@
       archiveButton.disabled = true;
       one("span:last-child", archiveButton).textContent = "已完成归档";
     }
-    saveProject({ stage: "交付归档", stageDetail: "已完成交付并归档", progress: 100, status: "archived", deadlineText: "已完成交付" });
+    const returnButton = one("#returnDeliveryRevision");
+    if (returnButton) {
+      returnButton.disabled = true;
+      returnButton.classList.add("hidden");
+    }
+    saveProject({ stage: "交付归档", stageDetail: (deliveryVersion ? deliveryVersion.number + " " : "") + "已完成正式交付，全部标书版本已归档", progress: 100, status: "archived", deadlineText: "已完成交付" });
     upsertLedgerRecord();
     if (window.projectPrototype) window.projectPrototype.closeLayers();
-    toast("交付归档已完成，台账记录和知识内容已按确认结果更新", "success");
+    toast("交付归档已完成，" + bidVersions.length + " 个标书版本及台账记录已保存", "success");
   }
 
   function init() {
+    if (!one("#confirmDeliveryArchive")) return;
+    renderDeliveryVersionState();
     renderKnowledgeState();
+    const returnButton = one("#returnDeliveryRevision");
+    if (currentProject.status === "archived") {
+      returnButton.classList.add("hidden");
+    } else {
+      returnButton.addEventListener("click", function () {
+        one("#deliveryReturnReason").value = "";
+        if (window.projectPrototype) window.projectPrototype.openLayer("deliveryReturnRevisionModal");
+        window.setTimeout(function () { one("#deliveryReturnReason").focus(); }, 80);
+      });
+    }
+    one("#confirmDeliveryReturnRevision").addEventListener("click", returnDeliveryForRevision);
     all(".knowledge-state-menu, .knowledge-batch-menu").forEach(bindKnowledgeMenu);
     all("[data-delivery-preview]").forEach(function (button) {
       button.addEventListener("click", function () {
