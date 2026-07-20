@@ -305,8 +305,8 @@ function Test-PagesDeployment {
     )
 
     if ($Files.Count -eq 0) {
-        Write-Host "No changed HTML/CSS/JS files; Pages content hash check skipped."
-        return
+        Write-Host "No changed HTML/CSS/JS files; verifying core Pages files."
+        $Files = @("index.html", "assets/css/theme.css", "assets/js/common.js")
     }
 
     Write-Step "Waiting for GitHub Pages content"
@@ -324,7 +324,7 @@ function Test-PagesDeployment {
             $localHash = Get-NormalizedUtf8Hash -Bytes $localBytes
             $encodedPath = (($file -replace "\\", "/") -split "/" |
                 ForEach-Object { [Uri]::EscapeDataString($_) }) -join "/"
-            $url = "$baseUrl$encodedPath?v=$shortCommit"
+            $url = "$baseUrl${encodedPath}?v=$shortCommit"
 
             try {
                 $remoteBytes = Get-RemoteBytes -Url $url
