@@ -41,6 +41,8 @@
     aiWidth: 392,
     activePage: 1,
     outlineCollapsed: false,
+    writingGeneration: null,
+    writingGenerationFrame: 0,
     quality: null,
     qualityFrame: 0,
     focusedIssueId: ""
@@ -59,6 +61,9 @@
 
   const qualityStorageKey = "biddingQualityReview:v2:" + (project.id || "BID-202601-001");
   const manualReviewStorageKey = "biddingManualQualityReview:v1:" + (project.id || "BID-202601-001");
+  const writingGenerationStorageKey = "biddingWritingGeneration:v1:" + (project.id || "BID-202601-001");
+  const legacyWritingGenerationStorageKey = "biddingWritingStartedAt:" + (project.id || "BID-202601-001");
+  const writingGenerationDuration = 12000;
   const qualityReviewDuration = 7200;
   const qualityIssues = [
     {
@@ -169,12 +174,72 @@
     }
   }
 
+  function safeStorageRemove(key) {
+    try { window.sessionStorage.removeItem(key); } catch (error) { /* storage unavailable */ }
+  }
+
   function saveProjectPatch(patch) {
     const next = Object.assign({}, project, patch || {});
     Object.assign(project, next);
     try { window.sessionStorage.setItem("biddingPendingProject", JSON.stringify(next)); } catch (error) { /* storage unavailable */ }
     if (window.projectPrototype) window.projectPrototype.currentProject = next;
     return next;
+  }
+
+  function defaultWritingGenerationState() {
+    const legacyStartedAt = Number(safeStorageGet(legacyWritingGenerationStorageKey) || 0);
+    const stageDetail = String(project.stageDetail || "");
+    if (legacyStartedAt || stageDetail.indexOf("AI 自动生成中") !== -1) {
+      return {
+        status: "generating",
+        startedAt: legacyStartedAt || Date.now(),
+        completedAt: 0,
+        progress: 8,
+        activeStep: 1,
+        requiresVersionSave: true
+      };
+    }
+    if (stageDetail.indexOf("初稿已生成") !== -1) {
+      return {
+        status: "complete",
+        startedAt: 0,
+        completedAt: Date.now(),
+        progress: 100,
+        activeStep: 6,
+        requiresVersionSave: true
+      };
+    }
+    return {
+      status: "idle",
+      startedAt: 0,
+      completedAt: 0,
+      progress: 0,
+      activeStep: 0,
+      requiresVersionSave: false
+    };
+  }
+
+  function loadWritingGenerationState() {
+    const stored = safeStorageGet(writingGenerationStorageKey);
+    if (!stored) return defaultWritingGenerationState();
+    try {
+      const parsed = JSON.parse(stored);
+      if (!parsed || ["idle", "generating", "complete"].indexOf(parsed.status) === -1) return defaultWritingGenerationState();
+      parsed.startedAt = Number(parsed.startedAt || 0);
+      parsed.completedAt = Number(parsed.completedAt || 0);
+      parsed.progress = Number(parsed.progress || (parsed.status === "complete" ? 100 : 8));
+      parsed.activeStep = Number(parsed.activeStep || (parsed.status === "complete" ? 6 : 1));
+      parsed.requiresVersionSave = Boolean(parsed.requiresVersionSave);
+      if (parsed.status === "generating" && !parsed.startedAt) parsed.startedAt = Date.now();
+      return parsed;
+    } catch (error) {
+      return defaultWritingGenerationState();
+    }
+  }
+
+  function saveWritingGenerationState() {
+    if (!state.writingGeneration) return false;
+    return safeStorageSet(writingGenerationStorageKey, JSON.stringify(state.writingGeneration));
   }
 
   function latestBidVersion() {
@@ -426,6 +491,10 @@
     state.baseVersionId = result.version.id;
     state.versionDirty = false;
     state.dirty = false;
+    if (state.writingGeneration && state.writingGeneration.status === "complete") {
+      state.writingGeneration.requiresVersionSave = false;
+      saveWritingGenerationState();
+    }
     state.quality = {
       status: "idle",
       batch: 0,
@@ -1021,7 +1090,200 @@
     setActivePage(state.activePage);
   }
 
+  const writingGenerationStepNames = [
+    "读取解析结论并建立生成基线",
+    "导入并编排技术标章节",
+    "汇编商务标与证明材料",
+    "关联投标事项与评分点",
+    "标记缺失材料与待确认承诺",
+    "保存初始工作稿并开放编辑"
+  ];
+
+  function writingGenerationOwnsTaskCard() {
+    if (!state.writingGeneration || !state.quality) return false;
+    return state.writingGeneration.status !== "idle" && state.quality.status === "idle";
+  }
+
+  function taskDetailsElement(mode) {
+    return one(mode === "generation" ? "#writingGenerationStatusDetails" : "#qualityReviewStatusDetails");
+  }
+
+  function setTaskMode(mode) {
+    const card = one("#qualityReviewStatusCard");
+    const toggle = one("#toggleQualityReviewDetails");
+    if (!card || !toggle) return;
+    const previousMode = card.getAttribute("data-task-mode") || "quality";
+    if (previousMode !== mode) {
+      const previousDetails = taskDetailsElement(previousMode);
+      if (previousDetails) previousDetails.setAttribute("hidden", "");
+      card.setAttribute("data-task-mode", mode);
+      toggle.setAttribute("aria-expanded", "false");
+      toggle.classList.remove("active");
+      one("span:last-child", toggle).textContent = "展开详情";
+    }
+    toggle.setAttribute("aria-controls", mode === "generation" ? "writingGenerationStatusDetails" : "qualityReviewStatusDetails");
+  }
+
+  function setTaskDetailsOpen(open) {
+    const card = one("#qualityReviewStatusCard");
+    const toggle = one("#toggleQualityReviewDetails");
+    if (!card || !toggle) return;
+    const mode = card.getAttribute("data-task-mode") || "quality";
+    const activeDetails = taskDetailsElement(mode);
+    const inactiveDetails = taskDetailsElement(mode === "generation" ? "quality" : "generation");
+    if (inactiveDetails) inactiveDetails.setAttribute("hidden", "");
+    if (activeDetails) {
+      if (open) activeDetails.removeAttribute("hidden");
+      else activeDetails.setAttribute("hidden", "");
+    }
+    toggle.setAttribute("aria-expanded", String(Boolean(open)));
+    toggle.classList.toggle("active", Boolean(open));
+    one("span:last-child", toggle).textContent = open ? "收起详情" : "展开详情";
+  }
+
+  function setGenerationStatusTag(element, stateName) {
+    if (!element) return;
+    const meta = {
+      waiting: { tone: "gray", label: "等待中" },
+      running: { tone: "blue", label: "进行中" },
+      complete: { tone: "green", label: "已完成" }
+    }[stateName] || { tone: "gray", label: "等待中" };
+    element.className = "status-tag " + meta.tone;
+    element.textContent = meta.label;
+  }
+
+  function renderWritingGenerationSteps(activeStep, complete) {
+    all("[data-generation-step]", one("#writingGenerationSteps")).forEach(function (row) {
+      const step = Number(row.getAttribute("data-generation-step"));
+      const status = one("em", row);
+      row.classList.remove("current", "completed");
+      if (complete || step < activeStep) {
+        row.classList.add("completed");
+        setGenerationStatusTag(status, "complete");
+      } else if (step === activeStep) {
+        row.classList.add("current");
+        setGenerationStatusTag(status, "running");
+      } else {
+        setGenerationStatusTag(status, "waiting");
+      }
+    });
+  }
+
+  function renderWritingGenerationOutputs(activeStep, complete) {
+    const thresholds = { technical: 2, business: 3, mapping: 4 };
+    Object.keys(thresholds).forEach(function (key) {
+      const row = one('[data-generation-output="' + key + '"]');
+      if (!row) return;
+      const threshold = thresholds[key];
+      const status = one("em", row);
+      row.classList.remove("current", "completed");
+      if (complete || activeStep > threshold) {
+        row.classList.add("completed");
+        setGenerationStatusTag(status, "complete");
+      } else if (activeStep === threshold) {
+        row.classList.add("current");
+        setGenerationStatusTag(status, "running");
+      } else {
+        setGenerationStatusTag(status, "waiting");
+      }
+    });
+  }
+
+  function renderWritingGenerationTabStatus(activeStep, complete) {
+    [
+      { id: "technical", threshold: 2 },
+      { id: "business", threshold: 3 }
+    ].forEach(function (item) {
+      const element = one("#" + item.id + "QualityCount");
+      if (!element) return;
+      if (complete || activeStep > item.threshold) {
+        element.className = "status-tag green bid-quality-count";
+        element.textContent = "已生成";
+      } else if (activeStep === item.threshold) {
+        element.className = "status-tag blue bid-quality-count";
+        element.textContent = "生成中";
+      } else {
+        element.className = "status-tag gray bid-quality-count";
+        element.textContent = "等待生成";
+      }
+    });
+  }
+
+  function updateWritingGenerationUI() {
+    const generation = state.writingGeneration;
+    if (!generation) return;
+    const complete = generation.status === "complete";
+    const progress = complete ? 100 : Math.max(8, Math.min(99, Number(generation.progress || 8)));
+    const activeStep = complete ? 6 : Math.max(1, Math.min(6, Number(generation.activeStep || 1)));
+    const normalized = Math.max(0, Math.min(1, (progress - 8) / 92));
+    const pages = activeStep < 2 ? 0 : Math.min(96, Math.round(96 * normalized));
+    const matters = activeStep < 4 ? 0 : Math.min(93, Math.round(93 * Math.max(0, (normalized - .45) / .55)));
+    const knowledge = activeStep < 2 ? 0 : Math.min(21, Math.round(21 * Math.max(0, (normalized - .18) / .82)));
+    const card = one("#qualityReviewStatusCard");
+    const icon = one("#qualityReviewStatusIcon");
+    const tag = one("#qualityReviewStatusTag");
+    const submit = one("#submitQualityReview");
+    const manualReview = one("#submitManualReview");
+    const editorStatus = one("#bidEditorQualityStatus");
+    const editorStatusText = one("#bidEditorQualityStatusText");
+    const editorAction = one("#bidEditorQualityAction");
+    const editorActionLabel = one("span", editorAction);
+    const viewVersions = one("#viewBidVersions");
+
+    setTaskMode("generation");
+    card.setAttribute("data-quality-state", complete ? "complete" : "reviewing");
+    icon.innerHTML = complete
+      ? '<svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/><circle cx="12" cy="12" r="9"/></svg>'
+      : '<svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v6h-6"/></svg>';
+    one("#qualityReviewStatusTitle").textContent = complete ? "投标文件生成完成" : "AI 正在生成投标文件";
+    one("#qualityReviewStatusDescription").textContent = complete
+      ? (generation.requiresVersionSave
+        ? "技术标 73 页、商务标 23 页已生成并建立响应关联；完成核对后请保存为版本，再提交智能检查。"
+        : "技术标与商务标已生成并保存为人工版本，可继续编辑或提交智能检查。")
+      : "当前执行第 " + activeStep + " / 6 步：" + writingGenerationStepNames[activeStep - 1] + "。";
+    tag.className = "status-tag " + (complete ? "green" : "blue");
+    tag.textContent = complete ? "生成完成" : "生成中 " + progress + "%";
+
+    submit.classList.remove("hidden");
+    submit.disabled = !complete;
+    submit.title = complete ? "" : "投标文件生成完成后可提交智能检查";
+    one("span:last-child", submit).textContent = complete ? "提交智能检查" : "投标文件生成中";
+    manualReview.classList.add("hidden");
+    if (viewVersions) viewVersions.disabled = !complete;
+
+    editorStatus.setAttribute("data-quality-state", complete ? "complete" : "reviewing");
+    editorStatusText.textContent = complete ? "投标文件：生成完成" : "投标文件：生成中 " + progress + "%";
+    editorAction.disabled = false;
+    editorActionLabel.textContent = complete ? "查看结果" : "查看进度";
+
+    setQualityMetric("#writingGenerationMetricDocuments", "2", "技术标、商务标");
+    setQualityMetric("#writingGenerationMetricPages", (complete ? 96 : pages) + " / 96", complete ? "技术标 73 页 · 商务标 23 页" : "正在导入并编排正文");
+    setQualityMetric("#writingGenerationMetricMatters", (complete ? 93 : matters) + " / 93", complete ? "全部建立章节关联" : "关联要求和评分点");
+    setQualityMetric("#writingGenerationMetricKnowledge", (complete ? 21 : knowledge) + " / 21", complete ? "全部保留来源记录" : "引用企业真实资料");
+    setQualityMetric("#writingGenerationMetricPending", activeStep < 5 && !complete ? "--" : "5", "缺失材料与关键承诺");
+    setQualityMetric("#writingGenerationMetricProgress", progress + "%", complete ? "初始工作稿已开放编辑" : "生成完成后开放编辑");
+    one("#writingGenerationProcessDescription").textContent = complete
+      ? "全部 6 个步骤已完成，初始工作稿已开放编辑"
+      : "当前执行第 " + activeStep + " / 6 步：" + writingGenerationStepNames[activeStep - 1];
+    one("#writingGenerationProcessTag").className = "status-tag " + (complete ? "green" : "blue");
+    one("#writingGenerationProcessTag").textContent = complete ? "已完成" : "进行中";
+    one("#writingGenerationProgressBar").style.width = progress + "%";
+    one("#writingGenerationProgressText").textContent = progress + "%";
+    one("#writingGenerationOutputTag").className = "status-tag " + (complete ? "green" : "blue");
+    one("#writingGenerationOutputTag").textContent = complete ? "生成完成" : "生成中";
+    renderWritingGenerationSteps(activeStep, complete);
+    renderWritingGenerationOutputs(activeStep, complete);
+    renderWritingGenerationTabStatus(activeStep, complete);
+    hideQualityComment(true);
+    syncQualityToolbarNavigation();
+  }
+
   function updateQualityReviewUI() {
+    if (writingGenerationOwnsTaskCard()) {
+      updateWritingGenerationUI();
+      return;
+    }
+    setTaskMode("quality");
     const quality = state.quality;
     const mode = quality.status;
     const boundVersion = qualityBidVersion();
@@ -1153,7 +1415,7 @@
     syncQualityToolbarNavigation();
   }
 
-  function setEditorQualityLocked(locked) {
+  function setEditorQualityLocked(locked, lockedLabel) {
     const shell = one(".bid-editor-shell");
     shell.classList.toggle("quality-review-locked", locked);
     pagesRoot().setAttribute("contenteditable", locked ? "false" : "true");
@@ -1163,13 +1425,51 @@
       if (control) control.disabled = locked;
     });
     if (locked) {
-      setSaveState("saving", "检查版本已锁定");
+      setSaveState("saving", lockedLabel || "检查版本已锁定");
       setAiPanel(false);
     } else if (!state.dirty) {
       const baseVersion = baseBidVersion();
       if (state.versionDirty) setSaveState("dirty", "工作稿已自动保存 · 待保存为版本");
       else setSaveState("saved", baseVersion ? "已保存至 " + baseVersion.number : "工作稿已保存");
     }
+  }
+
+  function finishWritingGeneration() {
+    window.cancelAnimationFrame(state.writingGenerationFrame);
+    if (!state.writingGeneration || state.writingGeneration.status !== "generating") return;
+    state.writingGeneration.status = "complete";
+    state.writingGeneration.completedAt = Date.now();
+    state.writingGeneration.progress = 100;
+    state.writingGeneration.activeStep = 6;
+    state.writingGeneration.requiresVersionSave = true;
+    state.versionDirty = true;
+    safeStorageRemove(legacyWritingGenerationStorageKey);
+    saveWritingGenerationState();
+    saveProjectPatch({
+      stage: "标书编制",
+      stageDetail: "技术标与商务标初稿已生成，待核对编制",
+      progress: 64,
+      status: project.status === "archived" ? "archived" : "ongoing"
+    });
+    setEditorQualityLocked(false);
+    renderBidVersionContext();
+    renderBidVersionHistory();
+    updateQualityReviewUI();
+    toast("投标文件已生成，可开始核对和编辑");
+  }
+
+  function runWritingGeneration() {
+    if (!state.writingGeneration || state.writingGeneration.status !== "generating") return;
+    const elapsed = Date.now() - Number(state.writingGeneration.startedAt || Date.now());
+    const ratio = Math.max(0, Math.min(1, elapsed / writingGenerationDuration));
+    state.writingGeneration.progress = Math.round(8 + ratio * 92);
+    state.writingGeneration.activeStep = Math.min(6, Math.floor(ratio * 6) + 1);
+    updateWritingGenerationUI();
+    if (ratio >= 1) {
+      finishWritingGeneration();
+      return;
+    }
+    state.writingGenerationFrame = window.requestAnimationFrame(runWritingGeneration);
   }
 
   function updateReviewProgress(progress, activeStep) {
@@ -2278,13 +2578,9 @@
     });
 
     one("#toggleQualityReviewDetails").addEventListener("click", function () {
-      const details = one("#qualityReviewStatusDetails");
-      const willOpen = details.hasAttribute("hidden");
-      if (willOpen) details.removeAttribute("hidden");
-      else details.setAttribute("hidden", "");
-      this.setAttribute("aria-expanded", String(willOpen));
-      this.classList.toggle("active", willOpen);
-      one("span:last-child", this).textContent = willOpen ? "收起详情" : "展开详情";
+      const mode = one("#qualityReviewStatusCard").getAttribute("data-task-mode") || "quality";
+      const details = taskDetailsElement(mode);
+      setTaskDetailsOpen(details ? details.hasAttribute("hidden") : false);
     });
     one("#qualityIssueList").addEventListener("click", function (event) {
       const trigger = event.target.closest("[data-quality-locate]");
@@ -2304,7 +2600,7 @@
         openQualityDetails();
         return;
       }
-      if (state.versionDirty || state.dirty || !baseBidVersion()) {
+      if ((state.writingGeneration && state.writingGeneration.requiresVersionSave) || state.versionDirty || state.dirty || !baseBidVersion()) {
         toast("请先将技术标和商务标人工保存为新版本，再提交智能检查", "warning", one("#saveBidDocument"));
         openSaveBidVersionModal(true);
         return;
@@ -2321,6 +2617,11 @@
     }
     one("#submitQualityReview").addEventListener("click", openSubmitQualityModal);
     one("#bidEditorQualityAction").addEventListener("click", function () {
+      if (one("#qualityReviewStatusCard").getAttribute("data-task-mode") === "generation") {
+        setTaskDetailsOpen(true);
+        one("#qualityReviewStatusCard").scrollIntoView({ behavior: "smooth", block: "start" });
+        return;
+      }
       if (state.quality.status === "result" && qualityCounts().pending === 0) {
         openSubmitQualityModal();
         return;
@@ -2413,7 +2714,11 @@
     });
   }
 
+  state.writingGeneration = loadWritingGenerationState();
   state.quality = loadQualityState();
+  if (writingGenerationOwnsTaskCard() && state.writingGeneration.requiresVersionSave) {
+    state.versionDirty = true;
+  }
   renderReviewReturnNotice();
   renderBidVersionContext();
   renderBidVersionHistory();
@@ -2424,7 +2729,12 @@
   bindAiPanelResize();
   bindEvents();
   updateQualityReviewUI();
-  if (state.quality.status === "reviewing") {
+  if (state.writingGeneration.status === "generating" && state.quality.status === "idle") {
+    setEditorQualityLocked(true, "投标文件生成中");
+    setTaskDetailsOpen(true);
+    if (Date.now() - Number(state.writingGeneration.startedAt || 0) >= writingGenerationDuration) finishWritingGeneration();
+    else state.writingGenerationFrame = window.requestAnimationFrame(runWritingGeneration);
+  } else if (state.quality.status === "reviewing") {
     setEditorQualityLocked(true);
     if (Date.now() - Number(state.quality.startedAt || 0) >= qualityReviewDuration) finishQualityReview();
     else state.qualityFrame = window.requestAnimationFrame(runQualityReview);

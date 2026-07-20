@@ -946,9 +946,18 @@
       confirmButton.querySelector("span:last-child").textContent = "正在创建标书编制任务";
       const project = saveCurrentProject({ status: "ongoing", stage: "标书编制", stageDetail: "AI 自动生成中", progress: 52 });
       const projectId = project.id || "BID-202601-001";
+      const startedAt = Date.now();
       try {
         window.sessionStorage.removeItem("biddingQualityReview:v2:" + projectId);
-        window.sessionStorage.setItem("biddingWritingStartedAt:" + projectId, String(Date.now()));
+        window.sessionStorage.removeItem("biddingWritingStartedAt:" + projectId);
+        window.sessionStorage.setItem("biddingWritingGeneration:v1:" + projectId, JSON.stringify({
+          status: "generating",
+          startedAt: startedAt,
+          completedAt: 0,
+          progress: 8,
+          activeStep: 1,
+          requiresVersionSave: true
+        }));
       } catch (error) { /* storage unavailable */ }
       window.setTimeout(function () {
         window.location.href = "project-writing.html?id=" + encodeURIComponent(projectId);
@@ -1158,26 +1167,6 @@
       window.setTimeout(function () { window.location.href = "project-writing.html?id=" + encodeURIComponent(project.id || "BID-202601-001") + "#qualityReviewStatusCard"; }, 650);
     });
 
-    const current = (window.projectPrototype && window.projectPrototype.currentProject) || {};
-    let startedAt = 0;
-    try { startedAt = Number(window.sessionStorage.getItem("biddingWritingStartedAt:" + (current.id || "BID-202601-001")) || 0); } catch (error) { /* storage unavailable */ }
-    if (startedAt) {
-      const duration = 12000;
-      const renderWritingProgress = function () {
-        const ratio = Math.max(0, Math.min(1, (Date.now() - startedAt) / duration));
-        const progress = Math.round(18 + ratio * 82);
-        one("#writingGenerationProgress").style.width = progress + "%";
-        one("#writingGenerationTag").textContent = ratio >= 1 ? "生成完成" : "生成中 " + progress + "%";
-        one("#writingGenerationTag").className = "status-tag " + (ratio >= 1 ? "green" : "blue");
-        one("#writingGenerationTitle").textContent = ratio >= 1 ? "投标文件已完成生成" : "AI 正在生成投标文件";
-        one("#writingGenerationText").textContent = ratio >= 1 ? "技术标 73 页、商务标 23 页已导入，可继续合规优化或提交智能检查。" : "AI 正在核对章节、引用采购依据并校验评分点覆盖。";
-        if (ratio < 1) window.requestAnimationFrame(renderWritingProgress);
-        else {
-          try { window.sessionStorage.removeItem("biddingWritingStartedAt:" + (current.id || "BID-202601-001")); } catch (error) { /* storage unavailable */ }
-        }
-      };
-      renderWritingProgress();
-    }
   }
 
   function initQualityPage() {

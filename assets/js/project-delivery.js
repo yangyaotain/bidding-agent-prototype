@@ -25,6 +25,7 @@
     { id: "BID-202601-001", owner: "李明远" };
   const versionApi = window.BiddingBidVersions || null;
   let bidVersions = versionApi ? versionApi.load(currentProject) : [];
+  let activeArchiveVersionId = "";
   const issueIds = ["Q-T-001", "Q-T-002", "Q-B-001", "Q-B-002", "Q-B-003"];
   let archiveCompleted = false;
 
@@ -33,6 +34,10 @@
     return bidVersions.find(function (version) { return version.isDeliveryVersion; }) ||
       bidVersions.find(function (version) { return version.review && version.review.status === "approved"; }) ||
       versionApi.latest(bidVersions);
+  }
+
+  function selectedArchiveVersion() {
+    return bidVersions.find(function (version) { return version.id === activeArchiveVersionId; }) || selectedDeliveryVersion();
   }
 
   function saveProject(patch) {
@@ -128,7 +133,7 @@
     return match ? Number(match[0]) : 0;
   }
 
-  function versionArchiveMarkup(version) {
+  function versionArchiveMarkup(version, interactive) {
     const status = versionApi.statusMeta(version);
     const check = version.check || {};
     const review = version.review || {};
@@ -142,10 +147,111 @@
     else if (review.status === "pending") secondary = "人工审核中";
     else if (review.status === "returned") secondary = "人工审核已退回";
     else if (check.status === "passed") secondary = "智能检查已通过";
-    return '<div class="delivery-version-record' + (version.isDeliveryVersion ? " is-delivery" : "") + '">' +
+    const active = interactive && version.id === activeArchiveVersionId;
+    const tag = interactive ? "button" : "div";
+    const attributes = interactive
+      ? ' type="button" role="tab" aria-selected="' + (active ? "true" : "false") + '" aria-controls="deliveryArchiveFileList" data-delivery-archive-version="' + escapeHtml(version.id) + '"'
+      : "";
+    return "<" + tag + ' class="delivery-version-record' + (version.isDeliveryVersion ? " is-delivery" : "") + (active ? " active" : "") + '"' + attributes + ">" +
       '<span class="delivery-version-index">' + escapeHtml(version.number.replace("V1.0.", "V")) + '</span>' +
-      '<div><strong>' + escapeHtml(version.number) + (version.isDeliveryVersion ? " · 正式交付版本" : "") + '</strong><small>' + escapeHtml(metaParts.join(" · ")) + '</small><p>' + escapeHtml(version.note || "人工保存版本") + "</p></div>" +
-      '<div class="delivery-version-record-status"><span class="status-tag ' + status.tone + '">' + status.label + '</span><small>' + escapeHtml(secondary) + "</small></div></div>";
+      '<span class="delivery-version-record-main"><strong>' + escapeHtml(version.number) + (version.isDeliveryVersion ? " · 正式交付版本" : "") + '</strong><small>' + escapeHtml(metaParts.join(" · ")) + '</small><span class="delivery-version-note">' + escapeHtml(version.note || "人工保存版本") + "</span></span>" +
+      '<span class="delivery-version-record-status"><span class="status-tag ' + status.tone + '">' + status.label + '</span><small>' + escapeHtml(secondary) + "</small></span></" + tag + ">";
+  }
+
+  function archiveFileIcon(name) {
+    return window.BiddingFileIcons
+      ? window.BiddingFileIcons.markup(name, "compact-file-icon")
+      : '<span class="file-type-icon type-word compact-file-icon" role="img" aria-label="DOCX 文件" title="DOCX 文件"><span class="file-format-mark">DOCX</span></span>';
+  }
+
+  function archiveFileActionsMarkup() {
+    return '<div class="archive-file-actions">' +
+      '<button class="archive-file-action is-preview" type="button" data-archive-file-preview><svg viewBox="0 0 24 24"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z"/><circle cx="12" cy="12" r="2.5"/></svg><span>预览</span></button>' +
+      '<button class="archive-file-action" type="button" data-archive-file-download><svg viewBox="0 0 24 24"><path d="M12 4v12M7 11l5 5 5-5M4 20h16"/></svg><span>下载</span></button></div>';
+  }
+
+  function ensureArchiveFileActions(list) {
+    all("[data-archive-shared]", list).forEach(function (item) {
+      if (!one(".archive-file-actions", item)) item.insertAdjacentHTML("beforeend", archiveFileActionsMarkup());
+    });
+  }
+
+  function archivePreviewProfile(name) {
+    const fileName = String(name || "");
+    if (fileName.indexOf("技术标") !== -1) return "bid-technical";
+    if (fileName.indexOf("商务标") !== -1) return "bid-business";
+    if (fileName.indexOf("澄清") !== -1 || fileName.indexOf("答疑") !== -1) return "clarification";
+    if (/\.xlsx?$/i.test(fileName)) return window.BiddingFilePreview.profileFromName(fileName);
+    return "procurement";
+  }
+
+  function archiveDownloadHref(name) {
+    const fileName = String(name || "");
+    if (fileName.indexOf("技术标") !== -1) return "../assets/bid-documents/technical.docx";
+    if (fileName.indexOf("商务标") !== -1) return "../assets/bid-documents/business.docx";
+    if (/\.xlsx?$/i.test(fileName)) return "../assets/knowledge-files/knowledge-source-sample.xlsx";
+    if (fileName.indexOf("澄清") !== -1 || fileName.indexOf("答疑") !== -1) return "../assets/bid-documents/business.pdf";
+    if (/\.pdf$/i.test(fileName)) return "../assets/bid-documents/technical.pdf";
+    return "../assets/bid-documents/technical.docx";
+  }
+
+  function openArchiveFilePreview(item) {
+    const name = one("strong", item).textContent.trim();
+    const description = one("small", item).textContent.trim();
+    const sizeMatch = description.match(/\d+(?:\.\d+)?\s*(?:KB|MB|GB)/i);
+    window.BiddingFilePreview.open({
+      profile: archivePreviewProfile(name),
+      name: name,
+      size: sizeMatch ? sizeMatch[0] : "—",
+      sourceUrl: archiveDownloadHref(name),
+      context: "交付归档文件"
+    });
+  }
+
+  function downloadArchiveFile(item, button) {
+    const name = one("strong", item).textContent.trim();
+    const link = document.createElement("a");
+    link.href = archiveDownloadHref(name);
+    link.download = name;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    toast("已开始下载：" + name, "success", button);
+  }
+
+  function renderSelectedArchiveFiles() {
+    const list = one("#deliveryArchiveFileList");
+    const selected = selectedArchiveVersion();
+    if (!list || !selected) return;
+    all("[data-version-file]", list).forEach(function (item) { item.remove(); });
+    const category = selected.isDeliveryVersion ? "正式交付" : "历史版本";
+    const tone = selected.isDeliveryVersion ? "green" : "gray";
+    const markup = ["技术标", "商务标"].map(function (documentName, index) {
+      const fileName = documentName + "_" + selected.number + ".docx";
+      return '<div data-version-file data-version-id="' + escapeHtml(selected.id) + '"' + (index === 0 ? ' class="is-first"' : "") + ">" +
+        archiveFileIcon(fileName) +
+        '<div><strong>' + escapeHtml(fileName) + '</strong><small>' + escapeHtml(selected.number + " · " + (selected.note || "人工保存版本")) + '</small></div>' +
+        '<span class="status-tag ' + tone + '">' + category + "</span>" + archiveFileActionsMarkup() + "</div>";
+    }).join("");
+    list.insertAdjacentHTML("beforeend", markup);
+    ensureArchiveFileActions(list);
+    const sourceCount = all("[data-archive-shared]", list).length;
+    one("#deliveryArchiveFileCount").textContent = sourceCount + " 份原件 · 2 份 " + selected.number + " 标书";
+    one("#deliveryArchiveFileDescription").textContent = "招标文件原件保持不变，当前展示 " + selected.number + " 对应的技术标与商务标。";
+  }
+
+  function renderArchiveVersionLists() {
+    const selected = selectedArchiveVersion();
+    if (selected && !bidVersions.some(function (version) { return version.id === activeArchiveVersionId; })) {
+      activeArchiveVersionId = selected.id;
+    }
+    one("#deliveryVersionArchiveList").innerHTML = bidVersions.slice().reverse().map(function (version) {
+      return versionArchiveMarkup(version, true);
+    }).join("");
+    one("#archiveConfirmVersionList").innerHTML = bidVersions.slice().reverse().map(function (version) {
+      return versionArchiveMarkup(version, false);
+    }).join("");
+    renderSelectedArchiveFiles();
   }
 
   function renderDeliveryVersionState() {
@@ -182,13 +288,11 @@
     one("#downloadPdfPackage").setAttribute("download", projectName + "_" + number + "_PDF文件套.zip");
     one("#deliveryArchiveVersionCount").textContent = bidVersions.length + " 个版本 · " + (bidVersions.length * 2) + " 份 DOCX";
     one("#archiveConfirmVersionCount").textContent = bidVersions.length + " 个版本";
-    const markup = bidVersions.slice().reverse().map(versionArchiveMarkup).join("");
-    one("#deliveryVersionArchiveList").innerHTML = markup;
-    one("#archiveConfirmVersionList").innerHTML = markup;
+    renderArchiveVersionLists();
   }
 
   function archiveFilesFromPage() {
-    const sourceFiles = all(".ledger-archive-group .archive-attachment-list > div").map(function (item) {
+    const sourceFiles = all(".ledger-archive-group .archive-attachment-list > [data-archive-shared]").map(function (item) {
       const name = one("strong", item).textContent.trim();
       const description = one("small", item).textContent.trim();
       const tag = one(".status-tag", item);
@@ -488,6 +592,29 @@
       });
     }
     one("#confirmDeliveryReturnRevision").addEventListener("click", returnDeliveryForRevision);
+    const archiveVersionList = one("#deliveryVersionArchiveList");
+    if (archiveVersionList) {
+      archiveVersionList.addEventListener("click", function (event) {
+        const button = event.target.closest("[data-delivery-archive-version]");
+        if (!button) return;
+        activeArchiveVersionId = button.getAttribute("data-delivery-archive-version");
+        renderArchiveVersionLists();
+      });
+    }
+    const archiveFileList = one("#deliveryArchiveFileList");
+    if (archiveFileList) {
+      archiveFileList.addEventListener("click", function (event) {
+        const item = event.target.closest("#deliveryArchiveFileList > div");
+        if (!item) return;
+        const previewButton = event.target.closest("[data-archive-file-preview]");
+        if (previewButton) {
+          openArchiveFilePreview(item);
+          return;
+        }
+        const downloadButton = event.target.closest("[data-archive-file-download]");
+        if (downloadButton) downloadArchiveFile(item, downloadButton);
+      });
+    }
     all(".knowledge-state-menu, .knowledge-batch-menu").forEach(bindKnowledgeMenu);
     all("[data-delivery-preview]").forEach(function (button) {
       button.addEventListener("click", function () {

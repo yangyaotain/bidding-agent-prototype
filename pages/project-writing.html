@@ -44,11 +44,44 @@
         </div>
       </section>
 
-      <section class="parse-status-card quality-review-card card" id="qualityReviewStatusCard" data-quality-state="result">
+      <section class="parse-status-card quality-review-card card" id="qualityReviewStatusCard" data-quality-state="result" data-task-mode="quality">
         <div class="parse-status-summary">
           <span class="parse-status-icon" id="qualityReviewStatusIcon"><svg viewBox="0 0 24 24"><path d="M12 3 4 7v5c0 5 3.4 8.3 8 9 4.6-.7 8-4 8-9V7l-8-4z"/><path d="m8.5 12 2.2 2.2 4.8-5"/></svg></span>
           <div class="parse-status-copy"><strong id="qualityReviewStatusTitle">第 1 次智能检查已完成</strong><span id="qualityReviewStatusDescription">248 项规则已检查，5 项需要人工补充或确认；处理后可再次提交检查。</span></div>
           <div class="parse-status-actions"><span class="status-tag orange" id="qualityReviewStatusTag">待人工处理 5 项</span><button class="secondary-btn compact-btn" id="toggleQualityReviewDetails" type="button" aria-expanded="false" aria-controls="qualityReviewStatusDetails"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></span><span>展开详情</span></button></div>
+        </div>
+        <div class="parse-status-details quality-review-details writing-generation-details" id="writingGenerationStatusDetails" hidden>
+          <div class="quality-review-metrics" aria-label="投标文件生成指标">
+            <div><span>生成文件</span><strong id="writingGenerationMetricDocuments">2</strong><small>技术标、商务标</small></div>
+            <div><span>文件页数</span><strong id="writingGenerationMetricPages">0 / 96</strong><small>正在导入并编排正文</small></div>
+            <div><span>投标事项</span><strong id="writingGenerationMetricMatters">0 / 93</strong><small>关联要求和评分点</small></div>
+            <div><span>知识材料</span><strong id="writingGenerationMetricKnowledge">0 / 21</strong><small>引用企业真实资料</small></div>
+            <div><span>待确认标记</span><strong id="writingGenerationMetricPending">--</strong><small>缺失材料与关键承诺</small></div>
+            <div><span>任务进度</span><strong id="writingGenerationMetricProgress">8%</strong><small>生成完成后开放编辑</small></div>
+          </div>
+          <div class="quality-review-detail-grid writing-generation-detail-grid">
+            <article class="quality-process-panel">
+              <header><div><h3>生成过程</h3><p id="writingGenerationProcessDescription">正在读取解析结论并建立生成基线</p></div><span class="status-tag blue" id="writingGenerationProcessTag">进行中</span></header>
+              <div class="quality-review-progress"><i><b id="writingGenerationProgressBar" style="width:8%"></b></i><span id="writingGenerationProgressText">8%</span></div>
+              <div class="quality-review-steps" id="writingGenerationSteps">
+                <div class="current" data-generation-step="1"><span class="quality-step-index">1</span><div><strong>读取解析结论并建立生成基线</strong><span>锁定解析结果、投标事项和知识材料引用</span></div><em class="status-tag blue">进行中</em></div>
+                <div data-generation-step="2"><span class="quality-step-index">2</span><div><strong>导入并编排技术标章节</strong><span>按评分要求组织 73 页技术标目录与正文</span></div><em class="status-tag gray">等待中</em></div>
+                <div data-generation-step="3"><span class="quality-step-index">3</span><div><strong>汇编商务标与证明材料</strong><span>编排 23 页商务标及企业真实证明材料</span></div><em class="status-tag gray">等待中</em></div>
+                <div data-generation-step="4"><span class="quality-step-index">4</span><div><strong>关联投标事项与评分点</strong><span>将 93 条投标事项映射到具体标书章节</span></div><em class="status-tag gray">等待中</em></div>
+                <div data-generation-step="5"><span class="quality-step-index">5</span><div><strong>标记缺失材料与待确认承诺</strong><span>保留人员、报价、偏离和量化承诺人工关口</span></div><em class="status-tag gray">等待中</em></div>
+                <div data-generation-step="6"><span class="quality-step-index">6</span><div><strong>保存初始工作稿并开放编辑</strong><span>完成目录、引用和文件结构检查</span></div><em class="status-tag gray">等待中</em></div>
+              </div>
+            </article>
+            <article class="quality-result-panel writing-generation-output-panel">
+              <header><div><h3>生成文件</h3><p>生成内容均保留采购依据和企业知识材料来源。</p></div><span class="status-tag blue" id="writingGenerationOutputTag">生成中</span></header>
+              <div class="writing-generation-output-list">
+                <div data-generation-output="technical"><span class="bid-doc-type blue">T</span><div><strong>技术标.docx</strong><small>73 页 · 技术方案、实施与服务响应</small></div><em class="status-tag gray">等待中</em></div>
+                <div data-generation-output="business"><span class="bid-doc-type cyan">B</span><div><strong>商务标.docx</strong><small>23 页 · 资格、业绩、报价与商务响应</small></div><em class="status-tag gray">等待中</em></div>
+                <div data-generation-output="mapping"><span class="writing-output-icon"><svg viewBox="0 0 24 24"><path d="M5 6h14M5 12h14M5 18h14"/><path d="m15 9 3 3-3 3"/></svg></span><div><strong>响应关联</strong><small>93 条投标事项关联到章节、来源和检查规则</small></div><em class="status-tag gray">等待中</em></div>
+              </div>
+              <div class="info-alert warning writing-generation-safety"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg><div><strong>企业事实与关键承诺保持人工确认</strong><span>缺失的人员材料、报价、偏离和量化承诺不会由 AI 虚构，生成后将在正文和智能检查中继续标记。</span></div></div>
+            </article>
+          </div>
         </div>
         <div class="parse-status-details quality-review-details" id="qualityReviewStatusDetails" hidden>
           <div class="quality-review-metrics" aria-label="智能检查指标">

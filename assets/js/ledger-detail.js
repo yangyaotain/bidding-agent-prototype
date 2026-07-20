@@ -3,7 +3,9 @@
 
   const STORAGE_KEY = "biddingLedgerRecords";
   let currentRecord = null;
+  let currentArchiveFiles = [];
   let noticeTimer = null;
+  let activeVersionId = "";
 
   function escapeHtml(value) {
     return String(value == null ? "" : value).replace(/[&<>"']/g, function (char) {
@@ -197,17 +199,102 @@
       list.innerHTML = '<div class="ledger-version-empty">暂无标书版本记录。</div>';
       return;
     }
+    if (!versions.some(function (version) { return version.id === activeVersionId; })) {
+      const deliveryVersion = versions.find(function (version) { return version.isDeliveryVersion; });
+      activeVersionId = (deliveryVersion || versions[versions.length - 1]).id;
+    }
     list.innerHTML = versions.slice().reverse().map(function (version) {
       const status = archiveVersionStatus(version);
       const check = version.check || {};
       const review = version.review || {};
       const checkText = check.status === "passed" ? "智能检查通过 · " + (check.score || 98) + " 分" : check.status === "result" ? "智能检查完成 · 待整改" : "未提交智能检查";
       const reviewText = review.status === "approved" ? "人工审核通过" : review.status === "pending" ? "人工审核中" : review.status === "returned" ? "人工审核退回" : "未提交人工审核";
-      return '<article class="ledger-archive-version-item' + (version.isDeliveryVersion ? " is-delivery" : "") + '">' +
+      const active = version.id === activeVersionId;
+      return '<button class="ledger-archive-version-item' + (version.isDeliveryVersion ? " is-delivery" : "") + (active ? " active" : "") + '" type="button" role="tab" aria-selected="' + (active ? "true" : "false") + '" aria-controls="archiveResultFileList" data-ledger-version="' + escapeHtml(version.id) + '">' +
         '<span class="ledger-version-index">' + escapeHtml(String(version.number || "V").replace("V1.0.", "V")) + '</span>' +
-        '<div><header><strong>' + escapeHtml(version.number || "未命名版本") + '</strong><span class="status-tag ' + status.tone + '">' + status.label + '</span></header><p>' + escapeHtml(version.note || "人工保存版本") + '</p><small>' + escapeHtml((version.createdBy || "—") + " · " + formatVersionTime(version.createdAt)) + "</small></div>" +
-        '<div class="ledger-version-state"><span>' + escapeHtml(checkText) + '</span><span>' + escapeHtml(reviewText) + "</span></div></article>";
+        '<span class="ledger-version-main"><span class="ledger-version-item-head"><strong>' + escapeHtml(version.number || "未命名版本") + '</strong><span class="status-tag ' + status.tone + '">' + status.label + '</span></span><span class="ledger-version-note">' + escapeHtml(version.note || "人工保存版本") + '</span><small>' + escapeHtml((version.createdBy || "—") + " · " + formatVersionTime(version.createdAt)) + "</small></span>" +
+        '<span class="ledger-version-state"><span>' + escapeHtml(checkText) + '</span><span>' + escapeHtml(reviewText) + "</span></span></button>";
     }).join("");
+  }
+
+  function selectedArchiveVersion() {
+    const versions = currentRecord && Array.isArray(currentRecord.archiveVersions) ? currentRecord.archiveVersions : [];
+    return versions.find(function (version) { return version.id === activeVersionId; }) || null;
+  }
+
+  function isBidVersionFile(file) {
+    if (file.versionId || file.versionNumber) return true;
+    const name = String(file.name || "");
+    return (name.indexOf("技术标") !== -1 || name.indexOf("商务标") !== -1) && /\.(?:docx|pdf)$/i.test(name);
+  }
+
+  function isDeliveryPackage(file) {
+    const name = String(file.name || "");
+    return name.indexOf("交付文件包") !== -1 || name.indexOf("最终交付文件包") !== -1 || /\.zip$/i.test(name);
+  }
+
+  function versionedFileName(name, versionNumber) {
+    const value = String(name || "归档文件.docx");
+    const dotIndex = value.lastIndexOf(".");
+    const extension = dotIndex === -1 ? "" : value.slice(dotIndex);
+    const base = (dotIndex === -1 ? value : value.slice(0, dotIndex)).replace(/_?V\d+\.\d+\.\d+$/i, "");
+    return base + "_" + versionNumber + extension;
+  }
+
+  function archiveFilesForVersion(record, version) {
+    const files = Array.isArray(record.archiveFiles) ? record.archiveFiles : [];
+    if (!version) return files.slice();
+    const sharedFiles = files.filter(function (file) {
+      return !isBidVersionFile(file) && !isDeliveryPackage(file);
+    });
+    const explicitVersionFiles = files.filter(function (file) {
+      if (!file.versionId && !file.versionNumber) return false;
+      return file.versionId === version.id || file.versionNumber === version.number;
+    });
+    let versionFiles = explicitVersionFiles;
+    if (!versionFiles.length) {
+      const templates = files.filter(function (file) {
+        return isBidVersionFile(file) && !file.versionId && !file.versionNumber;
+      });
+      versionFiles = templates.map(function (file) {
+        return Object.assign({}, file, {
+          name: versionedFileName(file.name, version.number),
+          description: version.number + " · " + (version.note || "人工保存版本"),
+          category: version.isDeliveryVersion ? "正式交付" : "历史版本",
+          tone: version.isDeliveryVersion ? "green" : "gray",
+          versionId: version.id,
+          versionNumber: version.number
+        });
+      });
+    }
+    if (!versionFiles.length) {
+      versionFiles = ["技术标", "商务标"].map(function (documentName) {
+        return {
+          name: documentName + "_" + version.number + ".docx",
+          description: version.number + " · " + (version.note || "人工保存版本"),
+          category: version.isDeliveryVersion ? "正式交付" : "历史版本",
+          tone: version.isDeliveryVersion ? "green" : "gray",
+          versionId: version.id,
+          versionNumber: version.number
+        };
+      });
+    }
+    const packages = version.isDeliveryVersion ? files.filter(isDeliveryPackage).map(function (file) {
+      return Object.assign({}, file, {
+        description: version.number + " · " + (file.description || "正式交付文件汇总")
+      });
+    }) : [];
+    return sharedFiles.concat(versionFiles, packages);
+  }
+
+  function renderSelectedArchiveFiles() {
+    const version = selectedArchiveVersion();
+    currentArchiveFiles = currentRecord ? archiveFilesForVersion(currentRecord, version) : [];
+    setText("archiveFileDescription", version
+      ? "招标文件保留上传原格式，当前展示 " + version.number + " 对应的标书归档文件。"
+      : "招标文件保留上传原格式，标书文件按人工版本分别归档。");
+    setText("archiveFileCount", (version ? version.number + " · " : "") + "共 " + currentArchiveFiles.length + " 份");
+    renderDownloadList(currentArchiveFiles, "archiveResultFileList", "当前版本暂无归档文件。", "archive");
   }
 
   function previewProfile(file) {
@@ -247,7 +334,6 @@
     const review = reviewDefinition(record);
     const fees = feeSummary(record);
     const feeAmounts = feeTotals(record);
-    const archiveFiles = Array.isArray(record.archiveFiles) ? record.archiveFiles : [];
     const archiveVersions = Array.isArray(record.archiveVersions) ? record.archiveVersions : [];
     const resultFiles = Array.isArray(record.resultFiles) ? record.resultFiles : [];
     const reviewData = record.review || {};
@@ -280,8 +366,7 @@
     setText("archiveVersionTotal", archiveVersions.length + " 个");
     setText("archiveVersionCount", "共 " + archiveVersions.length + " 个版本");
     renderArchiveVersions(archiveVersions);
-    setText("archiveFileCount", "共 " + archiveFiles.length + " 份");
-    renderDownloadList(archiveFiles, "archiveResultFileList", "暂无归档文件。", "archive");
+    renderSelectedArchiveFiles();
 
     setTag("bidResultStatus", result);
     setText("bidResultDate", record.resultDate || "待公布");
@@ -704,11 +789,18 @@
 
   function initEvents() {
     document.addEventListener("click", function (event) {
+      const versionButton = event.target.closest("[data-ledger-version]");
+      if (versionButton && currentRecord) {
+        activeVersionId = versionButton.getAttribute("data-ledger-version");
+        renderArchiveVersions(currentRecord.archiveVersions || []);
+        renderSelectedArchiveFiles();
+        return;
+      }
       const previewButton = event.target.closest("[data-preview-file]");
       if (previewButton && currentRecord) {
         const previewScope = previewButton.getAttribute("data-preview-scope");
         const previewIndex = Number(previewButton.getAttribute("data-preview-index"));
-        const previewFiles = previewScope === "result" ? currentRecord.resultFiles : currentRecord.archiveFiles;
+        const previewFiles = previewScope === "result" ? currentRecord.resultFiles : currentArchiveFiles;
         if (Array.isArray(previewFiles) && previewFiles[previewIndex]) openLedgerPreview(previewFiles[previewIndex], previewScope);
         return;
       }
@@ -716,7 +808,7 @@
       if (!button || !currentRecord) return;
       const scope = button.getAttribute("data-download-scope");
       const index = Number(button.getAttribute("data-download-index"));
-      const files = scope === "result" ? currentRecord.resultFiles : currentRecord.archiveFiles;
+      const files = scope === "result" ? currentRecord.resultFiles : currentArchiveFiles;
       if (Array.isArray(files) && files[index]) startDownload(files[index], scope);
     });
   }

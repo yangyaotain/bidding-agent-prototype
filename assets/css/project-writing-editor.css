@@ -1186,6 +1186,100 @@ body.bid-ai-open .bid-ai-inline-status { left: calc((100vw - var(--bid-ai-width)
 
 @keyframes bid-quality-spin { to { transform: rotate(360deg); } }
 
+.writing-generation-details .quality-review-metrics {
+  background: linear-gradient(180deg, #f8fbff, #fff);
+}
+
+.writing-generation-output-list {
+  margin-top: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.writing-generation-output-list > div {
+  min-width: 0;
+  min-height: 58px;
+  padding: 9px 10px;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  background: #fbfcfe;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  transition: border-color .18s ease, background .18s ease, box-shadow .18s ease;
+}
+
+.writing-generation-output-list > div.current {
+  background: var(--primary-panel-bg);
+  border-color: var(--primary-border-soft);
+  box-shadow: 0 6px 14px rgba(var(--primary-rgb), .06);
+}
+
+.writing-generation-output-list > div.completed {
+  background: #f7fef9;
+  border-color: #bbf7d0;
+}
+
+.writing-generation-output-list .bid-doc-type,
+.writing-output-icon {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+}
+
+.writing-output-icon {
+  color: var(--primary);
+  background: var(--primary-soft);
+}
+
+.writing-output-icon svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+}
+
+.writing-generation-output-list strong,
+.writing-generation-output-list small {
+  display: block;
+}
+
+.writing-generation-output-list strong {
+  color: var(--heading);
+  font-size: 10.5px;
+}
+
+.writing-generation-output-list small {
+  margin-top: 4px;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 8.5px;
+  line-height: 1.45;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.writing-generation-output-list em {
+  font-size: 8px;
+  font-style: normal;
+}
+
+.writing-generation-safety {
+  margin-top: 10px;
+}
+
+.writing-generation-safety strong {
+  font-size: 10px;
+}
+
+.writing-generation-safety span {
+  font-size: 8.5px;
+}
+
 .quality-review-metrics {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
