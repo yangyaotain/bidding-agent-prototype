@@ -78,6 +78,16 @@
 4. 用户说“先分析”“确认后执行”时，只分析，不写文件。
 5. 用户限定“只完成某页面/模块”时，严格限制修改范围。
 
+## Git 提交与部署
+
+- 用户明确说“提交 git”“提交 Git”“部署更新”或“发布更新”时，优先运行项目根目录的 `deploy-update.ps1`，不要重新拼装一套发布命令。
+- 完整发布命令：`powershell -NoProfile -ExecutionPolicy Bypass -File .\deploy-update.ps1 -Message "本次提交信息"`。
+- 只做发布前检查：`powershell -NoProfile -ExecutionPolicy Bypass -File .\deploy-update.ps1 -CheckOnly`。
+- 只诊断远端连接和分支状态：`powershell -NoProfile -ExecutionPolicy Bypass -File .\deploy-update.ps1 -RemoteCheckOnly`。
+- 脚本固定使用本机 Git 默认 TLS 后端；只有默认路径明确失败且错误指向证书或 TLS 后端时，才考虑额外后端，不要预先强制 `openssl`。
+- 远端异常时只允许一次 `ls-remote` 轻量兜底；验证失败即报告阻塞，不切换到 GitHub API、凭证提取或浏览器旁路。
+- 发布完成以远端提交号一致、分支 `0/0` 对齐以及 Pages 线上代表文件哈希一致为准。
+
 ## 完成后检查
 
 - 使用 UTF-8 读取确认中文正常。

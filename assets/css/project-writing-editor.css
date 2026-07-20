@@ -1496,3 +1496,129 @@ body.bid-ai-open .bid-ai-inline-status { left: calc((100vw - var(--bid-ai-width)
   .bid-version-history-summary { grid-template-columns: 1fr; }
   .bid-version-history-item > header { flex-direction: column; }
 }
+
+/* Editor typography: raise product UI chrome while preserving document-paper typography. */
+.bid-document-tab small,
+.bid-document-tab .status-tag,
+.bid-outline-pane header span,
+.bid-outline-item > small,
+.bid-outline-pane footer span,
+.bid-outline-pane footer small,
+.bid-editor-meta strong + span,
+.bid-save-state > span,
+.toolbar-quality-progress,
+.bid-editor-find > span,
+.bid-scan-placeholder span,
+.bid-editor-statusbar,
+.bid-editor-quality-status strong,
+.bid-editor-statusbar .zoom-control .zoom-value,
+.ai-write-menu .menu-head,
+.ai-write-menu .text em,
+.bid-ai-welcome p,
+.bid-ai-welcome-suggestions span,
+.bid-ai-welcome-suggestions small,
+.bid-ai-target header > span,
+.bid-ai-target p,
+.bid-writing-ai-panel .bid-ai-message small,
+.bid-ai-action-prefix,
+.bid-ai-attachment-info span,
+.bid-writing-ai-panel .bid-ai-composer-footer > span,
+.bid-ai-user-attachment,
+.ai-candidate-head,
+.ai-candidate-head .ai-note,
+.bid-thinking-head em,
+.bid-ai-process-step small,
+.bid-ai-result-card > header em,
+.bid-ai-result-card > section > span,
+.bid-ai-result-card > footer,
+.bid-ai-inline-status > span:not(.bid-ai-status-ring),
+.writing-generation-output-list small,
+.writing-generation-safety span,
+.quality-review-metrics span,
+.quality-review-metrics small,
+.quality-process-panel header p,
+.quality-result-panel header p,
+.quality-review-progress > span,
+.quality-review-steps div div span,
+.quality-category-summary span,
+.quality-empty span,
+.quality-issue-item span,
+.quality-all-passed p,
+.quality-comment-card header > div > span,
+.quality-comment-card > small,
+.quality-submit-version span,
+.quality-submit-version small,
+.bid-version-save-summary span,
+.bid-version-save-summary small,
+.bid-version-note-field > small,
+.bid-version-history-summary span,
+.bid-version-history-summary small,
+.bid-version-history-meta {
+  font-size: var(--font-size-secondary);
+}
+
+.bid-outline-item.level-2,
+.bid-outline-item > span,
+.bid-editor-meta strong,
+.bid-save-state button,
+.bid-rich-toolbar .toolbar-quality-button,
+.toolbar-select,
+.bid-editor-find input,
+.bid-editor-quality-status button,
+.ai-write-menu .menu-head strong,
+.ai-write-menu .text strong,
+.bid-ai-target strong,
+.bid-ai-input-card textarea,
+.bid-ai-upload-tools button,
+.bid-ai-attachment-info strong,
+.bid-ai-chip-row button,
+.ai-candidate-actions button,
+.bid-thinking-head strong,
+.bid-ai-process-step strong,
+.bid-ai-result-card > header strong,
+.bid-ai-result-card > section p,
+.bid-ai-result-card > section.generated p,
+.bid-ai-result-actions button,
+.bid-ai-inline-status button,
+.writing-generation-output-list strong,
+.writing-generation-safety strong,
+.quality-review-steps strong,
+.quality-category-summary strong,
+.quality-empty strong,
+.quality-issue-item strong,
+.quality-comment-card header button,
+.quality-comment-card > p,
+.quality-submit-version strong,
+.bid-version-save-summary strong,
+.bid-version-note-field > span,
+.bid-version-note-field textarea,
+.bid-version-history-summary strong,
+.bid-version-history-item > p,
+.bid-version-history-actions button {
+  font-size: var(--font-size-control);
+}
+
+.ai-write-menu .ico,
+.ai-candidate-head .ai-tag,
+.bid-ai-process-dot,
+.bid-ai-result-tag,
+.quality-step-index,
+.quality-review-steps em,
+.quality-issue-item .quality-issue-meta b,
+.bid-outline-item > em,
+.bid-version-lifecycle span {
+  font-size: var(--font-size-caption);
+}
+
+.bid-outline-pane header strong {
+  font-size: var(--font-size-body);
+}
+
+.bid-writing-ai-panel .bid-ai-header strong,
+.quality-result-panel h3 {
+  font-size: var(--font-size-card-title);
+}
+
+.quality-all-passed strong {
+  font-size: var(--font-size-control);
+}

@@ -1695,3 +1695,65 @@ body.layer-open {
     grid-template-columns: 1fr;
   }
 }
+
+/* Ledger typography: fees, results, files and review details share the UI scale. */
+.ledger-fee-overview-title p,
+.ledger-fee-metric-grid span,
+.ledger-fee-metric-grid small,
+.ledger-result-cell small,
+.ledger-fee-cell small,
+.ledger-score span,
+.ledger-fee-sidebar-head span,
+.ledger-fee-tab small,
+.ledger-fee-tab em,
+.ledger-fee-editor-head > div > span,
+.ledger-fee-form-section-head p,
+.ledger-fee-form-section-head > span,
+.ledger-guarantee-caption span,
+.ledger-result-note span,
+.ledger-upload-field > span,
+.ledger-result-file-item small,
+.ledger-detail-hero div > span,
+.ledger-detail-summary span,
+.ledger-review-score-grid span,
+.ledger-detail-section p,
+.ledger-review-section p,
+.ledger-export-fields p,
+.ledger-detail-fact span,
+.ledger-history-item span,
+.ledger-archive-file-item small,
+.ledger-knowledge-item small,
+.ledger-review-action-head,
+.ledger-review-action-state,
+.ledger-review-empty,
+.ledger-export-summary p,
+.ledger-export-fields > header label,
+.ledger-export-field-grid label {
+  font-size: var(--font-size-secondary);
+}
+
+.ledger-action-btn,
+.ledger-result-file-item strong,
+.ledger-result-file-item button,
+.ledger-file-action,
+.ledger-review-action-remove,
+.ledger-detail-fact strong,
+.ledger-history-item strong,
+.ledger-archive-file-item strong,
+.ledger-knowledge-item strong,
+.ledger-review-action-row input[type="text"],
+.ledger-review-action-row input[type="date"],
+.ledger-review-action-row select {
+  font-size: var(--font-size-control);
+}
+
+.ledger-guarantee-caption strong,
+.ledger-result-modal .compact-btn,
+.ledger-review-modal .compact-btn {
+  font-size: var(--font-size-control);
+}
+
+.ledger-fee-modal .layer-head h3,
+.ledger-review-modal .layer-head h3 {
+  font-size: var(--font-size-modal-title);
+}

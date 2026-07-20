@@ -29,7 +29,7 @@
 
 .knowledge-module-heading h1 {
   color: var(--heading);
-  font-size: 26px;
+  font-size: var(--font-size-page-title);
   font-weight: 800;
 }
 
@@ -2431,4 +2431,95 @@ body.knowledge-layer-open {
   .knowledge-detail-file-actions {
     justify-content: flex-start;
   }
+}
+
+/* Knowledge typography: unify list, detail, person and import flows by semantics. */
+.knowledge-metric-copy small,
+.knowledge-sidebar-head span,
+.knowledge-category-group-title,
+.knowledge-sidebar-note strong,
+.knowledge-sidebar-note span,
+.knowledge-name-cell > div > span,
+.knowledge-cell-stack > span:not(.status-tag),
+.knowledge-cell-stack small,
+.knowledge-cell-stack .status-tag,
+.knowledge-panel-footer,
+.knowledge-layer-head p,
+.knowledge-detail-key-summary span,
+.knowledge-detail-file-copy small,
+.knowledge-detail-grid > div > span,
+.knowledge-detail-tags span,
+.knowledge-person-hero-meta span,
+.knowledge-person-section-head p,
+.knowledge-person-info-grid span,
+.knowledge-person-file-copy small,
+.knowledge-current-file > span,
+.knowledge-person-empty span,
+.knowledge-timeline span,
+.knowledge-validity-editor-head span,
+.knowledge-ai-extract-head small,
+.knowledge-ai-extract-grid span,
+.knowledge-category-form-title span,
+.knowledge-batch-status,
+.knowledge-batch-file-name span,
+.knowledge-batch-results-head span,
+.knowledge-batch-result-head small,
+.knowledge-batch-manual-note small,
+.knowledge-form-field > small,
+.knowledge-upload-zone > span:last-of-type,
+.knowledge-import-guide p,
+.knowledge-import-result-head div > span,
+.knowledge-import-table td small,
+.knowledge-warning-block p {
+  font-size: var(--font-size-secondary);
+}
+
+.knowledge-table th {
+  font-size: var(--font-size-secondary);
+}
+
+.knowledge-table td,
+.knowledge-cell-stack strong,
+.knowledge-row-menu button,
+.knowledge-detail-file-actions .compact-btn,
+.knowledge-detail-grid > div > strong,
+.knowledge-person-table,
+.knowledge-person-file-copy strong,
+.knowledge-timeline strong,
+.knowledge-validity-editor-head strong,
+.knowledge-ai-extract-head strong,
+.knowledge-ai-extract-grid strong,
+.knowledge-category-form-title strong,
+.knowledge-batch-file-name strong,
+.knowledge-batch-action,
+.knowledge-batch-back,
+.knowledge-batch-result-head strong,
+.knowledge-batch-manual-note strong,
+.knowledge-form-field label,
+.knowledge-import-person-select,
+.knowledge-check-line {
+  font-size: var(--font-size-control);
+}
+
+.knowledge-category-link b,
+.knowledge-category-alert,
+.knowledge-tab b,
+.knowledge-layer-eyebrow,
+.knowledge-person-tab b,
+.knowledge-batch-result-index {
+  font-size: var(--font-size-caption);
+}
+
+.knowledge-module-page .compact-btn,
+.knowledge-control,
+.knowledge-select {
+  font-size: var(--font-size-control);
+}
+
+.knowledge-layer-head h3 {
+  font-size: var(--font-size-modal-title);
+}
+
+.knowledge-detail-section h4 {
+  font-size: var(--font-size-card-title);
 }

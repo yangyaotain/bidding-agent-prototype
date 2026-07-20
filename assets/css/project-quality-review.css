@@ -541,3 +541,26 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Manual review typography: review evidence and status details remain readable. */
+.manual-review-status-main p,
+.manual-review-facts span,
+.manual-review-facts small,
+.manual-review-document-tab small,
+.manual-review-document-tab .status-tag,
+.manual-review-lock-note small,
+.manual-review-outline header span,
+.manual-review-outline-item > small,
+.manual-review-document-head strong + span,
+.manual-review-statusbar,
+.manual-review-approval-files span,
+.manual-review-approval-files small {
+  font-size: var(--font-size-secondary);
+}
+
+.manual-review-lock-note strong,
+.manual-review-outline-item > span,
+.manual-review-document-head strong,
+.manual-review-approval-files strong {
+  font-size: var(--font-size-control);
+}

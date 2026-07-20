@@ -592,3 +592,24 @@
     display: none;
   }
 }
+
+/* Dashboard typography: secondary business information remains readable at desktop density. */
+.metric-copy small,
+.project-name span,
+.deadline-cell span,
+.next-action-cell span,
+.task-copy span,
+.stage-item span,
+.reminder-copy small {
+  font-size: var(--font-size-secondary);
+}
+
+.task-action-btn {
+  font-size: var(--font-size-control);
+}
+
+.project-table td,
+.deadline-cell strong,
+.next-action-cell strong {
+  font-size: var(--font-size-control);
+}

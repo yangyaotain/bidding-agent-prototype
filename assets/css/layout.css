@@ -854,3 +854,29 @@ body.account-layer-open {
     padding-right: 16px;
   }
 }
+
+/* Shared typography baseline: keep navigation, account content and form help readable. */
+.brand-copy span,
+.user-role-badge,
+.account-layer-kicker,
+.account-profile-role {
+  font-size: var(--font-size-caption);
+}
+
+.user-summary-account,
+.user-summary-email,
+.user-menu-copy small,
+.account-profile-copy > span,
+.account-modal-feedback,
+.account-field > small,
+.account-security-tip span {
+  font-size: var(--font-size-secondary);
+}
+
+.account-field > span {
+  font-size: var(--font-size-control);
+}
+
+.account-layer-head h3 {
+  font-size: var(--font-size-modal-title);
+}

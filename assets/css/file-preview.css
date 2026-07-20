@@ -1030,3 +1030,12 @@ body.file-preview-page {
   .preview-tool-btn { width: 34px; padding: 0; }
   .preview-file-identity strong { max-width: 44vw; }
 }
+
+/* Preview chrome follows the product scale; document-paper content stays independent. */
+.preview-file-identity > div > span,
+.preview-thumbnail-btn > span:last-child,
+.preview-outline-item span:last-child,
+.preview-toolbar-status,
+.preview-package-list small {
+  font-size: var(--font-size-secondary);
+}

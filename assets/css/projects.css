@@ -44,7 +44,7 @@
 
 .module-heading h1 {
   color: var(--heading);
-  font-size: 26px;
+  font-size: var(--font-size-page-title);
   font-weight: 800;
 }
 
@@ -962,7 +962,7 @@
 
 .content-heading h2 {
   color: var(--heading);
-  font-size: 19px;
+  font-size: var(--font-size-modal-title);
   font-weight: 800;
 }
 
@@ -1001,7 +1001,7 @@
 .panel-heading h2,
 .panel-heading h3 {
   color: var(--heading);
-  font-size: 15px;
+  font-size: var(--font-size-card-title);
   font-weight: 800;
 }
 
@@ -4504,4 +4504,167 @@
   .result-source-screenshot { padding: 12px; }
   .result-source-paper { min-height: 430px; padding: 28px 24px 48px; }
   .result-source-paper footer { right: 24px; left: 24px; }
+}
+
+/* Project typography: business content uses a consistent readable scale. */
+.metric-copy > small,
+.workspace-metric-copy > small,
+.table-primary span,
+.cell-stack span,
+.table-amount-pending,
+.stage-cell small,
+.table-progress > b,
+.project-status-item span,
+.project-status-item small,
+.parse-detail-metric span,
+.parse-detail-metric small,
+.parse-step-row > div span,
+.parse-task-row > div span,
+.parse-complete-note span,
+.parse-complete-note small,
+.workflow-step span,
+.item-copy span,
+.item-copy small,
+.task-row.task-head,
+.wizard-step-copy span,
+.field-hint,
+.upload-zone span,
+.domain-sidebar-head span,
+.category-sidebar-head span,
+.confidence,
+.source-location,
+.summary-copy span,
+.summary-copy small,
+.timeline-item span,
+.matrix-type,
+.section-tree-label,
+.editor-title span,
+.evidence-card span,
+.evidence-card small,
+.quality-score-copy span,
+.quote-box,
+.suggestion-box,
+.package-preview span,
+.layer-head p,
+.source-meta-item span,
+.result-eyebrow,
+.result-evidence-line,
+.forecast-primary > span,
+.forecast-primary > strong em,
+.forecast-quick-list span,
+.forecast-quick-list strong,
+.result-project-facts span,
+.readiness-row,
+.readiness-score-head > div > span,
+.score-weight-summary span,
+.score-weight-summary strong em,
+.score-weight-summary strong small,
+.readiness-factor-list > span,
+.forecast-note,
+.score-dimension span,
+.score-dimension small,
+.score-factors > span,
+.result-matters-table td small,
+.result-process-context > div > span,
+.result-process-context small,
+.result-process-field-help,
+.result-process-upload small,
+.result-process-attachments strong,
+.result-process-attachments small,
+.result-source-clause-head > div > span,
+.result-source-preview-head span,
+.result-source-preview-toolbar,
+.matter-page-summary,
+.matter-page-size,
+.generate-summary span,
+.writing-generation-main > span,
+.writing-generation-stats span,
+.auto-save-note,
+.ai-content-trace,
+.bid-ai-launcher small,
+.bid-ai-header div > span,
+.bid-ai-context span,
+.bid-ai-context small,
+.bid-ai-message small,
+.bid-ai-suggestions button,
+.bid-ai-result-meta,
+.bid-ai-attachment-tray > span,
+.quality-ai-ring span,
+.quality-ai-score p,
+.quality-ai-metrics span,
+.quality-ai-metrics small,
+.quality-check-row span,
+.final-confirm-list p,
+.final-confirm-list small,
+.ai-fix-list span,
+.ai-fix-list small,
+.delivery-ready-hero p,
+.delivery-summary-cards article > div > span,
+.delivery-summary-cards article > div > small,
+.delivery-final-list p,
+.delivery-final-list small,
+.archive-flow strong,
+.archive-flow small {
+  font-size: var(--font-size-secondary);
+}
+
+.file-table .row-actions .text-btn,
+.compact-btn,
+.project-entry-btn,
+.project-row-action-btn,
+.segmented-btn,
+.section-tree-btn,
+.icon-control,
+.evidence-card .secondary-btn,
+.result-matters-table td,
+.result-process-upload strong,
+.matter-page-size select,
+.page-nav-btn,
+.page-number-btn,
+.bid-ai-context strong,
+.bid-ai-message > div,
+.bid-ai-apply-result,
+.bid-ai-composer textarea,
+.bid-ai-upload-btn,
+.bid-ai-send,
+.quality-check-row strong,
+.final-confirm-list strong,
+.ai-fix-list strong,
+.delivery-final-list strong {
+  font-size: var(--font-size-control);
+}
+
+.filter-tab b,
+.person-avatar,
+.workspace-tab b,
+.parse-step-index,
+.domain-btn b,
+.category-btn b,
+.matter-code,
+.matter-page-ellipsis,
+.final-confirm-index {
+  font-size: var(--font-size-caption);
+}
+
+.score-dimension strong,
+.score-factors > strong,
+.generate-summary strong,
+.archive-flow strong {
+  font-size: var(--font-size-control);
+}
+
+.writing-generation-title strong,
+.bid-ai-header strong {
+  font-size: var(--font-size-card-title);
+}
+
+.form-field label,
+.data-table td,
+.purchaser-name,
+.table-amount {
+  font-size: var(--font-size-control);
+}
+
+.layer-head h3 {
+  font-size: var(--font-size-modal-title);
 }

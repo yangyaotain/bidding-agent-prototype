@@ -912,3 +912,20 @@
     grid-column: 2;
   }
 }
+
+/* Ledger detail typography: version and fee facts remain legible in dense cards. */
+.ledger-version-note,
+.ledger-archive-version-item small,
+.ledger-version-state span,
+.ledger-fee-detail-main small,
+.ledger-fee-detail-fact span {
+  font-size: var(--font-size-secondary);
+}
+
+.ledger-fee-detail-fact strong {
+  font-size: var(--font-size-control);
+}
+
+.ledger-version-index {
+  font-size: var(--font-size-caption);
+}

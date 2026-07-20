@@ -271,3 +271,54 @@
   .archive-confirm-section-head { align-items: flex-start; flex-direction: column; }
   .archive-confirm-section-actions { width: 100%; justify-content: space-between; }
 }
+
+/* Delivery typography: file, archive and knowledge details use the shared UI scale. */
+.formal-export-note span,
+.formal-export-note small,
+.delivery-package-card > header small,
+.delivery-package-files small,
+.delivery-package-card > footer > span,
+.archive-group-head > div > p,
+.archive-subheading span,
+.archive-file-description,
+.archive-fact-grid span,
+.archive-attachment-list small,
+.archive-knowledge-list small,
+.knowledge-confirm-summary small,
+.archive-knowledge-note span,
+.delivery-version-record small,
+.delivery-version-note,
+.archive-confirm-section-head p,
+.archive-confirm-file-list small {
+  font-size: var(--font-size-secondary);
+}
+
+.formal-export-note strong,
+.delivery-package-files strong,
+.delivery-file-preview,
+.delivery-package-card > footer .secondary-btn,
+.archive-subheading strong,
+.archive-fact-grid strong,
+.archive-attachment-list strong,
+.archive-knowledge-list strong,
+.archive-file-action,
+.knowledge-batch-menu > summary,
+.knowledge-menu-popover button,
+.knowledge-state-menu > summary,
+.delivery-version-record strong,
+.archive-confirm-file-list strong {
+  font-size: var(--font-size-control);
+}
+
+.delivery-version-index {
+  font-size: var(--font-size-caption);
+}
+
+.archive-confirm-section-head h4 {
+  font-size: var(--font-size-body);
+}
+
+.delivery-package-card > header strong,
+.archive-group-head > div > strong {
+  font-size: var(--font-size-card-title);
+}

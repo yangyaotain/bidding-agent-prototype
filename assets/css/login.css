@@ -991,3 +991,26 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Login and recovery typography: instructional text must not rely on micro sizes. */
+.login-brand span,
+.workflow-step span,
+.recovery-card-head > span,
+.recovery-step > span,
+.recovery-step strong,
+.recovery-step small,
+.recovery-channel strong,
+.recovery-channel small,
+.verification-send-tip,
+.recovery-support-tip,
+.recovery-account-summary small,
+.recovery-account-summary em,
+.password-rule-list span,
+.recovery-demo,
+.login-copyright {
+  font-size: var(--font-size-secondary);
+}
+
+.verification-send-btn {
+  font-size: var(--font-size-control);
+}

@@ -30,7 +30,7 @@
 
 .admin-heading h1 {
   color: var(--heading);
-  font-size: 26px;
+  font-size: var(--font-size-page-title);
   font-weight: 800;
 }
 
@@ -54,7 +54,7 @@
 
 .admin-panel-head h2 {
   color: var(--heading);
-  font-size: 17px;
+  font-size: var(--font-size-card-title);
   font-weight: 800;
 }
 
@@ -817,4 +817,35 @@ body.admin-layer-open {
   .password-result-card {
     grid-template-columns: 1fr;
   }
+}
+
+/* Administration typography: labels, hints and actions use the shared semantic scale. */
+.admin-user-copy span,
+.admin-time-cell span,
+.admin-contact-cell span,
+.admin-role-cell .status-tag,
+.admin-role-cell span:not(.status-tag),
+.admin-remark,
+.admin-current-mark,
+.admin-panel-footer,
+.admin-field-hint,
+.admin-field-error,
+.admin-enable-option small,
+.password-result-card span,
+.password-result-hint {
+  font-size: var(--font-size-secondary);
+}
+
+.admin-action-btn {
+  font-size: var(--font-size-control);
+}
+
+.admin-form-field > span,
+.admin-table td,
+.compact-btn {
+  font-size: var(--font-size-control);
+}
+
+.admin-layer-head h3 {
+  font-size: var(--font-size-modal-title);
 }
