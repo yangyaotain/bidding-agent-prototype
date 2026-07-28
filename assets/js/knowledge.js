@@ -80,11 +80,44 @@
   }
 
   function itemValidity(item) {
+    if (item.parseStatus === "processing") return { applicable: false, warning: false, key: "pending", label: "待识别", tone: "gray", dateText: "" };
     return item.category === "people" ? personValiditySummary(item) : validity.info(item);
   }
 
   function itemHasValidityWarning(item) {
     return itemValidity(item).warning;
+  }
+
+  function syncRecordSummary(records) {
+    const available = (records || []).filter(function (item) { return !item.deleted; });
+    const active = available.filter(function (item) { return item.lifecycleState !== "archived"; });
+    const stored = active.filter(function (item) { return item.parseStatus !== "processing"; });
+    const processing = active.filter(function (item) { return item.parseStatus === "processing"; });
+    const archived = available.filter(function (item) { return item.lifecycleState === "archived"; });
+    const validityAlerts = active.filter(itemHasValidityWarning);
+    const values = {
+      "知识资料": available.length,
+      "在库资料": active.length,
+      "已入库": stored.length,
+      "解析中": processing.length,
+      "有效期预警": validityAlerts.length,
+      "已归档": archived.length
+    };
+    document.querySelectorAll(".knowledge-metric-copy").forEach(function (metric) {
+      const label = metric.querySelector("span");
+      const value = metric.querySelector("strong");
+      if (label && value && Object.prototype.hasOwnProperty.call(values, label.textContent.trim())) value.textContent = values[label.textContent.trim()];
+    });
+    [
+      ["instore", active.length],
+      ["stored", stored.length],
+      ["processing", processing.length],
+      ["validity-alert", validityAlerts.length],
+      ["archived", archived.length]
+    ].forEach(function (entry) {
+      const count = document.querySelector('[data-knowledge-tab="' + entry[0] + '"] b');
+      if (count) count.textContent = entry[1];
+    });
   }
 
   function validityCellHtml(item) {
@@ -109,6 +142,7 @@
 
   function actionMenu(item) {
     const archived = item.lifecycleState === "archived";
+    if (!archived && item.parseStatus === "processing") return "";
     return [
       '<button class="ghost-btn compact-btn knowledge-more-btn" type="button" aria-expanded="false" title="更多操作" aria-label="更多操作"><span class="btn-icon">' + icons.more + '</span><span>更多</span></button>',
       '<div class="knowledge-row-menu hidden">',
@@ -127,7 +161,7 @@
     const status = recordStatus(item);
     const typeTags = (item.tags || []).slice(0, 2).join(" · ");
     const categoryTitle = showCategory ? (item.categoryLabel || "知识资料") : (item.type || "资料");
-    const categoryNote = showCategory ? (item.type || "未识别类型") : (typeTags || "AI 自动生成标签");
+    const categoryNote = status.key === "processing" ? "解析完成后自动更新" : showCategory ? (item.type || "未识别类型") : (typeTags || "AI 自动生成标签");
     const isPerson = item.category === "people";
     const actions = isPerson
       ? '<div class="knowledge-row-actions"><button class="text-btn compact-btn knowledge-view-btn" type="button" data-knowledge-action="person-detail" data-knowledge-id="' + escapeHtml(item.id) + '"><span class="btn-icon">' + icons.enter + '</span><span>进入档案</span></button></div>'
@@ -155,6 +189,7 @@
   }
 
   function renderMainRecords() {
+    syncRecordSummary(overviewRecords);
     const filtered = prioritizeValidityWarnings(overviewRecords.filter(mainMatches));
     const pageCount = Math.max(1, Math.ceil(filtered.length / mainPageSize));
     mainPage = Math.min(mainPage, pageCount);
@@ -180,6 +215,7 @@
   }
 
   function renderCatalogRecords() {
+    syncRecordSummary(catalogCollections[activeSection] || []);
     const filtered = prioritizeValidityWarnings((catalogCollections[activeSection] || []).filter(catalogMatches));
     const showValidity = true;
     document.getElementById("catalogTableBody").innerHTML = filtered.map(function (item) { return commonRow(item, false, showValidity); }).join("");
@@ -404,7 +440,23 @@
     else if (isCatalogPage) initCatalogPage();
     else initMainPage();
     const allowedTabs = Array.from(document.querySelectorAll("[data-knowledge-tab]")).map(function (button) { return button.getAttribute("data-knowledge-tab"); });
-    document.addEventListener("knowledge-record-changed", renderCurrentPage);
+    document.addEventListener("knowledge-record-changed", function (event) {
+      const detail = event.detail || {};
+      if (detail.action === "create" && Array.isArray(detail.records)) {
+        if (!isPeoplePage && !isCatalogPage) {
+          detail.records.slice().reverse().forEach(function (record) { overviewRecords.unshift(record); });
+          document.getElementById("knowledgeSearch").value = "";
+          document.getElementById("knowledgeCategoryFilter").value = "all";
+          mainPage = 1;
+        } else if (isCatalogPage) {
+          document.getElementById("catalogSearch").value = "";
+          document.getElementById("catalogTypeFilter").value = "all";
+        }
+        setActiveTab("processing");
+        return;
+      }
+      renderCurrentPage();
+    });
     const defaultTab = "instore";
     setActiveTab(allowedTabs.indexOf(activeTab) !== -1 ? activeTab : defaultTab);
   }

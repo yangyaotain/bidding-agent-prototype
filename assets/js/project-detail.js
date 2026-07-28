@@ -360,7 +360,7 @@
           const noteValue = completeNote.querySelector("strong");
           const noteHint = completeNote.querySelector("small");
           if (noteValue) noteValue.textContent = completedAt;
-          if (noteHint) noteHint.textContent = "模拟解析耗时约 15 秒 · AI 已完成研判、策划和知识匹配";
+          if (noteHint) noteHint.textContent = "模拟解析耗时约 15 秒 · AI 已完成资格研判和投标事项整理";
         }
         updateWorkspaceProgress(100, "生成解析结果", 6);
 
@@ -648,7 +648,7 @@
 
     function statusKey(label) {
       if (label === "不满足") return "unmet";
-      if (label === "AI策划") return "ai";
+      if (label === "AI处理") return "ai";
       return "satisfied";
     }
 
@@ -702,14 +702,14 @@
         const evidence = one("td:nth-child(3) small", row);
         const processButton = one(".result-process-btn", row);
         tag.className = "status-tag " + statusTone(nextStatus);
-        tag.textContent = nextStatus === "satisfied" ? "已满足" : "AI策划";
+        tag.textContent = nextStatus === "satisfied" ? "已满足" : "AI处理";
         row.setAttribute("data-result-status", nextStatus);
         if (nextStatus === "satisfied") {
           strategy.textContent = "已补充处理说明及有效附件，当前项目材料已重新匹配。";
           evidence.textContent = files.length ? files.map(function (file) { return file.name; }).join("、") + " · 已核验" : "处理说明 · 已更新";
         } else {
           strategy.textContent = "已补充处理说明，AI 将按最新要求更新响应内容。";
-          evidence.textContent = "处理说明 · AI策划依据已更新";
+          evidence.textContent = "处理说明 · AI处理依据已更新";
         }
         processButton.classList.add("processed");
         processButton.setAttribute("title", "已完成处理，可再次处理");
@@ -846,7 +846,7 @@
       factor.className = "positive";
       factor.querySelector("i").textContent = "+";
       factor.querySelector("em").textContent = "项目人员证书及社保证明已补充";
-      one("#resultRecommendationText").textContent = "资格条件已满足，补充材料已纳入当前项目并完成重新匹配。最新预测商务评分提升 2 分，建议继续完善 AI策划事项并核实关键承诺。";
+      one("#resultRecommendationText").textContent = "资格条件已满足，补充材料已纳入当前项目并完成重新匹配。最新预测商务评分提升 2 分，建议继续完善待 AI 处理事项并核实关键承诺。";
     }
 
     function startScoreForecastSimulation() {
@@ -962,94 +962,6 @@
       window.setTimeout(function () {
         window.location.href = "project-writing.html?id=" + encodeURIComponent(projectId);
       }, 700);
-    });
-  }
-
-  function initDecisionPage() {
-    const table = one(".decision-table");
-    if (!table) return;
-    all("[data-decision-filter]").forEach(function (button) {
-      button.addEventListener("click", function () {
-        const status = button.getAttribute("data-decision-filter");
-        all("[data-decision-filter]").forEach(function (item) { item.classList.toggle("active", item === button); });
-        all("tbody tr", table).forEach(function (row) { row.classList.toggle("hidden", status !== "all" && row.getAttribute("data-decision-status") !== status); });
-      });
-    });
-    one("#confirmBidDecision").addEventListener("click", function () {
-      const selected = one('input[name="bidDecision"]:checked').value;
-      const label = selected === "stop" ? "放弃投标" : selected === "continue" ? "继续投标" : "继续投标并整改";
-      window.projectPrototype.closeLayers();
-      toast("投标决策已记录：" + label);
-    });
-  }
-
-  function initPlanningPage() {
-    const body = one("#matrixTableBody");
-    if (!body) return;
-    function refresh() {
-      const query = one("#matrixSearch").value.trim().toLowerCase();
-      const type = one("#matrixTypeFilter").value;
-      const status = one("#matrixStatusFilter").value;
-      let visible = 0;
-      all("tr", body).forEach(function (row) {
-        const show = (!query || row.textContent.toLowerCase().indexOf(query) !== -1) && (type === "all" || row.getAttribute("data-matrix-type") === type) && (status === "all" || row.getAttribute("data-matrix-status") === status);
-        row.classList.toggle("hidden", !show);
-        if (show) visible += 1;
-      });
-      one("#matrixEmpty").classList.toggle("hidden", visible !== 0);
-      one("#matrixResultCount").textContent = "展示 " + visible + " 条重点响应事项，共 93 条";
-    }
-    one("#matrixSearch").addEventListener("input", refresh);
-    one("#matrixTypeFilter").addEventListener("change", refresh);
-    one("#matrixStatusFilter").addEventListener("change", refresh);
-    body.addEventListener("click", function (event) {
-      const button = event.target.closest(".matrix-detail-btn");
-      if (button) one("#matrixDrawerTitle").textContent = button.getAttribute("data-matrix-title");
-    });
-    one("#confirmAssignTask").addEventListener("click", function () {
-      window.projectPrototype.closeLayers();
-      toast("未分派响应事项已批量创建任务");
-    });
-  }
-
-  function initKnowledgePage() {
-    const list = one("#knowledgeMatchList");
-    if (!list) return;
-    let category = "all";
-    function refresh() {
-      const query = one("#knowledgeSearch").value.trim().toLowerCase();
-      let visible = 0;
-      all(".match-item", list).forEach(function (item) {
-        const show = (category === "all" || item.getAttribute("data-knowledge-type") === category) && (!query || item.textContent.toLowerCase().indexOf(query) !== -1);
-        item.classList.toggle("hidden", !show);
-        if (show) visible += 1;
-      });
-      one("#knowledgeEmpty").classList.toggle("hidden", visible !== 0);
-    }
-    all("[data-knowledge-category]").forEach(function (button) {
-      button.addEventListener("click", function () {
-        category = button.getAttribute("data-knowledge-category");
-        all("[data-knowledge-category]").forEach(function (item) { item.classList.toggle("active", item === button); });
-        refresh();
-      });
-    });
-    one("#knowledgeSearch").addEventListener("input", refresh);
-    list.addEventListener("click", function (event) {
-      const button = event.target.closest(".knowledge-use-btn");
-      if (!button) return;
-      const selected = button.classList.toggle("is-selected");
-      button.querySelector("span:last-child").textContent = selected ? "已引用" : "选择";
-      toast(selected ? "知识材料已关联至响应事项" : "已取消知识材料引用");
-    });
-    one("#rerunKnowledgeMatch").addEventListener("click", function () {
-      const button = this;
-      button.disabled = true;
-      button.querySelector("span:last-child").textContent = "正在重新匹配";
-      window.setTimeout(function () {
-        button.disabled = false;
-        button.querySelector("span:last-child").textContent = "重新智能匹配";
-        toast("知识匹配已更新，新增 2 个候选材料");
-      }, 900);
     });
   }
 
@@ -1221,9 +1133,6 @@
   function init() {
     initFilePage();
     initAnalysisPage();
-    initDecisionPage();
-    initPlanningPage();
-    initKnowledgePage();
     initWritingPage();
     initQualityPage();
     initDeliveryPage();

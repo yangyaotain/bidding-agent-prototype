@@ -92,7 +92,7 @@
   function projectEntryPage(project) {
     const stage = project.stage || "";
     if (project.status === "parsing" || stage === "解析中") return "project-files.html";
-    if (stage.indexOf("解析") !== -1 || stage.indexOf("投标决策") !== -1 || stage.indexOf("资格") !== -1 || stage.indexOf("响应策划") !== -1 || stage.indexOf("知识匹配") !== -1) return "project-analysis.html";
+    if (stage.indexOf("解析") !== -1) return "project-analysis.html";
     if (stage.indexOf("编制") !== -1) return "project-writing.html";
     if (stage.indexOf("质量审核") !== -1) return "project-quality.html";
     if (stage.indexOf("交付归档") !== -1) return "project-delivery.html";

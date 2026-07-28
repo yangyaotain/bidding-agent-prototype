@@ -73,7 +73,7 @@
       '<tr data-user-id="' + user.id + '">',
       '<td><div class="admin-user-cell"><span class="admin-user-avatar">' + escapeHtml(user.name.slice(0, 1)) + '</span><div class="admin-user-copy"><strong>' + escapeHtml(user.name) + (isCurrent ? '<em class="admin-current-mark">当前用户</em>' : "") + '</strong><span>' + escapeHtml(user.account) + "</span></div></div></td>",
       '<td><div class="admin-contact-cell"><strong>' + escapeHtml(user.phone) + '</strong><span title="' + escapeHtml(user.email || "未填写邮箱") + '">' + escapeHtml(user.email || "未填写邮箱") + "</span></div></td>",
-      '<td><div class="admin-role-cell"><span class="status-tag ' + (user.role === "admin" ? "blue" : "gray") + '">' + (user.role === "admin" ? "管理员" : "普通用户") + '</span><span>' + (user.role === "admin" ? "全部功能 · 所有数据" : "全部功能 · 当前用户数据") + "</span></div></td>",
+      '<td><div class="admin-role-cell"><span class="status-tag ' + (user.role === "admin" ? "blue" : "gray") + '">' + (user.role === "admin" ? "管理员" : "普通用户") + '</span><span>' + (user.role === "admin" ? "用户账号维护" : "日常业务使用") + "</span></div></td>",
       '<td><span class="status-tag ' + (enabled ? "green" : "gray") + '">' + (enabled ? "已启用" : "已禁用") + "</span></td>",
       '<td><span class="admin-remark' + (user.remark ? "" : " empty") + '" title="' + escapeHtml(user.remark || "暂无备注") + '">' + escapeHtml(user.remark || "暂无备注") + "</span></td>",
       "<td>" + lastLogin + "</td>",
@@ -154,7 +154,7 @@
   function updateRoleAccessTip() {
     const isAdmin = document.getElementById("userRoleInput").value === "admin";
     document.getElementById("roleAccessTitle").textContent = isAdmin ? "管理员" : "普通用户";
-    document.getElementById("roleAccessDescription").textContent = isAdmin ? "拥有所有功能和所有数据权限。" : "拥有所有功能和当前用户的数据权限。";
+    document.getElementById("roleAccessDescription").textContent = isAdmin ? "可维护投标助手用户账号。" : "用于日常投标业务操作。";
   }
 
   function openCreateUser() {
@@ -170,7 +170,7 @@
     document.getElementById("userEmailInput").value = "";
     document.getElementById("userRoleInput").value = "user";
     document.getElementById("userRoleInput").disabled = false;
-    document.getElementById("userRoleHint").textContent = "系统默认角色，暂不支持自定义。";
+    document.getElementById("userRoleHint").textContent = "系统提供普通用户和管理员两种用户类型。";
     document.getElementById("userRemarkInput").value = "";
     document.getElementById("userPasswordInput").value = generatePassword();
     document.getElementById("userPasswordField").classList.remove("hidden");
@@ -186,7 +186,7 @@
     editingUserId = userId;
     clearFormErrors();
     document.getElementById("userFormTitle").textContent = "编辑用户";
-    document.getElementById("userFormDescription").textContent = "修改用户基础信息和系统默认角色，登录账号开通后不可修改。";
+    document.getElementById("userFormDescription").textContent = "修改用户基础信息和用户类型，登录账号开通后不可修改。";
     document.getElementById("saveUserBtn").querySelector("span:last-child").textContent = "保存修改";
     document.getElementById("userNameInput").value = user.name;
     document.getElementById("userAccountInput").value = user.account;
@@ -195,7 +195,7 @@
     document.getElementById("userEmailInput").value = user.email;
     document.getElementById("userRoleInput").value = user.role;
     document.getElementById("userRoleInput").disabled = user.id === currentUserId;
-    document.getElementById("userRoleHint").textContent = user.id === currentUserId ? "当前登录用户不能调整自身角色。" : "系统默认角色，暂不支持自定义。";
+    document.getElementById("userRoleHint").textContent = user.id === currentUserId ? "当前登录用户不能调整自身用户类型。" : "系统提供普通用户和管理员两种用户类型。";
     document.getElementById("userRemarkInput").value = user.remark || "";
     document.getElementById("userPasswordField").classList.add("hidden");
     document.getElementById("userEnableField").classList.add("hidden");
@@ -219,7 +219,7 @@
     if (!/^1\d{10}$/.test(phone)) { setFieldError("userPhone", "请输入正确的 11 位手机号"); valid = false; }
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setFieldError("userEmail", "请输入正确的邮箱地址"); valid = false; }
     else if (email && users.some(function (user) { return user.id !== editingUserId && user.email.toLowerCase() === email.toLowerCase(); })) { setFieldError("userEmail", "该邮箱已被其他用户使用"); valid = false; }
-    if (["admin", "user"].indexOf(role) === -1) { setFieldError("userRole", "请选择系统默认角色"); valid = false; }
+    if (["admin", "user"].indexOf(role) === -1) { setFieldError("userRole", "请选择用户类型"); valid = false; }
     if (!editingUserId && password.length < 8) { setFieldError("userPassword", "初始密码至少需要 8 位"); valid = false; }
     return valid;
   }
@@ -269,7 +269,7 @@
     });
     closeLayers();
     renderUsers();
-    showNotice("用户“" + name + "”已按“" + (role === "admin" ? "管理员" : "普通用户") + "”角色开通");
+    showNotice("用户“" + name + "”已开通，用户类型为“" + (role === "admin" ? "管理员" : "普通用户") + "”");
   }
 
   function openActionModal(userId, action) {

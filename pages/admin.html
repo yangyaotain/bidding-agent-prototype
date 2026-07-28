@@ -16,7 +16,7 @@
     <header class="admin-heading">
       <div>
         <h1>用户管理</h1>
-        <p>开通和维护投标助手用户账号，并通过系统默认角色控制用户的数据查看范围。</p>
+        <p>开通和维护投标助手用户账号、用户类型与启用状态。</p>
       </div>
       <button class="primary-btn" id="createUserBtn" type="button">
         <span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span>
@@ -64,7 +64,7 @@
             <col style="width:10%" /><col style="width:12%" /><col style="width:12%" /><col style="width:14%" />
           </colgroup>
           <thead>
-            <tr><th>用户</th><th>联系方式</th><th>角色</th><th>账号状态</th><th>备注</th><th>最近登录</th><th>操作</th></tr>
+            <tr><th>用户</th><th>联系方式</th><th>用户类型</th><th>账号状态</th><th>备注</th><th>最近登录</th><th>操作</th></tr>
           </thead>
           <tbody id="userTableBody"></tbody>
         </table>
@@ -94,7 +94,7 @@
       <div class="admin-layer-body">
         <div class="admin-access-tip">
           <svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/><circle cx="12" cy="12" r="9"/></svg>
-          <div><strong id="roleAccessTitle">普通用户</strong><span id="roleAccessDescription">可使用所有功能，并拥有当前用户的数据权限。</span></div>
+          <div><strong id="roleAccessTitle">普通用户</strong><span id="roleAccessDescription">用于日常投标业务操作。</span></div>
         </div>
         <div class="admin-form-grid">
           <label class="admin-form-field" id="userNameField">
@@ -118,12 +118,12 @@
             <small class="admin-field-error" id="userEmailError"></small>
           </label>
           <label class="admin-form-field" id="userRoleField">
-            <span>角色<em>*</em></span>
+            <span>用户类型<em>*</em></span>
             <select class="admin-control" id="userRoleInput">
               <option value="user">普通用户</option>
               <option value="admin">管理员</option>
             </select>
-            <small class="admin-field-hint" id="userRoleHint">系统默认角色，暂不支持自定义。</small>
+            <small class="admin-field-hint" id="userRoleHint">系统提供普通用户和管理员两种用户类型。</small>
             <small class="admin-field-error" id="userRoleError"></small>
           </label>
           <label class="admin-form-field" id="userPasswordField">

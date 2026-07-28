@@ -9,8 +9,8 @@
   let pendingDeleteItem = null;
   let currentPresetCategory = "";
   let assetBatchFiles = [];
-  let assetBatchStage = "upload";
-  let assetBatchTimers = [];
+  let assetUploadActive = false;
+  let assetUploadTimer = null;
   let personImportMode = "people";
   let personImportFiles = [];
   let personImportStage = "upload";
@@ -219,18 +219,6 @@
     return (size / 1024 / 1024).toFixed(1) + " MB";
   }
 
-  function guessCategory(fileName) {
-    const name = (fileName || "").toLowerCase();
-    if (/证书|认证|资质|许可|iso/.test(name)) return "certificates";
-    if (/合同|验收|案例|业绩/.test(name)) return "cases";
-    if (/方案|架构|实施|运维|技术/.test(name)) return "solutions";
-    if (/承诺|保密|廉洁|售后|商务/.test(name)) return "business";
-    if (/模板|格式|偏离表|投标函/.test(name)) return "templates";
-    if (/图|拓扑|流程|组织架构/.test(name)) return "charts";
-    if (/历史|归档|标书/.test(name)) return "history";
-    return "company";
-  }
-
   function guessType(category, fileName) {
     const name = (fileName || "").toLowerCase();
     const rules = {
@@ -349,34 +337,6 @@
     document.getElementById("assetValidityDueField").classList.toggle("hidden", mode === "longterm");
   }
 
-  function batchValidityFields(result) {
-    const supported = categorySupportsValidity(result.category);
-    const mode = result.validityMode === "fixed" ? "fixed" : "longterm";
-    return '<div class="knowledge-validity-editor full' + (supported ? '' : ' hidden') + '" data-result-validity><div class="knowledge-validity-editor-head"><strong>有效期信息</strong><span>AI 自动识别，可修改</span></div><div class="knowledge-form-grid">' +
-      '<div class="knowledge-form-field"><label>有效期类型</label><select class="knowledge-control" data-result-field="validityMode"><option value="longterm"' + (mode === "longterm" ? ' selected' : '') + '>长期有效</option><option value="fixed"' + (mode === "fixed" ? ' selected' : '') + '>固定有效期</option></select></div>' +
-      '<div class="knowledge-form-field" data-result-validity-start><label>生效日期</label><input class="knowledge-control" data-result-field="validityStartDate" type="date" value="' + escapeHtml(result.validityStartDate || "") + '"/></div>' +
-      '<div class="knowledge-form-field' + (mode === "longterm" ? ' hidden' : '') + '" data-result-validity-due><label>到期日期</label><input class="knowledge-control" data-result-field="validityDueDate" type="date" value="' + escapeHtml(result.validityDueDate || "") + '"/></div>' +
-      '</div></div>';
-  }
-
-  function syncBatchValidityCard(card, category, values) {
-    const supported = categorySupportsValidity(category);
-    const root = card.querySelector("[data-result-validity]");
-    root.classList.toggle("hidden", !supported);
-    const modeSelect = card.querySelector('[data-result-field="validityMode"]');
-    const startInput = card.querySelector('[data-result-field="validityStartDate"]');
-    const dueInput = card.querySelector('[data-result-field="validityDueDate"]');
-    if (values) {
-      modeSelect.value = values.mode === "fixed" ? "fixed" : "longterm";
-      startInput.value = values.startDate || "";
-      dueInput.value = values.dueDate || "";
-    }
-    if (!supported) modeSelect.value = "longterm";
-    const mode = modeSelect.value;
-    card.querySelector("[data-result-validity-start]").classList.remove("hidden");
-    card.querySelector("[data-result-validity-due]").classList.toggle("hidden", mode === "longterm");
-  }
-
   function injectSharedLayers() {
     if (document.getElementById("knowledgeBackdrop")) return;
     const wrapper = document.createElement("div");
@@ -399,11 +359,11 @@
       '</div>',
       '<footer class="knowledge-layer-footer"><button class="ghost-btn" type="button" data-close-knowledge-layer><span class="btn-icon">' + icons.close + '</span><span>关闭</span></button><button class="primary-btn" id="detailActionBtn" type="button"><span class="btn-icon" id="detailActionIcon">' + icons.edit + '</span><span id="detailActionText">编辑资料</span></button></footer>',
       '</aside>',
-      '<section class="knowledge-modal wide" id="knowledgeAssetModal" aria-hidden="true" aria-label="维护知识资料">',
-      '<header class="knowledge-layer-head"><div><h3 id="assetModalTitle">上传知识资料</h3><p id="assetModalSubtitle">选择文件后，系统将自动解析资料信息。</p></div><button class="knowledge-layer-close" type="button" data-close-knowledge-layer title="关闭" aria-label="关闭弹窗">' + icons.close + '</button></header>',
+      '<section class="knowledge-modal" id="knowledgeAssetModal" aria-hidden="true" aria-label="维护知识资料">',
+      '<header class="knowledge-layer-head"><div><h3 id="assetModalTitle">上传知识资料</h3><p id="assetModalSubtitle">支持批量上传，上传完成后系统将在后台异步解析。</p></div><button class="knowledge-layer-close" type="button" data-close-knowledge-layer title="关闭" aria-label="关闭弹窗">' + icons.close + '</button></header>',
       '<div class="knowledge-layer-body">',
       '<div class="knowledge-form-grid" id="assetUploadStage">',
-      '<div class="knowledge-form-field full"><label>资料文件 <em>*</em></label><label class="knowledge-upload-zone" for="assetFile" id="assetUploadZone"><span class="knowledge-upload-icon">' + icons.upload + '</span><strong id="assetFileLabel">点击选择多个文件或拖放到这里</strong><span id="assetFileHint">支持 PDF、Word、Excel、图片和压缩包，单个文件不超过 50 MB</span><input id="assetFile" type="file" multiple/></label></div>',
+      '<div class="knowledge-form-field full"><label>资料文件 <em>*</em></label><label class="knowledge-upload-zone" for="assetFile" id="assetUploadZone"><span class="knowledge-upload-icon">' + icons.upload + '</span><strong id="assetFileLabel">点击选择多个文件或拖放到这里</strong><span id="assetFileHint">支持 PDF、Word、Excel、PPT、图片和压缩包，单个文件不超过 50 MB</span><input id="assetFile" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.png,.jpg,.jpeg,.svg,.ofd,.zip,.rar" multiple/></label></div>',
       '<div class="knowledge-batch-status full" id="assetBatchStatus" role="status" aria-live="polite">尚未选择资料文件</div>',
       '<div class="knowledge-batch-file-list full" id="assetBatchFileList"></div>',
       '</div>',
@@ -422,12 +382,8 @@
       '<div class="knowledge-ai-extract full" id="assetAiExtract"></div>',
       '</div>',
       '<datalist id="assetTypeSuggestions"></datalist>',
-      '<div class="knowledge-batch-results hidden" id="assetBatchResults">',
-      '<div class="knowledge-batch-results-head"><div><strong>AI 解析结果</strong><span id="assetBatchResultSummary">请逐项核对资料信息</span></div><button class="secondary-btn knowledge-batch-back" id="backToBatchUpload" type="button"><span class="btn-icon">' + icons.upload + '</span><span>返回文件列表</span></button></div>',
-      '<div class="knowledge-batch-result-list" id="assetBatchResultList"></div>',
       '</div>',
-      '</div>',
-      '<footer class="knowledge-layer-footer"><button class="ghost-btn" type="button" data-close-knowledge-layer><span class="btn-icon">' + icons.close + '</span><span>取消</span></button><button class="primary-btn" id="saveKnowledgeAsset" type="button"><span class="btn-icon" id="saveKnowledgeAssetIcon">' + icons.upload + '</span><span id="saveKnowledgeAssetText">上传并解析</span></button></footer>',
+      '<footer class="knowledge-layer-footer"><button class="ghost-btn" type="button" data-close-knowledge-layer><span class="btn-icon">' + icons.close + '</span><span>取消</span></button><button class="primary-btn" id="saveKnowledgeAsset" type="button"><span class="btn-icon" id="saveKnowledgeAssetIcon">' + icons.upload + '</span><span id="saveKnowledgeAssetText">确认上传</span></button></footer>',
       '</section>',
       '<section class="knowledge-modal" id="knowledgePersonModal" aria-hidden="true" aria-label="维护人员主档">',
       '<header class="knowledge-layer-head"><div><h3 id="personModalTitle">新增人员</h3><p>仅维护人员身份和组织信息，证书与资质通过资料导入自动关联。</p></div><button class="knowledge-layer-close" type="button" data-close-knowledge-layer title="关闭" aria-label="关闭弹窗">' + icons.close + '</button></header>',
@@ -464,8 +420,8 @@
   }
 
   function clearTimers() {
-    assetBatchTimers.forEach(function (timer) { window.clearTimeout(timer); });
-    assetBatchTimers = [];
+    if (assetUploadTimer) window.clearTimeout(assetUploadTimer);
+    assetUploadTimer = null;
     if (personImportTimer) window.clearTimeout(personImportTimer);
     personImportTimer = null;
   }
@@ -479,6 +435,14 @@
     const backdrop = document.getElementById("knowledgeBackdrop");
     if (backdrop) backdrop.classList.remove("open");
     document.body.classList.remove("knowledge-layer-open");
+  }
+
+  function requestCloseLayers() {
+    if (assetUploadActive) {
+      window.showToast("资料正在上传，请等待全部文件上传完成", "warning");
+      return;
+    }
+    closeLayers();
   }
 
   function openLayer(id) {
@@ -500,13 +464,14 @@
     if (!item) return;
     currentItem = item;
     const status = recordStatus(item);
-    const validity = item.category === "people-record" && item.recordType !== "certificate" ? { applicable: false, tone: "gray", label: "-", dateText: "" } : validityInfo(item);
-    const aiFields = item.category === "people-record" ? personRecordDetailFields(item) : buildAiExtract(item.category, item.type, item.file, item);
+    const processing = status.key === "processing";
+    const validity = processing || item.category === "people-record" && item.recordType !== "certificate" ? { applicable: false, tone: "gray", label: "-", dateText: "" } : validityInfo(item);
+    const aiFields = processing ? [["解析状态", "资料正在后台解析，完成后自动更新"]] : item.category === "people-record" ? personRecordDetailFields(item) : buildAiExtract(item.category, item.type, item.file, item);
     setText("detailCategory", detailCategoryLabel(item));
     setText("detailTitle", item.name);
     setText("detailCode", item.id || "资料编号待生成");
     setText("detailSummary", item.summary || item.content || item.period || (item.tags || []).slice(0, 3).join("、") || item.name);
-    setText("detailDescription", item.description || (item.category === "people-record" ? "来源文件已完成解析并关联当前人员档案，可继续查看、编辑或归档。" : "资料内容已完成 AI 解析，可用于知识检索和投标项目匹配。"));
+    setText("detailDescription", processing ? "文件已上传，系统正在后台解析资料内容；完成后将自动更新资料属性。" : item.description || (item.category === "people-record" ? "来源文件已完成解析并关联当前人员档案，可继续查看、编辑或归档。" : "资料内容已完成 AI 解析，可用于知识检索和投标项目匹配。"));
     setText("detailType", item.type || (item.category === "people-record" ? personRecordLabel(item) : "AI 自动识别"));
     setText("detailClassification", detailCategoryLabel(item));
     setText("detailOwner", item.owner || currentUserName);
@@ -515,7 +480,7 @@
     setText("detailStatusTime", status.key === "archived" ? (item.archivedAt || "-") + " · " + (item.archivedBy || currentUserName) : (item.updatedAt || "-") + " · " + currentUserName);
     setText("detailReferences", (item.references || 0) + " 次");
     setText("detailUpdatedAt", (item.updatedAt || "-") + " · " + (item.owner || currentUserName));
-    setText("detailParsedAt", item.manualFilled ? "AI 未识别到有效信息 · 已人工补充" : (item.updatedAt || "-") + " · 解析信息已保存");
+    setText("detailParsedAt", processing ? "后台解析中 · 完成后自动更新" : item.manualFilled ? "AI 未识别到有效信息 · 已人工补充" : (item.updatedAt || "-") + " · 解析信息已保存");
     const archiveRecord = document.getElementById("detailArchiveRecord");
     archiveRecord.classList.toggle("hidden", status.key !== "archived");
     setText("detailArchivedAt", (item.archivedAt || "-") + " · " + (item.archivedBy || currentUserName));
@@ -533,7 +498,7 @@
     setText("detailValidityDate", validity.dateText);
     const actionButton = document.getElementById("detailActionBtn");
     const archived = status.key === "archived";
-    actionButton.className = (archived ? "danger-btn" : "primary-btn") + (item.detailReadOnly ? " hidden" : "");
+    actionButton.className = (archived ? "danger-btn" : "primary-btn") + (item.detailReadOnly || processing ? " hidden" : "");
     document.getElementById("detailActionIcon").innerHTML = archived ? icons.trash : icons.edit;
     document.getElementById("detailActionText").textContent = archived ? "删除资料" : "编辑资料";
     document.getElementById("detailAiFields").innerHTML = aiFields.map(function (field) { return '<div><span>' + escapeHtml(field[0]) + '</span><strong>' + escapeHtml(field[1]) + '</strong></div>'; }).join("");
@@ -553,10 +518,19 @@
     document.getElementById("saveKnowledgeAsset").disabled = Boolean(disabled);
   }
 
+  function setAssetUploadControlsDisabled(disabled) {
+    document.getElementById("assetFile").disabled = Boolean(disabled);
+    document.getElementById("assetUploadZone").classList.toggle("disabled", Boolean(disabled));
+    document.querySelectorAll("#knowledgeAssetModal [data-close-knowledge-layer]").forEach(function (button) {
+      button.disabled = Boolean(disabled);
+    });
+  }
+
   function resetAssetForm() {
-    clearTimers();
+    if (assetUploadTimer) window.clearTimeout(assetUploadTimer);
+    assetUploadTimer = null;
+    assetUploadActive = false;
     assetBatchFiles = [];
-    assetBatchStage = "upload";
     ["assetName", "assetType", "assetTags", "assetSummary", "assetDescription"].forEach(function (id) { document.getElementById(id).value = ""; });
     document.getElementById("assetCategory").value = "company";
     document.getElementById("assetValidityMode").value = "longterm";
@@ -565,115 +539,145 @@
     document.getElementById("assetValidityFields").classList.add("hidden");
     document.getElementById("assetFile").value = "";
     document.getElementById("assetFileLabel").textContent = "点击选择多个文件或拖放到这里";
-    document.getElementById("assetFileHint").textContent = "支持 PDF、Word、Excel、图片和压缩包，单个文件不超过 50 MB";
+    document.getElementById("assetFileHint").textContent = "支持 PDF、Word、Excel、PPT、图片和压缩包，单个文件不超过 50 MB";
     document.getElementById("assetUploadStage").classList.remove("hidden");
     document.getElementById("assetEditFields").classList.add("hidden");
-    document.getElementById("assetBatchResults").classList.add("hidden");
     document.getElementById("assetBatchFileList").innerHTML = "";
     document.getElementById("assetBatchStatus").textContent = "尚未选择资料文件";
-    document.getElementById("assetBatchResultList").innerHTML = "";
     document.getElementById("assetAiExtract").innerHTML = "";
     renderTypeSuggestions("company");
-    setAssetButton("上传并解析", icons.upload, true);
-  }
-
-  function parsedAssetData(fileName) {
-    const category = currentPresetCategory || guessCategory(fileName);
-    const type = guessType(category, fileName);
-    const manualRequired = /无结果|未识别|失败|error/i.test(fileName || "");
-    const validity = suggestedValidity(category, fileName, manualRequired);
-    const aiExtract = manualRequired ? [] : buildAiExtract(category, type, fileName, null);
-    const parsedValidity = validityInfo({ validityMode: validity.mode, validityStartDate: validity.startDate, validityDueDate: validity.dueDate });
-    if (!manualRequired && parsedValidity.applicable && category !== "certificates") aiExtract.push(["有效状态", parsedValidity.label + " · " + parsedValidity.dateText]);
-    return {
-      name: manualRequired ? "" : fileBaseName(fileName), category: category, type: manualRequired ? "" : type,
-      tags: manualRequired ? "" : type + "、AI解析、" + categoryLabels[category],
-      summary: manualRequired ? "" : defaultSummary(category, type),
-      description: manualRequired ? "" : "系统已从原始文件提取资料内容，可按实际用途修改名称、标签、摘要和说明。",
-      manualRequired: manualRequired,
-      validityMode: validity.mode,
-      validityStartDate: validity.startDate,
-      validityDueDate: validity.dueDate,
-      aiExtract: aiExtract
-    };
+    setAssetUploadControlsDisabled(false);
+    setAssetButton("确认上传", icons.upload, true);
   }
 
   function renderBatchFileList() {
-    const labels = { pending: ["待上传", "gray"], uploading: ["上传中", "blue"], parsing: ["解析中", "blue"], done: ["解析完成", "green"] };
+    const labels = {
+      pending: ["待上传", "gray"],
+      uploading: ["上传中", "blue"],
+      done: ["上传完成", "green"]
+    };
     document.getElementById("assetBatchFileList").innerHTML = assetBatchFiles.map(function (item) {
       const status = labels[item.status] || labels.pending;
-      let actions = "";
-      if (item.status === "pending") actions = '<button class="knowledge-batch-action" type="button" data-batch-remove="' + item.id + '"><span>' + icons.close + '</span><b>移除</b></button>';
-      return '<div class="knowledge-batch-file-item">' + fileIconMarkup(item.file.name, "knowledge-batch-format-icon") + '<div class="knowledge-batch-file-name"><strong title="' + escapeHtml(item.file.name) + '">' + escapeHtml(item.file.name) + '</strong><span>' + formatFileSize(item.file.size) + '</span></div><span class="status-tag ' + status[1] + '">' + status[0] + '</span><div class="knowledge-batch-file-actions">' + actions + '</div></div>';
+      const action = !assetUploadActive && item.status === "pending" ? '<button class="knowledge-batch-action" type="button" data-batch-remove="' + item.id + '"><span>' + icons.close + '</span><b>移除</b></button>' : "";
+      const actions = action ? '<div class="knowledge-batch-file-actions">' + action + '</div>' : "";
+      const progress = item.status === "pending" ? "" : '<div class="knowledge-batch-progress" role="progressbar" aria-label="' + escapeHtml(item.file.name) + '上传进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + item.progress + '"><span><i style="width:' + item.progress + '%"></i></span><b>' + item.progress + '%</b></div>';
+      return '<div class="knowledge-batch-file-item' + (progress ? ' has-progress' : '') + '">' + fileIconMarkup(item.file.name, "knowledge-batch-format-icon") + '<div class="knowledge-batch-file-name"><strong title="' + escapeHtml(item.file.name) + '">' + escapeHtml(item.file.name) + '</strong><span>' + formatFileSize(item.file.size) + '</span></div><span class="status-tag ' + status[1] + '">' + status[0] + '</span>' + actions + progress + '</div>';
     }).join("");
   }
 
-  function renderBatchResults() {
-    assetBatchStage = "results";
-    document.getElementById("assetUploadStage").classList.add("hidden");
-    document.getElementById("assetBatchResults").classList.remove("hidden");
-    document.getElementById("assetBatchResultSummary").textContent = "共 " + assetBatchFiles.length + " 项，AI 已自动填充基础信息";
-    document.getElementById("assetBatchResultList").innerHTML = assetBatchFiles.map(function (item, index) {
-      const result = item.result;
-      const manualNotice = result.manualRequired ? '<div class="knowledge-batch-manual-note"><span>' + icons.warning + '</span><div><strong>AI 未识别到有效信息</strong><small>请人工补充以下基础属性，保存后正常入库。</small></div></div>' : '';
-      return [
-        '<article class="knowledge-batch-result-card" data-result-id="' + item.id + '">',
-        '<div class="knowledge-batch-result-head"><span class="knowledge-batch-result-index">' + (index + 1) + '</span>' + fileIconMarkup(item.file.name, "knowledge-batch-result-format-icon") + '<div><strong>' + escapeHtml(item.file.name) + '</strong><small>' + formatFileSize(item.file.size) + '</small></div></div>',
-        manualNotice,
-        '<div class="knowledge-form-grid knowledge-batch-result-fields">',
-        '<div class="knowledge-form-field full"><label>资料名称 <em>*</em></label><input class="knowledge-control" data-result-field="name" type="text" value="' + escapeHtml(result.name) + '"/></div>',
-        '<div class="knowledge-form-field"><label>知识分类 <em>*</em></label><select class="knowledge-control" data-result-field="category">' + categoryOptions(result.category) + '</select></div>',
-        '<div class="knowledge-form-field"><label>资料类型 <em>*</em></label><input class="knowledge-control" data-result-field="type" list="assetTypeSuggestions" type="text" value="' + escapeHtml(result.type) + '"/></div>',
-        '<div class="knowledge-form-field full"><label>资料标签</label><input class="knowledge-control" data-result-field="tags" type="text" value="' + escapeHtml(result.tags) + '"/></div>',
-        '<div class="knowledge-form-field full"><label>AI 摘要 <em>*</em></label><input class="knowledge-control" data-result-field="summary" maxlength="100" type="text" value="' + escapeHtml(result.summary) + '"/></div>',
-        '<div class="knowledge-form-field full"><label>资料说明</label><textarea class="knowledge-control knowledge-textarea" data-result-field="description">' + escapeHtml(result.description) + '</textarea></div>',
-        batchValidityFields(result),
-        '<div class="knowledge-ai-extract full' + (result.manualRequired ? ' hidden' : '') + '" data-result-ai>' + (result.manualRequired ? '' : aiExtractHtml(result.aiExtract)) + '</div>',
-        '</div></article>'
-      ].join("");
-    }).join("");
-    setAssetButton("确认导入", icons.check, false);
-  }
-
-  function updateBatchProgress() {
+  function updateBatchSelection() {
     renderBatchFileList();
-    const counts = assetBatchFiles.reduce(function (result, item) { result[item.status] = (result[item.status] || 0) + 1; return result; }, {});
-    const activeCount = (counts.uploading || 0) + (counts.parsing || 0);
     const status = document.getElementById("assetBatchStatus");
     if (!assetBatchFiles.length) {
       status.textContent = "尚未选择资料文件";
       document.getElementById("assetFileLabel").textContent = "点击选择多个文件或拖放到这里";
-      setAssetButton("上传并解析", icons.upload, true);
+      setAssetButton("确认上传", icons.upload, true);
       return;
     }
     document.getElementById("assetFileLabel").textContent = "已选择 " + assetBatchFiles.length + " 个文件，可继续添加";
-    if (activeCount) {
-      status.textContent = "正在处理：已完成 " + (counts.done || 0) + " / " + assetBatchFiles.length + " 个文件";
-      setAssetButton("AI 解析中", icons.scan, true);
-    } else if ((counts.done || 0) === assetBatchFiles.length) {
-      renderBatchResults();
-    } else {
-      status.textContent = "已选择 " + assetBatchFiles.length + " 个文件，点击“上传并解析”开始处理";
-      setAssetButton("上传并解析", icons.upload, false);
+    status.textContent = "已选择 " + assetBatchFiles.length + " 个文件，上传完成后将在后台异步解析";
+    setAssetButton("确认上传（" + assetBatchFiles.length + "）", icons.upload, false);
+  }
+
+  function updateUploadSummary() {
+    const completed = assetBatchFiles.filter(function (item) { return item.status === "done"; }).length;
+    document.getElementById("assetBatchStatus").textContent = "正在上传：已完成 " + completed + " / " + assetBatchFiles.length + " 个文件";
+    setAssetButton("正在上传（" + completed + "/" + assetBatchFiles.length + "）", icons.upload, true);
+  }
+
+  function uploadNextBatchFile(index) {
+    if (index >= assetBatchFiles.length) {
+      document.getElementById("assetBatchStatus").textContent = "全部 " + assetBatchFiles.length + " 个文件上传完成";
+      setAssetButton("上传完成", icons.check, true);
+      assetUploadTimer = window.setTimeout(function () {
+        assetUploadTimer = null;
+        const records = createProcessingRecords();
+        assetUploadActive = false;
+        setAssetUploadControlsDisabled(false);
+        closeLayers();
+        document.dispatchEvent(new CustomEvent("knowledge-record-changed", { detail: { action: "create", records: records } }));
+        window.showToast(records.length + " 个文件上传成功，系统正在后台解析", "success");
+      }, 360);
+      return;
     }
-  }
-
-  function parseBatchItem(item) {
+    const item = assetBatchFiles[index];
+    const steps = [12, 30, 52, 73, 89, 100];
+    let stepIndex = 0;
     item.status = "uploading";
-    updateBatchProgress();
-    assetBatchTimers.push(window.setTimeout(function () {
-      item.status = "parsing";
-      updateBatchProgress();
-      assetBatchTimers.push(window.setTimeout(function () {
-        item.status = "done";
-        item.result = parsedAssetData(item.file.name);
-        updateBatchProgress();
-      }, 620));
-    }, 360));
+    item.progress = 0;
+    renderBatchFileList();
+    updateUploadSummary();
+    function advanceUpload() {
+      item.progress = steps[stepIndex];
+      stepIndex += 1;
+      renderBatchFileList();
+      if (item.progress < 100) {
+        assetUploadTimer = window.setTimeout(advanceUpload, 120);
+        return;
+      }
+      item.status = "done";
+      renderBatchFileList();
+      updateUploadSummary();
+      assetUploadTimer = window.setTimeout(function () { uploadNextBatchFile(index + 1); }, 180);
+    }
+    assetUploadTimer = window.setTimeout(advanceUpload, 120);
   }
 
-  function startBatchParsing() {
-    assetBatchFiles.filter(function (item) { return item.status === "pending"; }).forEach(parseBatchItem);
+  function startBatchUpload() {
+    assetUploadActive = true;
+    assetBatchFiles.forEach(function (item) {
+      item.status = "pending";
+      item.progress = 0;
+    });
+    setAssetUploadControlsDisabled(true);
+    renderBatchFileList();
+    updateUploadSummary();
+    uploadNextBatchFile(0);
+  }
+
+  function collectionForCategory(category) {
+    return {
+      company: data.companyRecords,
+      certificates: data.certificates,
+      cases: data.caseRecords,
+      solutions: data.solutionRecords,
+      business: data.businessRecords,
+      templates: data.templateRecords,
+      charts: data.chartRecords,
+      history: data.historyRecords
+    }[category] || null;
+  }
+
+  function createProcessingRecords() {
+    const category = categoryLabels[currentPresetCategory] ? currentPresetCategory : "pending";
+    const now = new Date();
+    const stamp = Date.now();
+    const records = assetBatchFiles.map(function (item, index) {
+      return {
+        id: "KB-UP-" + stamp + "-" + String(index + 1).padStart(2, "0"),
+        name: fileBaseName(item.file.name),
+        category: category,
+        categoryLabel: category === "pending" ? "待识别" : categoryLabels[category],
+        type: "待识别",
+        summary: "后台解析中，完成后自动更新",
+        description: "文件已上传，系统正在后台解析资料内容。",
+        tags: [],
+        references: 0,
+        updatedAt: formatDate(now),
+        owner: currentUserName,
+        file: item.file.name,
+        sourceFile: item.file,
+        lifecycleState: "active",
+        parseStatus: "processing"
+      };
+    });
+    const collection = collectionForCategory(category);
+    if (collection) records.slice().reverse().forEach(function (record) { collection.unshift(record); });
+    (data.categories || []).forEach(function (item) {
+      if (item.key === "all" || item.key === category) item.count += records.length;
+    });
+    renderSidebar();
+    return records;
   }
 
   function addBatchFiles(fileList) {
@@ -681,39 +685,10 @@
     Array.from(fileList || []).forEach(function (file) {
       if (file.size > 50 * 1024 * 1024) { oversized += 1; return; }
       const duplicate = assetBatchFiles.some(function (item) { return item.file.name === file.name && item.file.size === file.size; });
-      if (!duplicate) assetBatchFiles.push({ id: "asset-" + Date.now() + "-" + assetBatchFiles.length, file: file, status: "pending", result: null });
+      if (!duplicate) assetBatchFiles.push({ id: "asset-" + Date.now() + "-" + assetBatchFiles.length, file: file, status: "pending", progress: 0 });
     });
     if (oversized) window.showToast(oversized + " 个文件超过 50 MB，未加入上传列表", "warning", "#assetFile");
-    updateBatchProgress();
-  }
-
-  function syncBatchResults(requireFields) {
-    let valid = true;
-    document.querySelectorAll(".knowledge-batch-result-card").forEach(function (card) {
-      const item = assetBatchFiles.find(function (entry) { return entry.id === card.getAttribute("data-result-id"); });
-      if (!item) return;
-      const name = card.querySelector('[data-result-field="name"]');
-      const type = card.querySelector('[data-result-field="type"]');
-      const summary = card.querySelector('[data-result-field="summary"]');
-      const category = card.querySelector('[data-result-field="category"]').value;
-      const validityMode = card.querySelector('[data-result-field="validityMode"]').value;
-      const validityDueInput = card.querySelector('[data-result-field="validityDueDate"]');
-      item.result = {
-        name: name.value.trim(), category: category, type: type.value.trim(),
-        tags: card.querySelector('[data-result-field="tags"]').value.trim(),
-        summary: summary.value.trim(), description: card.querySelector('[data-result-field="description"]').value.trim(),
-        manualRequired: item.result.manualRequired,
-        validityMode: validityMode,
-        validityStartDate: card.querySelector('[data-result-field="validityStartDate"]').value,
-        validityDueDate: card.querySelector('[data-result-field="validityDueDate"]').value,
-        aiExtract: item.result.aiExtract
-      };
-      if (requireFields && (!item.result.name || !item.result.type || !item.result.summary || (validityMode === "fixed" && !item.result.validityDueDate))) {
-        valid = false;
-        if (!item.result.name) name.focus(); else if (!item.result.type) type.focus(); else if (!item.result.summary) summary.focus(); else validityDueInput.focus();
-      }
-    });
-    return valid;
+    updateBatchSelection();
   }
 
   function fillAssetForm(item) {
@@ -738,8 +713,10 @@
     const subtitle = document.getElementById("assetModalSubtitle");
     const category = document.getElementById("assetCategory");
     const fileInput = document.getElementById("assetFile");
+    const modal = document.getElementById("knowledgeAssetModal");
     const isCreate = !mode || mode === "create";
     fileInput.multiple = isCreate;
+    modal.classList.toggle("wide", !isCreate);
     category.value = presetCategory || (item && item.category) || "company";
     renderTypeSuggestions(category.value);
     document.getElementById("assetBatchFileList").classList.toggle("hidden", !isCreate);
@@ -754,11 +731,11 @@
       setAssetButton("保存修改", icons.save, false);
     } else {
       title.textContent = "上传知识资料";
-      subtitle.textContent = "可一次选择多个文件，AI 解析后集中核对基础信息。";
+      subtitle.textContent = "支持批量上传，上传完成后系统将在后台异步解析。";
       category.value = presetCategory || "company";
-      setAssetButton("上传并解析", icons.upload, true);
+      setAssetButton("确认上传", icons.upload, true);
     }
-    document.getElementById("knowledgeAssetModal").setAttribute("data-form-mode", mode || "create");
+    modal.setAttribute("data-form-mode", mode || "create");
     openLayer("knowledgeAssetModal");
   }
 
@@ -875,26 +852,26 @@
   }
 
   function bindSharedEvents() {
-    document.getElementById("knowledgeBackdrop").addEventListener("click", closeLayers);
+    document.getElementById("knowledgeBackdrop").addEventListener("click", requestCloseLayers);
     document.addEventListener("click", function (event) {
       if (event.target.closest("[data-close-knowledge-layer]")) {
         event.preventDefault();
-        closeLayers();
+        requestCloseLayers();
       }
     });
-    document.addEventListener("keydown", function (event) { if (event.key === "Escape") closeLayers(); });
+    document.addEventListener("keydown", function (event) { if (event.key === "Escape") requestCloseLayers(); });
 
     const uploadZone = document.getElementById("assetUploadZone");
-    uploadZone.addEventListener("dragover", function (event) { event.preventDefault(); uploadZone.classList.add("dragging"); });
+    uploadZone.addEventListener("dragover", function (event) { event.preventDefault(); if (!assetUploadActive) uploadZone.classList.add("dragging"); });
     uploadZone.addEventListener("dragleave", function () { uploadZone.classList.remove("dragging"); });
     uploadZone.addEventListener("drop", function (event) {
       event.preventDefault();
       uploadZone.classList.remove("dragging");
-      if (document.getElementById("knowledgeAssetModal").getAttribute("data-form-mode") === "create") addBatchFiles(event.dataTransfer.files);
+      if (!assetUploadActive && document.getElementById("knowledgeAssetModal").getAttribute("data-form-mode") === "create") addBatchFiles(event.dataTransfer.files);
     });
     document.getElementById("assetFile").addEventListener("change", function () {
       const mode = document.getElementById("knowledgeAssetModal").getAttribute("data-form-mode");
-      if (mode === "create") {
+      if (mode === "create" && !assetUploadActive) {
         addBatchFiles(this.files);
         this.value = "";
       } else {
@@ -921,61 +898,17 @@
     document.getElementById("assetValidityMode").addEventListener("change", syncAssetValidityMode);
     document.getElementById("assetBatchFileList").addEventListener("click", function (event) {
       const remove = event.target.closest("[data-batch-remove]");
-      if (remove) {
+      if (remove && !assetUploadActive) {
         assetBatchFiles = assetBatchFiles.filter(function (entry) { return entry.id !== remove.getAttribute("data-batch-remove"); });
-        updateBatchProgress();
+        updateBatchSelection();
       }
-    });
-    document.getElementById("backToBatchUpload").addEventListener("click", function () {
-      syncBatchResults(false);
-      assetBatchStage = "upload";
-      document.getElementById("assetBatchResults").classList.add("hidden");
-      document.getElementById("assetUploadStage").classList.remove("hidden");
-      document.getElementById("assetBatchStatus").textContent = "全部文件已解析，可继续添加或返回解析结果";
-      renderBatchFileList();
-      setAssetButton("查看解析结果", icons.check, false);
-    });
-    document.getElementById("assetBatchResultList").addEventListener("change", function (event) {
-      const card = event.target.closest(".knowledge-batch-result-card");
-      if (!card) return;
-      if (event.target.matches('[data-result-field="validityMode"]')) {
-        syncBatchValidityCard(card, card.querySelector('[data-result-field="category"]').value);
-        return;
-      }
-      if (!event.target.matches('[data-result-field="category"]')) return;
-      const category = event.target.value;
-      const item = assetBatchFiles.find(function (entry) { return entry.id === card.getAttribute("data-result-id"); });
-      const type = guessType(category, item ? item.file.name : "");
-      const validity = suggestedValidity(category, item ? item.file.name : "", item && item.result.manualRequired);
-      card.querySelector('[data-result-field="type"]').value = type;
-      card.querySelector('[data-result-field="summary"]').value = defaultSummary(category, type);
-      const aiFields = buildAiExtract(category, type, item ? item.file.name : "", null);
-      const suggestedInfo = validityInfo({ validityMode: validity.mode, validityStartDate: validity.startDate, validityDueDate: validity.dueDate });
-      if (suggestedInfo.applicable && category !== "certificates") aiFields.push(["有效状态", suggestedInfo.label + " · " + suggestedInfo.dateText]);
-      card.querySelector("[data-result-ai]").innerHTML = aiExtractHtml(aiFields);
-      syncBatchValidityCard(card, category, validity);
-      if (item) {
-        item.result.aiExtract = aiFields;
-        item.result.validityMode = validity.mode;
-        item.result.validityStartDate = validity.startDate;
-        item.result.validityDueDate = validity.dueDate;
-      }
-      renderTypeSuggestions(category);
     });
     document.getElementById("saveKnowledgeAsset").addEventListener("click", function () {
       const mode = document.getElementById("knowledgeAssetModal").getAttribute("data-form-mode");
       if (mode === "create") {
-        if (assetBatchStage === "results") {
-          if (!syncBatchResults(true)) { window.showToast("请核对资料名称、类型、AI 摘要和有效期信息", "warning"); return; }
-          const count = assetBatchFiles.length;
-          closeLayers();
-          window.showToast("已导入 " + count + " 项资料，解析信息已保存", "success");
-          return;
-        }
+        if (assetUploadActive) return;
         if (!assetBatchFiles.length) { window.showToast("请先选择需要上传的资料文件", "warning", "#assetFile"); return; }
-        const allDone = assetBatchFiles.every(function (item) { return item.status === "done"; });
-        if (allDone) renderBatchResults();
-        else startBatchParsing();
+        startBatchUpload();
         return;
       }
       const required = ["assetName", "assetType", "assetSummary"];
