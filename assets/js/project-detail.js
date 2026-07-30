@@ -956,7 +956,7 @@
           completedAt: 0,
           progress: 8,
           activeStep: 1,
-          requiresVersionSave: true
+          requiresCurrentSave: true
         }));
       } catch (error) { /* storage unavailable */ }
       window.setTimeout(function () {

@@ -1319,10 +1319,10 @@ body.bid-ai-open .bid-ai-inline-status { left: calc((100vw - var(--bid-ai-width)
 .quality-step-index { width: 25px; height: 25px; display: grid; place-items: center; color: #64748b; background: #eef2f7; border-radius: 8px; font-size: 9px; font-weight: 800; }
 .quality-review-steps > div.current .quality-step-index { color: #fff; background: var(--primary); box-shadow: 0 5px 12px rgba(var(--primary-rgb), .2); }
 .quality-review-steps > div.completed .quality-step-index { color: var(--green); background: var(--green-soft); }
-.quality-review-steps strong,
-.quality-review-steps span { display: block; }
+.quality-review-steps > div > div > strong,
+.quality-review-steps > div > div > span { display: block; }
 .quality-review-steps strong { color: var(--heading); font-size: 10px; }
-.quality-review-steps div div span { margin-top: 3px; color: var(--muted); font-size: 8.5px; line-height: 1.45; }
+.quality-review-steps > div > div > span { margin-top: 3px; color: var(--muted); font-size: 8.5px; line-height: 1.45; }
 .quality-review-steps em { font-style: normal; font-size: 8px; }
 
 .quality-category-summary { margin-top: 12px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
