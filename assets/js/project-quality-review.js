@@ -247,7 +247,9 @@
     smartCheck.startedAt = 0;
     smartCheck.reviewWillComplete = false;
     smartCheck.issues = smartCheck.issues || {};
-    issueIds.forEach(function (issueId) { smartCheck.issues[issueId] = "done"; });
+    issueIds.forEach(function (issueId) {
+      if (smartCheck.issues[issueId] !== "ignored") smartCheck.issues[issueId] = "done";
+    });
     safeStorageSet(smartCheckStorageKey, JSON.stringify(smartCheck));
   }
 

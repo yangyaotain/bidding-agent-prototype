@@ -44,7 +44,8 @@
     writingGenerationFrame: 0,
     quality: null,
     qualityFrame: 0,
-    focusedIssueId: ""
+    focusedIssueId: "",
+    qualityActionIssueId: ""
   };
 
   const aiOperations = {
@@ -270,14 +271,32 @@
     }, {});
   }
 
+  function issueStatusPreservingIgnored(value, source) {
+    const result = baseIssueStatus(value);
+    const current = source || {};
+    qualityIssues.forEach(function (issue) {
+      if (current[issue.id] === "ignored") result[issue.id] = "ignored";
+    });
+    return result;
+  }
+
+  function ignoredOriginsPreserving(sourceIssues, sourceOrigins) {
+    const issues = sourceIssues || {};
+    const origins = sourceOrigins || {};
+    return qualityIssues.reduce(function (result, issue) {
+      if (issues[issue.id] === "ignored") result[issue.id] = origins[issue.id] === "done" ? "done" : "pending";
+      return result;
+    }, {});
+  }
+
   function defaultQualityState() {
     const stage = String(project.stage || "");
     const stageDetail = String(project.stageDetail || "");
     const currentVersion = latestBidVersion();
     const versionState = { versionId: currentVersion ? currentVersion.id : "", versionNumber: currentVersion ? currentVersion.number : "" };
-    if (stage.indexOf("质量审核") !== -1 || stage.indexOf("交付") !== -1) return Object.assign({ status: "complete", batch: 2, score: 98, startedAt: 0, reviewWillComplete: true, issues: baseIssueStatus("passed") }, versionState);
-    if (stageDetail.indexOf("智能检查") !== -1) return Object.assign({ status: "result", batch: 1, score: 82, startedAt: 0, reviewWillComplete: false, issues: baseIssueStatus("pending") }, versionState);
-    return Object.assign({ status: "idle", batch: 0, score: 0, startedAt: 0, reviewWillComplete: false, issues: baseIssueStatus("pending") }, versionState);
+    if (stage.indexOf("质量审核") !== -1 || stage.indexOf("交付") !== -1) return Object.assign({ status: "complete", batch: 2, score: 98, startedAt: 0, reviewWillComplete: true, issues: baseIssueStatus("passed"), ignoredFrom: {} }, versionState);
+    if (stageDetail.indexOf("智能检查") !== -1) return Object.assign({ status: "result", batch: 1, score: 82, startedAt: 0, reviewWillComplete: false, issues: baseIssueStatus("pending"), ignoredFrom: {} }, versionState);
+    return Object.assign({ status: "idle", batch: 0, score: 0, startedAt: 0, reviewWillComplete: false, issues: baseIssueStatus("pending"), ignoredFrom: {} }, versionState);
   }
 
   function loadQualityState() {
@@ -287,6 +306,7 @@
       const parsed = JSON.parse(stored);
       if (!parsed || ["idle", "reviewing", "result", "complete"].indexOf(parsed.status) === -1) return defaultQualityState();
       parsed.issues = Object.assign(baseIssueStatus(parsed.status === "complete" ? "passed" : "pending"), parsed.issues || {});
+      parsed.ignoredFrom = ignoredOriginsPreserving(parsed.issues, parsed.ignoredFrom);
       const currentVersion = versionApi ? versionApi.find(bidVersions, parsed.versionId || parsed.versionNumber) || latestBidVersion() : null;
       parsed.versionId = currentVersion ? currentVersion.id : "";
       parsed.versionNumber = currentVersion ? currentVersion.number : "";
@@ -343,10 +363,10 @@
     return qualityIssues.reduce(function (counts, issue) {
       const value = issueStatus(issue);
       counts[value] = (counts[value] || 0) + 1;
-      counts[issue.documentId] = counts[issue.documentId] || { pending: 0, done: 0, passed: 0 };
+      counts[issue.documentId] = counts[issue.documentId] || { pending: 0, done: 0, passed: 0, ignored: 0 };
       counts[issue.documentId][value] = (counts[issue.documentId][value] || 0) + 1;
       return counts;
-    }, { pending: 0, done: 0, passed: 0 });
+    }, { pending: 0, done: 0, passed: 0, ignored: 0 });
   }
 
   function pageMarkup(page, html) {
@@ -492,7 +512,8 @@
       score: 0,
       startedAt: 0,
       reviewWillComplete: false,
-      issues: baseIssueStatus("pending"),
+      issues: issueStatusPreservingIgnored("pending", state.quality && state.quality.issues),
+      ignoredFrom: ignoredOriginsPreserving(state.quality && state.quality.issues, state.quality && state.quality.ignoredFrom),
       versionId: result.version.id,
       versionNumber: result.version.number
     };
@@ -616,7 +637,9 @@
     state.quality.status = "result";
     state.quality.score = 0;
     state.quality.reviewWillComplete = false;
-    qualityIssues.forEach(function (issue) { state.quality.issues[issue.id] = "done"; });
+    qualityIssues.forEach(function (issue) {
+      if (state.quality.issues[issue.id] !== "ignored") state.quality.issues[issue.id] = "done";
+    });
     saveQualityState();
     const version = baseBidVersion();
     if (versionApi && version) {
@@ -667,7 +690,11 @@
       const hasConfirm = issues.some(function (issue) { return issueStatus(issue) === "pending" && issue.type === "confirm"; });
       return { className: hasConfirm ? "quality-confirm" : "quality-supplement", label: "待处理 " + statuses.filter(function (value) { return value === "pending"; }).length };
     }
-    return { className: "quality-recheck", label: "待复检 " + statuses.filter(function (value) { return value === "done"; }).length };
+    const recheck = statuses.filter(function (value) { return value === "done"; }).length;
+    if (recheck) return { className: "quality-recheck", label: "待复检 " + recheck };
+    const ignored = statuses.filter(function (value) { return value === "ignored"; }).length;
+    if (ignored) return { className: "quality-ignored", label: "已忽略 " + ignored };
+    return null;
   }
 
   function renderOutline() {
@@ -798,6 +825,7 @@
     const value = issueStatus(issue);
     if (value === "done") return "待复检";
     if (value === "passed") return "已通过";
+    if (value === "ignored") return "已忽略";
     return qualityTypeLabel(issue);
   }
 
@@ -827,7 +855,7 @@
 
   function registerQualityContent(issue, targets) {
     const elements = targets.filter(Boolean);
-    if (!elements.length || issueStatus(issue) === "passed") return;
+    if (!elements.length || ["passed", "ignored"].indexOf(issueStatus(issue)) !== -1) return;
     const tone = qualityMarkTone(issue);
     elements.forEach(function (element, index) {
       element.classList.add("quality-content-mark", tone);
@@ -849,7 +877,7 @@
     clearQualityContentDecorations();
     if (!state.quality || state.quality.status !== "result") return;
 
-    qualityIssues.filter(function (issue) { return issue.documentId === state.activeId && issueStatus(issue) !== "passed"; }).forEach(function (issue) {
+    qualityIssues.filter(function (issue) { return issue.documentId === state.activeId && ["passed", "ignored"].indexOf(issueStatus(issue)) === -1; }).forEach(function (issue) {
       const page = one("#bid-page-" + issue.documentId + "-" + issue.page);
       if (!page) return;
 
@@ -910,7 +938,9 @@
   }
 
   function qualityCommentTone(issue) {
-    if (issueStatus(issue) === "done") return "recheck";
+    const status = issueStatus(issue);
+    if (status === "done") return "recheck";
+    if (status === "ignored") return "ignored";
     return issue.type === "supplement" ? "supplement" : "confirm";
   }
 
@@ -939,10 +969,22 @@
     one("#qualityFocusTitle").textContent = issue.title;
     one("#qualityFocusTitle").setAttribute("aria-label", "定位到正文：" + issue.title);
     one("#qualityCommentLocation").textContent = issue.location;
-    one("#qualityFocusDescription").textContent = issue.description + " " + issue.advice;
+    one("#qualityFocusDescription").textContent = status === "ignored"
+      ? issue.description + " 此项已忽略，本项目后续智能检查不再检查。"
+      : issue.description + " " + issue.advice;
+    const ignore = one("#ignoreQualityIssue");
+    const canToggleIgnore = ["pending", "done", "ignored"].indexOf(status) !== -1;
+    ignore.classList.toggle("hidden", !canToggleIgnore);
+    ignore.disabled = !canToggleIgnore;
+    ignore.setAttribute("data-ignore-action", status === "ignored" ? "restore" : "ignore");
+    one(".btn-icon", ignore).innerHTML = status === "ignored"
+      ? '<svg viewBox="0 0 24 24"><path d="M3 12s3.3-6 9-6 9 6 9 6-3.3 6-9 6-9-6-9-6z"/><circle cx="12" cy="12" r="2.5"/></svg>'
+      : '<svg viewBox="0 0 24 24"><path d="M4 4l16 16M10.6 10.7a2 2 0 0 0 2.7 2.7"/><path d="M9.9 4.3A10.7 10.7 0 0 1 21 12a12.5 12.5 0 0 1-3.1 4.2M6.6 6.7A12.5 12.5 0 0 0 3 12a10.8 10.8 0 0 0 9 6 10.7 10.7 0 0 0 2.8-.4"/></svg>';
+    one("span:last-child", ignore).textContent = status === "ignored" ? "取消忽略" : "忽略";
     const complete = one("#completeQualityIssue");
+    complete.classList.toggle("hidden", status === "ignored");
     complete.disabled = status !== "pending";
-    one("span:last-child", complete).textContent = status === "done" ? "等待复检" : status === "passed" ? "已通过" : issue.type === "supplement" ? "标记已补充" : "确认无误";
+    one("span:last-child", complete).textContent = status === "done" ? "等待复检" : status === "passed" ? "已通过" : status === "ignored" ? "已忽略" : issue.type === "supplement" ? "标记已补充" : "确认无误";
     updateQualityIssueNavigation(issue);
   }
 
@@ -998,10 +1040,12 @@
   function scrollToQualityContent(issue) {
     const page = one("#bid-page-" + issue.documentId + "-" + issue.page);
     if (!page) return;
+    const ignored = issueStatus(issue) === "ignored";
     all(".quality-active-mark", pagesRoot()).forEach(function (element) { element.classList.remove("quality-active-mark"); });
     const target = one('[data-quality-issue-id="' + issue.id + '"][data-quality-primary="true"]', page) || page;
-    target.classList.add("quality-active-mark");
+    if (!ignored) target.classList.add("quality-active-mark");
     positionQualityComment(issue, target);
+    if (ignored) one("#qualityCommentConnector").classList.add("hidden");
     const canvas = one("#bidDocumentCanvas");
     const canvasRect = canvas.getBoundingClientRect();
     const targetRect = target.getBoundingClientRect();
@@ -1012,14 +1056,18 @@
 
   function qualityNavigationIssues() {
     if (!state.quality || state.quality.status !== "result") return [];
-    return qualityIssues.filter(function (issue) { return issueStatus(issue) !== "passed"; });
+    return qualityIssues.filter(function (issue) { return ["pending", "done"].indexOf(issueStatus(issue)) !== -1; });
   }
 
   function updateQualityIssueNavigation(issue) {
     const issues = qualityNavigationIssues();
     const index = issues.findIndex(function (item) { return item.id === issue.id; });
+    if (index < 0) {
+      one("#qualityIssueNavigation").classList.add("hidden");
+      return;
+    }
     one("#qualityIssueNavigation").classList.remove("hidden");
-    one("#qualityToolbarProgress").textContent = index >= 0 ? index + 1 + " / " + issues.length : "共 " + issues.length + " 条";
+    one("#qualityToolbarProgress").textContent = index + 1 + " / " + issues.length;
     const previous = one("#previousQualityIssue");
     const next = one("#nextQualityIssue");
     previous.disabled = index <= 0;
@@ -1067,7 +1115,8 @@
       return;
     }
     const complete = mode === "complete";
-    container.innerHTML = '<div><span>资格与否决项</span><strong>' + (complete ? "100 · 通过" : "100 · 通过") + '</strong></div><div><span>评分与响应覆盖</span><strong>' + (complete ? "98 · 通过" : "84 · 待完善") + '</strong></div><div><span>一致性与格式</span><strong>' + (complete ? "96 · 通过" : "76 · 待确认") + '</strong></div>';
+    const completedLabel = complete && (qualityCounts().ignored || 0) ? "完成" : "通过";
+    container.innerHTML = '<div><span>资格与否决项</span><strong>100 · 通过</strong></div><div><span>评分与响应覆盖</span><strong>' + (complete ? "98 · " + completedLabel : "84 · 待完善") + '</strong></div><div><span>一致性与格式</span><strong>' + (complete ? "96 · " + completedLabel : "76 · 待确认") + '</strong></div>';
   }
 
   function renderQualityIssueList(mode) {
@@ -1075,19 +1124,28 @@
     const passed = one("#qualityAllPassed");
     if (!list || !passed) return;
     passed.classList.toggle("hidden", mode !== "complete");
-    if (mode === "complete") {
-      list.innerHTML = "";
-      return;
-    }
     if (mode === "idle" || mode === "reviewing") {
       list.innerHTML = '<div class="quality-empty"><strong>' + (mode === "idle" ? "尚未生成检查结果" : "正在执行检查并归并问题") + '</strong><span>' + (mode === "idle" ? "提交智能检查后，问题将关联到技术标、商务标的具体目录。" : "检查结束后，将在这里展示需要人工补充或确认的事项。") + '</span></div>';
       return;
     }
-    list.innerHTML = qualityIssues.map(function (issue) {
+    const ignoredCount = qualityCounts().ignored || 0;
+    if (mode === "complete") {
+      one("#qualityAllPassedTitle").textContent = ignoredCount ? "智能检查已完成，含 " + ignoredCount + " 项已忽略" : "全部智能检查问题已通过复检";
+      one("#qualityAllPassedDescription").textContent = ignoredCount ? "其余检查项已通过，当前版本可以提交人工质量审核。" : "当前版本已通过智能检查，可以提交人工质量审核。";
+    }
+    const visibleIssues = mode === "complete"
+      ? qualityIssues.filter(function (issue) { return issueStatus(issue) === "ignored"; })
+      : qualityIssues;
+    list.innerHTML = visibleIssues.map(function (issue) {
       const status = issueStatus(issue);
-      const tone = status === "done" ? "recheck" : status === "passed" ? "passed" : issue.type;
+      const tone = status === "done" ? "recheck" : status === "passed" ? "passed" : status === "ignored" ? "ignored" : issue.type;
       const actionLabel = status === "pending" ? "定位处理" : "查看位置";
-      return '<div class="quality-issue-item ' + tone + '"><i></i><div><strong>' + escapeHtml(issue.title) + '</strong><span>' + escapeHtml(issue.description) + '</span><div class="quality-issue-meta"><b>' + escapeHtml(qualityStatusLabel(issue)) + '</b><b>' + escapeHtml(issue.location) + '</b><b>' + issue.id + '</b></div></div><button class="text-btn compact-btn" type="button" data-quality-locate="' + issue.id + '"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M12 21s6-5.2 6-11a6 6 0 1 0-12 0c0 5.8 6 11 6 11z"/><circle cx="12" cy="10" r="2"/></svg></span><span>' + actionLabel + '</span></button></div>';
+      const ignoreAction = status === "ignored"
+        ? '<button class="text-btn compact-btn quality-ignore-toggle restore" type="button" data-quality-unignore="' + issue.id + '"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 12s3.3-6 9-6 9 6 9 6-3.3 6-9 6-9-6-9-6z"/><circle cx="12" cy="12" r="2.5"/></svg></span><span>取消忽略</span></button>'
+        : ["pending", "done"].indexOf(status) !== -1
+          ? '<button class="text-btn compact-btn quality-ignore-toggle" type="button" data-quality-ignore="' + issue.id + '"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M4 4l16 16M10.6 10.7a2 2 0 0 0 2.7 2.7"/><path d="M9.9 4.3A10.7 10.7 0 0 1 21 12a12.5 12.5 0 0 1-3.1 4.2M6.6 6.7A12.5 12.5 0 0 0 3 12a10.8 10.8 0 0 0 9 6 10.7 10.7 0 0 0 2.8-.4"/></svg></span><span>忽略</span></button>'
+          : "";
+      return '<div class="quality-issue-item ' + tone + '"><i></i><div><strong>' + escapeHtml(issue.title) + '</strong><span>' + escapeHtml(issue.description) + '</span><div class="quality-issue-meta"><b>' + escapeHtml(qualityStatusLabel(issue)) + '</b><b>' + escapeHtml(issue.location) + '</b><b>' + issue.id + '</b></div></div><div class="quality-issue-actions"><button class="text-btn compact-btn" type="button" data-quality-locate="' + issue.id + '"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M12 21s6-5.2 6-11a6 6 0 1 0-12 0c0 5.8 6 11 6 11z"/><circle cx="12" cy="10" r="2"/></svg></span><span>' + actionLabel + '</span></button>' + ignoreAction + "</div></div>";
     }).join("");
   }
 
@@ -1117,6 +1175,7 @@
   function renderQualityTabStatus(documentId, mode, documentCounts) {
     const element = one("#" + documentId + "QualityCount");
     if (!element) return;
+    const ignored = documentCounts.ignored || 0;
     if (mode === "idle") {
       element.className = "status-tag green bid-quality-count";
       element.textContent = "已载入";
@@ -1128,14 +1187,14 @@
       return;
     }
     if (mode === "complete") {
-      element.className = "status-tag green bid-quality-count";
-      element.textContent = "已通过";
+      element.className = "status-tag " + (ignored ? "gray" : "green") + " bid-quality-count";
+      element.textContent = ignored ? "含忽略 " + ignored : "已通过";
       return;
     }
     const pending = documentCounts.pending || 0;
     const recheck = documentCounts.done || 0;
-    element.className = "status-tag " + (pending ? "orange" : "blue") + " bid-quality-count";
-    element.textContent = pending ? "待处理 " + pending : "待复检 " + recheck;
+    element.className = "status-tag " + (pending ? "orange" : recheck ? "blue" : "gray") + " bid-quality-count";
+    element.textContent = pending ? "待处理 " + pending : recheck ? "待复检 " + recheck : "已忽略 " + ignored;
   }
 
   function refreshQualityNavigation() {
@@ -1342,9 +1401,9 @@
     const counts = qualityCounts();
     const pending = counts.pending || 0;
     const recheck = counts.done || 0;
+    const ignored = counts.ignored || 0;
     const pendingSupplement = qualityIssues.filter(function (issue) { return issue.type === "supplement" && issueStatus(issue) === "pending"; }).length;
     const pendingConfirm = qualityIssues.filter(function (issue) { return issue.type === "confirm" && issueStatus(issue) === "pending"; }).length;
-    const resolved = qualityIssues.length - pending;
     const card = one("#qualityReviewStatusCard");
     const icon = one("#qualityReviewStatusIcon");
     const tag = one("#qualityReviewStatusTag");
@@ -1409,19 +1468,30 @@
       one("#qualityResultBatchTag").textContent = "第 " + quality.batch + " 次检查";
       renderQualitySteps(mode, 1, 8);
     } else if (mode === "result") {
+      const ignoredSuffix = ignored ? "，另有 " + ignored + " 项已忽略" : "";
+      const manualHints = [];
+      if (pending) manualHints.push("补充 " + pendingSupplement + " · 确认 " + pendingConfirm);
+      if (recheck) manualHints.push("待复检 " + recheck + " 项");
+      if (ignored) manualHints.push("已忽略 " + ignored + " 项");
       icon.innerHTML = '<svg viewBox="0 0 24 24"><path d="M10.3 3.8 2.7 17a2 2 0 0 0 1.8 3h15a2 2 0 0 0 1.8-3L13.7 3.8a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>';
       one("#qualityReviewStatusTitle").textContent = "第 " + quality.batch + " 次智能检查已完成";
-      one("#qualityReviewStatusDescription").textContent = pending ? "248 项规则已检查，" + pending + " 项需要人工补充或确认；处理后可再次提交检查。" : "本轮人工事项均已处理，" + recheck + " 项等待再次智能检查。";
-      tag.className = "status-tag " + (pending ? "orange" : "blue");
-      tag.textContent = pending ? "待人工处理 " + pending + " 项" : "待复检 " + recheck + " 项";
+      one("#qualityReviewStatusDescription").textContent = pending
+        ? "248 项规则已检查，" + pending + " 项需要人工补充或确认" + ignoredSuffix + "；处理后可再次提交检查。"
+        : recheck
+          ? "本轮待处理事项已处理，" + recheck + " 项等待再次智能检查" + ignoredSuffix + "。"
+          : ignored
+            ? "本轮检查结果项已忽略 " + ignored + " 项，可再次提交智能检查确认其余规则。"
+            : "本轮人工事项均已处理，可以再次提交智能检查。";
+      tag.className = "status-tag " + (pending ? "orange" : recheck ? "blue" : "gray");
+      tag.textContent = pending ? "待人工处理 " + pending + " 项" : recheck ? "待复检 " + recheck + " 项" : "已忽略 " + ignored + " 项";
       submitLabel.textContent = pending ? "处理后再次检查" : "再次提交智能检查";
-      editorStatusText.textContent = pending ? "智能检查：待处理 " + pending + " 项" : "智能检查：待复检 " + recheck + " 项";
+      editorStatusText.textContent = pending ? "智能检查：待处理 " + pending + " 项" : recheck ? "智能检查：待复检 " + recheck + " 项" : "智能检查：已忽略 " + ignored + " 项";
       editorActionLabel.textContent = pending ? "查看问题" : "重新检查";
       setQualityMetric("#qualityMetricScore", String(Math.min(90, 82 + recheck * 2)), "当前检查版本");
-      setQualityMetric("#qualityMetricRules", "248", "全部执行完成");
+      setQualityMetric("#qualityMetricRules", "248", ignored ? "已设置忽略 " + ignored + " 项" : "全部执行完成");
       setQualityMetric("#qualityMetricPassed", "240", "无需人工处理");
       setQualityMetric("#qualityMetricAutoFixed", "3", "已自动复核通过");
-      setQualityMetric("#qualityMetricManual", String(pending), recheck ? "待复检 " + recheck + " 项" : "补充 " + pendingSupplement + " · 确认 " + pendingConfirm);
+      setQualityMetric("#qualityMetricManual", String(pending), manualHints.join(" · ") || "人工事项已清零");
       setQualityMetric("#qualityMetricBlocking", "0", "暂无资格阻断问题");
       one("#qualityProcessDescription").textContent = "检查对象 " + versionNumber + " · 第 " + quality.batch + " 次检查已完成全部 6 个步骤";
       one("#qualityProcessTag").className = "status-tag green";
@@ -1430,24 +1500,29 @@
       one("#qualityResultBatchTag").textContent = "第 " + quality.batch + " 次检查";
       renderQualitySteps(mode, 6, 100);
     } else {
+      const passedRules = 248 - ignored;
       icon.innerHTML = '<svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/><circle cx="12" cy="12" r="9"/></svg>';
-      one("#qualityReviewStatusTitle").textContent = "智能检查全部完成";
-      one("#qualityReviewStatusDescription").textContent = "第 " + quality.batch + " 次检查已通过，248 项规则全部完成，当前版本可以提交人工质量审核。";
+      one("#qualityReviewStatusTitle").textContent = ignored ? "智能检查已完成" : "智能检查全部完成";
+      one("#qualityReviewStatusDescription").textContent = ignored
+        ? "第 " + quality.batch + " 次检查已完成，" + passedRules + " 项规则通过、" + ignored + " 项按人工选择忽略；当前版本可以提交人工质量审核。"
+        : "第 " + quality.batch + " 次检查已通过，248 项规则全部完成，当前版本可以提交人工质量审核。";
       tag.className = "status-tag green";
-      tag.textContent = "全部通过";
-      editorStatusText.textContent = "智能检查：全部通过";
+      tag.textContent = ignored ? "检查完成" : "全部通过";
+      editorStatusText.textContent = ignored ? "智能检查：完成 · 忽略 " + ignored + " 项" : "智能检查：全部通过";
       editorActionLabel.textContent = "查看结果";
-      setQualityMetric("#qualityMetricScore", "98", "最终检查版本");
-      setQualityMetric("#qualityMetricRules", "248", "全部执行完成");
-      setQualityMetric("#qualityMetricPassed", "248", "全部复检通过");
+      setQualityMetric("#qualityMetricScore", String(quality.score || 98), ignored ? "含已忽略 " + ignored + " 项" : "最终检查版本");
+      setQualityMetric("#qualityMetricRules", "248", ignored ? "执行 " + passedRules + " · 忽略 " + ignored : "全部执行完成");
+      setQualityMetric("#qualityMetricPassed", String(passedRules), ignored ? "另有 " + ignored + " 项已忽略" : "全部复检通过");
       setQualityMetric("#qualityMetricAutoFixed", "3", "已保留修改记录");
-      setQualityMetric("#qualityMetricManual", "0", "人工事项已清零");
+      setQualityMetric("#qualityMetricManual", "0", ignored ? "已忽略 " + ignored + " 项，不再检查" : "人工事项已清零");
       setQualityMetric("#qualityMetricBlocking", "0", "满足交付条件");
-      one("#qualityProcessDescription").textContent = "检查对象 " + versionNumber + " · 第 " + quality.batch + " 次检查已全部通过";
+      one("#qualityProcessDescription").textContent = ignored
+        ? "检查对象 " + versionNumber + " · 第 " + quality.batch + " 次检查已完成，" + ignored + " 项按忽略策略未再检查"
+        : "检查对象 " + versionNumber + " · 第 " + quality.batch + " 次检查已全部通过";
       one("#qualityProcessTag").className = "status-tag green";
       one("#qualityProcessTag").textContent = "已完成";
       one("#qualityResultBatchTag").className = "status-tag green";
-      one("#qualityResultBatchTag").textContent = "第 " + quality.batch + " 次检查通过";
+      one("#qualityResultBatchTag").textContent = "第 " + quality.batch + (ignored ? " 次检查完成" : " 次检查通过");
       renderQualitySteps(mode, 6, 100);
     }
 
@@ -1533,16 +1608,22 @@
   function finishQualityReview() {
     window.cancelAnimationFrame(state.qualityFrame);
     const quality = state.quality;
+    const counts = qualityCounts();
+    const ignored = counts.ignored || 0;
     if (quality.reviewWillComplete) {
       quality.status = "complete";
       quality.score = 98;
-      qualityIssues.forEach(function (issue) { quality.issues[issue.id] = "passed"; });
-      saveProjectPatch({ stage: "标书编制", stageDetail: "智能检查通过，待提交人工审核", progress: 90 });
-      toast("第 " + quality.batch + " 次智能检查完成，全部问题已通过复检");
+      qualityIssues.forEach(function (issue) {
+        if (quality.issues[issue.id] !== "ignored") quality.issues[issue.id] = "passed";
+      });
+      saveProjectPatch({ stage: "标书编制", stageDetail: ignored ? "智能检查完成，含已忽略 " + ignored + " 项，待提交人工审核" : "智能检查通过，待提交人工审核", progress: 90 });
+      toast(ignored ? "第 " + quality.batch + " 次智能检查完成，已保留 " + ignored + " 项忽略设置" : "第 " + quality.batch + " 次智能检查完成，全部问题已通过复检");
     } else {
       quality.status = "result";
       quality.score = 82;
-      qualityIssues.forEach(function (issue) { quality.issues[issue.id] = "pending"; });
+      qualityIssues.forEach(function (issue) {
+        if (quality.issues[issue.id] !== "ignored") quality.issues[issue.id] = "pending";
+      });
       saveProjectPatch({ stage: "标书编制", stageDetail: "智能检查待人工补充与确认", progress: 88 });
     }
     quality.startedAt = 0;
@@ -1555,6 +1636,7 @@
             status: quality.status === "complete" ? "passed" : "result",
             batch: quality.batch,
             score: quality.score,
+            ignoredCount: ignored,
             updatedAt: Date.now()
           })
         });
@@ -1594,7 +1676,7 @@
     state.quality.status = "reviewing";
     state.quality.batch = isRecheck ? state.quality.batch + 1 : 1;
     state.quality.startedAt = Date.now();
-    state.quality.reviewWillComplete = isRecheck && counts.pending === 0 && counts.done > 0;
+    state.quality.reviewWillComplete = isRecheck && counts.pending === 0;
     if (versionApi && version) {
       versionApi.update(project, version.id, {
         check: Object.assign({}, version.check || {}, {
@@ -1647,6 +1729,101 @@
     updateQualityReviewUI();
     focusQualityIssue(issue.id);
     toast(issue.type === "supplement" ? "已标记为人工补充完成，等待再次智能检查" : "已完成人工确认，等待再次智能检查");
+  }
+
+  function captureQualityViewState() {
+    const canvas = one("#bidDocumentCanvas");
+    return {
+      activeId: state.activeId,
+      activePage: state.activePage,
+      focusedIssueId: state.focusedIssueId,
+      canvasTop: canvas ? canvas.scrollTop : 0,
+      canvasLeft: canvas ? canvas.scrollLeft : 0,
+      windowTop: window.scrollY,
+      windowLeft: window.scrollX
+    };
+  }
+
+  function restoreQualityViewState(viewState) {
+    const canvas = one("#bidDocumentCanvas");
+    const restore = function () {
+      state.activeId = viewState.activeId;
+      state.activePage = viewState.activePage;
+      state.focusedIssueId = viewState.focusedIssueId;
+      setActivePage(viewState.activePage);
+      if (canvas) {
+        canvas.scrollTop = viewState.canvasTop;
+        canvas.scrollLeft = viewState.canvasLeft;
+      }
+      window.scrollTo(viewState.windowLeft, viewState.windowTop);
+    };
+    restore();
+    window.requestAnimationFrame(restore);
+  }
+
+  function openIgnoreQualityIssue(issueId) {
+    const issue = issueById(issueId);
+    if (!issue || ["pending", "done"].indexOf(issueStatus(issue)) === -1) return;
+    state.qualityActionIssueId = issue.id;
+    one("#ignoreQualityIssueTitle").textContent = issue.title;
+    one("#ignoreQualityIssueLocation").textContent = issue.location;
+    if (window.projectPrototype) window.projectPrototype.openLayer("ignoreQualityIssueModal");
+  }
+
+  function confirmIgnoreQualityIssue() {
+    const issue = issueById(state.qualityActionIssueId);
+    const previousStatus = issue ? issueStatus(issue) : "";
+    if (!issue || ["pending", "done"].indexOf(previousStatus) === -1) {
+      state.qualityActionIssueId = "";
+      if (window.projectPrototype) window.projectPrototype.closeLayers();
+      return;
+    }
+    const viewState = captureQualityViewState();
+    state.quality.ignoredFrom = state.quality.ignoredFrom || {};
+    state.quality.ignoredFrom[issue.id] = previousStatus;
+    state.quality.issues[issue.id] = "ignored";
+    state.qualityActionIssueId = "";
+    saveQualityState();
+    if (window.projectPrototype) window.projectPrototype.closeLayers();
+    updateQualityReviewUI();
+    restoreQualityViewState(viewState);
+    toast("已忽略“" + issue.title + "”，后续智能检查不再检查此项");
+  }
+
+  function cancelIgnoreQualityIssue(issueId) {
+    const issue = issueById(issueId);
+    if (!issue || issueStatus(issue) !== "ignored") return;
+    const viewState = captureQualityViewState();
+    const ignoredFrom = state.quality.ignoredFrom || {};
+    const restoredStatus = ignoredFrom[issue.id] === "done" ? "done" : "pending";
+    state.quality.issues[issue.id] = restoredStatus;
+    delete ignoredFrom[issue.id];
+    state.quality.ignoredFrom = ignoredFrom;
+    if (state.quality.status === "complete") {
+      state.quality.status = "result";
+      state.quality.score = 0;
+      state.quality.startedAt = 0;
+      state.quality.reviewWillComplete = false;
+      const version = qualityBidVersion();
+      if (versionApi && version) {
+        versionApi.update(project, version.id, {
+          check: Object.assign({}, version.check || {}, {
+            status: "result",
+            score: 0,
+            ignoredCount: qualityCounts().ignored || 0,
+            updatedAt: Date.now()
+          })
+        });
+        refreshBidVersions();
+        renderBidVersionContext();
+        renderBidVersionHistory();
+      }
+      saveProjectPatch({ stage: "标书编制", stageDetail: "已取消忽略检查项，待重新智能检查", progress: 88 });
+    }
+    saveQualityState();
+    updateQualityReviewUI();
+    restoreQualityViewState(viewState);
+    toast("已取消忽略“" + issue.title + "”，该项将重新进入智能检查");
   }
 
   function nodeElement(node) {
@@ -2521,7 +2698,10 @@
       if (!button) return;
       const issueIds = String(button.getAttribute("data-quality-issues") || "").split(",").filter(Boolean);
       if (issueIds.length) {
-        const targetId = issueIds.find(function (issueId) { const issue = issueById(issueId); return issue && issueStatus(issue) === "pending"; }) || issueIds.find(function (issueId) { const issue = issueById(issueId); return issue && issueStatus(issue) === "done"; }) || issueIds[0];
+        const targetId = issueIds.find(function (issueId) { const issue = issueById(issueId); return issue && issueStatus(issue) === "pending"; }) ||
+          issueIds.find(function (issueId) { const issue = issueById(issueId); return issue && issueStatus(issue) === "done"; }) ||
+          issueIds.find(function (issueId) { const issue = issueById(issueId); return issue && issueStatus(issue) === "ignored"; }) ||
+          issueIds[0];
         focusQualityIssue(targetId);
         return;
       }
@@ -2634,6 +2814,16 @@
       setTaskDetailsOpen(details ? details.hasAttribute("hidden") : false);
     });
     one("#qualityIssueList").addEventListener("click", function (event) {
+      const ignore = event.target.closest("[data-quality-ignore]");
+      if (ignore) {
+        openIgnoreQualityIssue(ignore.getAttribute("data-quality-ignore"));
+        return;
+      }
+      const unignore = event.target.closest("[data-quality-unignore]");
+      if (unignore) {
+        cancelIgnoreQualityIssue(unignore.getAttribute("data-quality-unignore"));
+        return;
+      }
       const trigger = event.target.closest("[data-quality-locate]");
       if (trigger) focusQualityIssue(trigger.getAttribute("data-quality-locate"), true);
     });
@@ -2643,6 +2833,13 @@
     one("#previousQualityIssue").addEventListener("click", function () { moveFocusedQualityIssue(-1); });
     one("#nextQualityIssue").addEventListener("click", function () { moveFocusedQualityIssue(1); });
     one("#completeQualityIssue").addEventListener("click", completeFocusedQualityIssue);
+    one("#ignoreQualityIssue").addEventListener("click", function () {
+      const issue = issueById(state.focusedIssueId);
+      if (!issue) return;
+      if (issueStatus(issue) === "ignored") cancelIgnoreQualityIssue(issue.id);
+      else openIgnoreQualityIssue(issue.id);
+    });
+    one("#confirmIgnoreQualityIssue").addEventListener("click", confirmIgnoreQualityIssue);
 
     function openSubmitQualityModal() {
       if (state.quality.status === "reviewing" || state.quality.status === "complete") return;
