@@ -211,7 +211,7 @@
       return;
     }
     codeSent = true;
-    verificationSendTip.textContent = "验证码已发送至 " + target + "；原型演示请输入 123456。";
+    verificationSendTip.textContent = "验证码已发送至 " + target + "。";
     verificationSendTip.classList.remove("expired");
     verificationSendTip.classList.remove("hidden");
     startCountdown();
@@ -294,7 +294,6 @@
     if (!valid) return;
 
     demoPassword = next;
-    document.getElementById("loginDemoPassword").textContent = next;
     recoveryResetForm.classList.add("hidden");
     recoverySuccess.classList.remove("hidden");
     document.getElementById("verifyStepIndicator").className = "recovery-step completed";

@@ -96,7 +96,8 @@
       size: options.size,
       context: options.context,
       url: options.sourceUrl,
-      page: options.page
+      page: options.page,
+      projectId: options.projectId, documentId: options.documentId, versionId: options.versionId
     };
     Object.keys(values).forEach(function (key) {
       if (values[key] !== undefined && values[key] !== null && String(values[key]).trim() !== "") query.set(key, values[key]);
@@ -122,6 +123,7 @@
 
   const menuItems = [
     { key: "dashboard", label: "首页", href: "dashboard.html", icon: icons.home },
+    { key: "opportunities", label: "招标机会", href: "opportunities.html", icon: '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m16 16 5 5M11 7v8M7 11h8"/></svg>' },
     { key: "projects", label: "投标项目", href: "projects.html", icon: icons.project },
     { key: "knowledge", label: "知识库", href: "knowledge.html", icon: icons.knowledge },
     { key: "ledger", label: "投标台账", href: "ledger.html", icon: icons.ledger },

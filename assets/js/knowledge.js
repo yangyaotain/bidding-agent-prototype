@@ -198,7 +198,7 @@
     document.getElementById("knowledgeTableBody").innerHTML = visible.map(function (item) { return commonRow(item, true, true); }).join("");
     document.getElementById("knowledgeTableWrap").classList.toggle("hidden", filtered.length === 0);
     document.getElementById("knowledgeEmptyState").classList.toggle("hidden", filtered.length !== 0);
-    document.getElementById("knowledgeResultCount").textContent = "当前展示 " + visible.length + " 条 · 筛选结果 " + filtered.length + " 项 · 示例资料共 " + overviewRecords.length + " 项";
+    document.getElementById("knowledgeResultCount").textContent = "当前展示 " + visible.length + " 条 · 筛选结果 " + filtered.length + " 项 · 资料共 " + overviewRecords.length + " 项";
     const pagination = document.getElementById("knowledgePagination");
     pagination.innerHTML = '<button class="knowledge-page-btn" type="button" data-main-page="' + Math.max(1, mainPage - 1) + '" aria-label="上一页"' + (mainPage === 1 ? ' disabled' : '') + '>‹</button>' +
       Array.from({ length: pageCount }, function (_, index) { const page = index + 1; return '<button class="knowledge-page-btn' + (page === mainPage ? ' active' : '') + '" type="button" data-main-page="' + page + '">' + page + '</button>'; }).join("") +
@@ -223,7 +223,7 @@
     document.getElementById("catalogEmptyState").classList.toggle("hidden", filtered.length !== 0);
     const label = document.body.getAttribute("data-category-label") || "知识资料";
     const count = (catalogCollections[activeSection] || []).length;
-    document.getElementById("catalogResultCount").textContent = "当前展示 " + filtered.length + " 条示例资料 · " + label + "共 " + count + " 项";
+    document.getElementById("catalogResultCount").textContent = "当前展示 " + filtered.length + " 条资料 · " + label + "共 " + count + " 项";
   }
 
   function peopleRow(item) {

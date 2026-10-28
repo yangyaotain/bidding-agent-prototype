@@ -5,7 +5,7 @@
     { name: "采购文件.doc", size: "372 KB", progress: 100, type: "主招标文件" }
   ];
 
-  const fileIcon = '<svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>';
+  function esc(value) { return String(value).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
   const removeIcon = '<svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13"/></svg>';
 
   function formatSize(bytes) {
@@ -14,13 +14,16 @@
   }
 
   function renderFiles() {
+    const main = files.find(function (file) { return /\.(pdf|docx?)$/i.test(file.name); });
+    if (main) files = [main].concat(files.filter(function (file) { return file !== main; }));
+    files.forEach(function (file, index) { file.type = index === 0 ? "主招标文件" : "补充附件"; });
     const list = document.getElementById("tenderUploadList");
     if (!files.length) {
       list.innerHTML = '<div class="empty-state"><strong>尚未添加招标文件</strong><span>请至少上传一份主招标文件。</span></div>';
       return;
     }
     list.innerHTML = files.map(function (file, index) {
-      return '<div class="upload-file-row" data-file-index="' + index + '"><span class="file-type-icon">' + fileIcon + '</span><div class="cell-stack"><strong>' + file.name + '</strong><span>' + file.type + ' · ' + file.size + '</span></div><div class="file-progress"><span class="table-progress-track"><b style="width:' + file.progress + '%"></b></span><b>' + file.progress + '%</b></div><button class="ghost-btn compact-btn remove-upload-file" type="button"><span class="btn-icon">' + removeIcon + '</span><span>移除</span></button></div>';
+      return '<div class="upload-file-row" data-file-index="' + index + '">' + window.BiddingFileIcons.markup(file.name) + '<div class="cell-stack"><strong>' + esc(file.name) + '</strong><span>' + file.type + ' · ' + file.size + '</span></div><div class="file-progress"><span class="table-progress-track"><b style="width:' + file.progress + '%"></b></span><b>' + file.progress + '%</b></div><button class="ghost-btn compact-btn remove-upload-file" type="button"><span class="btn-icon">' + removeIcon + '</span><span>移除</span></button></div>';
     }).join("");
   }
 
@@ -59,21 +62,15 @@
   }
 
   function createPendingProject() {
-    const pendingProject = {
-      id: "BID-202601-001",
-      name: "某港口集团2026年度集装箱业务平台运维项目",
-      purchaser: "正在从招标文件提取",
-      deadline: "待解析",
-      deadlineText: "后台解析中",
-      stage: "解析中",
-      progress: 12,
-      owner: "李明远",
-      status: "parsing",
-      budget: "待解析",
-      fileName: files[0].name
-    };
-    try { window.sessionStorage.setItem("biddingPendingProject", JSON.stringify(pendingProject)); } catch (error) { /* file protocol may restrict storage */ }
-    window.location.href = "projects.html?created=1&file=" + encodeURIComponent(files[0].name);
+    try {
+      const uploaded = files.map(function (file, index) { return { name: file.name, size: file.size, main: index === 0, kind: "uploaded", version: 1 }; });
+      const project = window.BiddingProjectStore.create(uploaded);
+      window.location.href = "project-files.html?id=" + encodeURIComponent(project.id);
+    } catch (error) {
+      const button = document.getElementById("createProjectBtn");
+      button.disabled = false; button.querySelector("span:last-child").textContent = "上传并创建项目";
+      if (window.showToast) window.showToast(error.message, "warning");
+    }
   }
 
   function initSubmit() {
@@ -83,6 +80,7 @@
         if (window.showToast) window.showToast("请先上传主招标文件", "warning", "#tenderUploadZone");
         return;
       }
+      if (files.some(function (file) { return file.progress < 100; })) { if (window.showToast) window.showToast("文件正在上传，请完成后再创建项目", "warning"); return; }
       const button = document.getElementById("createProjectBtn");
       button.disabled = true;
       button.querySelector("span:last-child").textContent = "正在创建项目";

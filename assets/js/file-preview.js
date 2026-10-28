@@ -169,10 +169,17 @@
   }
 
   function bidDocumentProfile(key) {
-    const source = window.BidDocumentFlowData || {};
+    const project = window.BiddingProjectStore && window.BiddingProjectStore.get(params.get("projectId"));
+    if (params.get("projectId") && !project) return missingProjectProfile();
+    const source = project && project.workspaceProfile ? window.ProjectWorkspaceData.documents(project) : window.BidDocumentFlowData || {};
     const documentKey = key === "bid-business" ? "business" : "technical";
     const bidDocument = source[documentKey];
     if (!bidDocument) return null;
+    let pages = bidDocument.pages;
+    if (project && project.workspaceProfile && window.BiddingBidVersions) {
+      const snapshot = params.get("versionId") ? window.BiddingBidVersions.loadSnapshot(project, params.get("versionId"), documentKey) : null;
+      if (Array.isArray(snapshot)) pages = snapshot.map(function (html, i) { return { number: i + 1, html: html }; });
+    }
     const sections = (bidDocument.outline || []).map(function (item) {
       return { page: item.page, title: item.title, kind: "bid-section" };
     });
@@ -180,16 +187,26 @@
     return {
       name: requestedName || bidDocument.fileName,
       formatLabel: requestedFormat || inferredFormatLabel(requestedName || bidDocument.fileName),
-      size: requestedSize || (/\.pdf$/i.test(requestedName || "") ? (documentKey === "technical" ? "1.73 MB" : "2.44 MB") : (documentKey === "technical" ? "2.57 MB" : "6.40 MB")),
+      size: requestedSize || (project && project.workspaceProfile ? "—" : /\.pdf$/i.test(requestedName || "") ? (documentKey === "technical" ? "1.73 MB" : "2.44 MB") : (documentKey === "technical" ? "2.57 MB" : "6.40 MB")),
       kind: "bid-document",
-      pages: bidDocument.pages.length,
-      pageData: bidDocument.pages,
+      pages: pages.length,
+      pageData: pages,
       sections: sections,
-      projectNumber: "BID-202601-001"
+      projectNumber: project ? project.id : "BID-202601-001"
     };
   }
 
+  function missingProjectProfile() {
+    return { name: requestedName || "项目文件", formatLabel: requestedFormat || inferredFormatLabel(requestedName), size: "—", kind: "bid-document", projectNumber: params.get("projectId"), pages: 1, pageData: [{ number: 1, html: "<h1>项目记录已移除</h1><p>请返回项目列表选择当前项目。</p>" }], sections: [{ page: 1, title: "项目记录已移除", kind: "bid-section" }] };
+  }
   function genericProfile() {
+    const project = window.BiddingProjectStore && window.BiddingProjectStore.get(params.get("projectId"));
+    if (params.get("projectId") && !project) return missingProjectProfile();
+    if (project && project.workspaceProfile && fileKey === "project-source") {
+      return { name: requestedName || project.fileName, formatLabel: requestedFormat || inferredFormatLabel(requestedName), size: requestedSize || "—", kind: "bid-document", projectNumber: project.id,
+        pages: 1, pageData: [{ number: 1, html: "<h1>" + escapeHtml(requestedName || project.fileName) + "</h1><p>项目：" + escapeHtml(project.name) + "</p><p>采购人：" + escapeHtml(project.purchaser) + "</p><p>" + escapeHtml(project.sourceSummary || "原始文件内容以所上传文件为准。") + "</p>" }],
+        sections: [{ page: 1, title: "项目文件", kind: "bid-section" }] };
+    }
     const meta = window.BiddingFileIcons.meta(requestedName);
     if (fileKey === "image" || meta.type === "image" || meta.type === "vector") {
       return {

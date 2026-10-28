@@ -36,9 +36,12 @@
   }
 
   function documentMeta(snapshotStored) {
+    const requested = new URLSearchParams(window.location.search).get("id") || new URLSearchParams(window.location.search).get("projectId");
+    const project = window.BiddingProjectStore && window.BiddingProjectStore.get(requested);
+    const compact = Boolean(project && project.workspaceProfile);
     return {
-      technical: { fileName: "技术标.docx", pageCount: 73, snapshotStored: Boolean(snapshotStored && snapshotStored.technical) },
-      business: { fileName: "商务标.docx", pageCount: 23, snapshotStored: Boolean(snapshotStored && snapshotStored.business) }
+      technical: { fileName: "技术标.docx", pageCount: compact ? 8 : 73, snapshotStored: Boolean(snapshotStored && snapshotStored.technical) },
+      business: { fileName: "商务标.docx", pageCount: compact ? 8 : 23, snapshotStored: Boolean(snapshotStored && snapshotStored.business) }
     };
   }
 

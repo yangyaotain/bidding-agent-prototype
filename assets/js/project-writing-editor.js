@@ -1,22 +1,16 @@
 (function () {
   "use strict";
 
-  const data = window.BidDocumentFlowData || {};
+  const sourceData = window.BidDocumentFlowData || {};
+  const requested = new URLSearchParams(window.location.search).get("id");
+  const activeProject = window.BiddingProjectStore.get(requested || window.BiddingProjectData.featuredProject.id);
+  const data = activeProject && activeProject.workspaceProfile ? window.ProjectWorkspaceData.documents(activeProject) : sourceData;
   if (!data.technical || !data.business) return;
 
-  const projectData = window.BiddingProjectData || {};
   const requestedProjectId = new URLSearchParams(window.location.search).get("id");
-  let pendingProject = null;
-  try {
-    const storedPendingProject = window.sessionStorage.getItem("biddingPendingProject");
-    if (storedPendingProject) pendingProject = JSON.parse(storedPendingProject);
-  } catch (error) {
-    pendingProject = null;
-  }
-  const project = (pendingProject && requestedProjectId && pendingProject.id === requestedProjectId ? pendingProject : null) ||
-    (projectData.projects || []).find(function (item) { return item.id === requestedProjectId; }) ||
-    projectData.featuredProject ||
-    { id: "BID-202601-001", owner: "李明远" };
+  const project = window.BiddingProjectStore.get(requestedProjectId || window.BiddingProjectData.featuredProject.id);
+  if (!project) return;
+  if (!window.BiddingProjectStore.allowed(project, "writing")) return;
   const storagePrefix = "biddingWordFlow:v1:" + (project.id || "BID-202601-001") + ":";
   const versionApi = window.BiddingBidVersions || null;
   let bidVersions = versionApi ? versionApi.load(project) : [];
@@ -118,6 +112,16 @@
     }
   ];
 
+  if (project.workspaceProfile) {
+    const pages = [7, 8, 2, 5, 8];
+    qualityIssues.forEach(function (issue, i) { issue.page = pages[i]; issue.location = data[issue.documentId].name + " · " + data[issue.documentId].outline[issue.page - 1].title + " · P" + issue.page; });
+    qualityIssues[0].title = "补充项目服务支持安排"; qualityIssues[0].description = "服务支持安排需与本项目采购要求逐项对应。";
+    qualityIssues[0].advice = "补充服务内容及响应安排后重新检查。";
+    qualityIssues[1].title = "确认项目关键承诺"; qualityIssues[1].description = "交付指标、责任和对外承诺需人工核对授权依据。";
+    qualityIssues[2].description = "本项目报价与税率尚待确认，请以内部审批结果为准。";
+    qualityIssues[4].location = "商务标 · 资格证明与有效期 · P8";
+  }
+
   function one(selector, root) { return (root || document).querySelector(selector); }
   function all(selector, root) { return Array.from((root || document).querySelectorAll(selector)); }
   function toast(message, type, target) { if (window.showToast) window.showToast(message, type, target); }
@@ -181,7 +185,7 @@
   function saveProjectPatch(patch) {
     const next = Object.assign({}, project, patch || {});
     Object.assign(project, next);
-    try { window.sessionStorage.setItem("biddingPendingProject", JSON.stringify(next)); } catch (error) { /* storage unavailable */ }
+    window.BiddingProjectStore.save(project.id, patch || {});
     if (window.projectPrototype) window.projectPrototype.currentProject = next;
     return next;
   }
@@ -495,7 +499,7 @@
       }
     });
     if (!result.saved) {
-      toast("版本记录保存空间不足，请清理浏览器存储后重试", "warning", one("#confirmSaveBidVersion"));
+      toast("版本记录保存失败，请重试", "warning", one("#confirmSaveBidVersion"));
       return false;
     }
     bidVersions = result.versions;
@@ -559,6 +563,7 @@
         profile: profile,
         name: name,
         context: "标书编制 " + version.number + " 只读版本",
+        projectId: project.id, documentId: documentId, versionId: version.id,
         page: 1
       });
     }
@@ -880,6 +885,8 @@
     qualityIssues.filter(function (issue) { return issue.documentId === state.activeId && ["passed", "ignored"].indexOf(issueStatus(issue)) === -1; }).forEach(function (issue) {
       const page = one("#bid-page-" + issue.documentId + "-" + issue.page);
       if (!page) return;
+
+      if (project.workspaceProfile) { const slot = one(".project-review-slot", page) || one("p", page); if (slot) registerQualityContent(issue, [slot]); return; }
 
       if (issue.id === "Q-T-001") {
         const table = one(".doc-table", page);
@@ -1328,7 +1335,8 @@
     const progress = complete ? 100 : Math.max(8, Math.min(99, Number(generation.progress || 8)));
     const activeStep = complete ? 6 : Math.max(1, Math.min(6, Number(generation.activeStep || 1)));
     const normalized = Math.max(0, Math.min(1, (progress - 8) / 92));
-    const pages = activeStep < 2 ? 0 : Math.min(96, Math.round(96 * normalized));
+    const totalPages = data.technical.pageCount + data.business.pageCount;
+    const pages = activeStep < 2 ? 0 : Math.min(totalPages, Math.round(totalPages * normalized));
     const matters = activeStep < 4 ? 0 : Math.min(93, Math.round(93 * Math.max(0, (normalized - .45) / .55)));
     const knowledge = activeStep < 2 ? 0 : Math.min(21, Math.round(21 * Math.max(0, (normalized - .18) / .82)));
     const card = one("#qualityReviewStatusCard");
@@ -1349,7 +1357,7 @@
       : '<svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v6h-6"/></svg>';
     one("#qualityReviewStatusTitle").textContent = complete ? "投标文件生成完成" : "AI 正在生成投标文件";
     one("#qualityReviewStatusDescription").textContent = complete
-      ? "技术标 73 页、商务标 23 页已生成并建立响应关联；可继续编辑，或提交当前版本进行智能检查。"
+      ? "技术标 " + data.technical.pageCount + " 页、商务标 " + data.business.pageCount + " 页已生成并建立响应关联；可继续编辑，或提交当前版本进行智能检查。"
       : "当前执行第 " + activeStep + " / 6 步：" + writingGenerationStepNames[activeStep - 1] + "。";
     tag.className = "status-tag " + (complete ? "green" : "blue");
     tag.textContent = complete ? "生成完成" : "生成中 " + progress + "%";
@@ -1367,7 +1375,7 @@
     editorActionLabel.textContent = complete ? "查看结果" : "查看进度";
 
     setQualityMetric("#writingGenerationMetricDocuments", "2", "技术标、商务标");
-    setQualityMetric("#writingGenerationMetricPages", (complete ? 96 : pages) + " / 96", complete ? "技术标 73 页 · 商务标 23 页" : "正在导入并编排正文");
+    setQualityMetric("#writingGenerationMetricPages", (complete ? totalPages : pages) + " / " + totalPages, complete ? "技术标 " + data.technical.pageCount + " 页 · 商务标 " + data.business.pageCount + " 页" : "正在导入并编排正文");
     setQualityMetric("#writingGenerationMetricMatters", (complete ? 93 : matters) + " / 93", complete ? "全部建立章节关联" : "关联要求和评分点");
     setQualityMetric("#writingGenerationMetricKnowledge", (complete ? 21 : knowledge) + " / 21", complete ? "全部保留来源记录" : "引用企业真实资料");
     setQualityMetric("#writingGenerationMetricPending", activeStep < 5 && !complete ? "--" : "5", "缺失材料与关键承诺");

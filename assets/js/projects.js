@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  let projects = ((window.BiddingProjectData || {}).projects || []).slice();
+  let projects = window.BiddingProjectStore.all();
   let activeFilter = "all";
   let currentPage = 1;
   const pageSize = 10;
@@ -15,36 +15,7 @@
   };
 
   function loadPendingProject() {
-    const params = new URLSearchParams(window.location.search);
-    let pending = null;
-    try {
-      const saved = window.sessionStorage.getItem("biddingPendingProject");
-      if (saved) pending = JSON.parse(saved);
-    } catch (error) { pending = null; }
-    if (params.get("created") !== "1" || (pending && pending.status !== "parsing")) pending = null;
-    if (!pending && params.get("created") === "1") {
-      pending = {
-        id: "TEMP-202607-006",
-        name: "项目信息识别中",
-        purchaser: "正在从招标文件提取",
-        deadline: "待解析",
-        deadlineText: "后台解析中",
-        stage: "解析中",
-        progress: 12,
-        owner: "李明远",
-        status: "parsing",
-        budget: "待解析",
-        fileName: params.get("file") || "新上传的招标文件.pdf"
-      };
-    }
-    if (pending) {
-      const existingIndex = projects.findIndex(function (project) { return project.id === pending.id; });
-      if (existingIndex === -1) {
-        projects.unshift(pending);
-      } else {
-        projects[existingIndex] = Object.assign({}, projects[existingIndex], pending);
-      }
-    }
+    projects = window.BiddingProjectStore.all();
   }
 
   function listStage(project) {
@@ -90,13 +61,7 @@
   }
 
   function projectEntryPage(project) {
-    const stage = project.stage || "";
-    if (project.status === "parsing" || stage === "解析中") return "project-files.html";
-    if (stage.indexOf("解析") !== -1) return "project-analysis.html";
-    if (stage.indexOf("编制") !== -1) return "project-writing.html";
-    if (stage.indexOf("质量审核") !== -1) return "project-quality.html";
-    if (stage.indexOf("交付归档") !== -1) return "project-delivery.html";
-    return "project-analysis.html";
+    return window.BiddingProjectStore.entry(project);
   }
 
   function projectStageDetail(project) {
@@ -109,18 +74,22 @@
     return "项目持续推进中";
   }
 
-  function rowTemplate(project) {
+  function rowTemplate(rawProject) {
+    const project = Object.assign({}, rawProject);
+    ["name", "purchaser", "budget", "deadline", "deadlineText", "stageDetail", "owner", "fileName"].forEach(function (key) {
+      project[key] = String(project[key] || "").replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; });
+    });
     const urgentClass = project.status === "deadline" ? " style=\"color:#dc2626\"" : "";
-    const projectSubline = project.status === "parsing" ?
+    const projectSubline = project.opportunityId ? '<span>招标机会转入 · ' + project.id + '</span>' : project.status === "parsing" ?
       '<span class="project-row-parsing">' + project.fileName + " · 项目编号生成中</span>" :
       "<span>" + project.id + "</span>";
-    const budgetContent = project.status === "parsing" ?
+    const budgetContent = project.status === "parsing" && project.budget === "待解析" ?
       '<span class="table-amount-pending">待解析</span>' :
       '<strong class="table-amount amount-text">' + project.budget + "</strong>";
     const entryHref = projectEntryPage(project) + "?id=" + encodeURIComponent(project.id);
     const stateAction = project.status === "archived" ?
       '<button class="project-row-action-btn danger" type="button" data-project-action="delete"><span class="btn-icon">' + icons.trash + '</span><span>删除</span></button>' :
-      '<button class="project-row-action-btn" type="button" data-project-action="archive"><span class="btn-icon">' + icons.archive + '</span><span>归档</span></button>';
+      '<button class="project-row-action-btn" type="button" data-project-action="archive"' + (project.stage !== "交付归档" ? ' disabled title="完成质量审核和交付确认后可归档"' : '') + '><span class="btn-icon">' + icons.archive + '</span><span>归档</span></button>';
     const actionContent = '<a class="project-entry-btn compact-btn" href="' + entryHref + '"><span class="btn-icon">' + icons.enter + '</span><span>进入项目</span></a>' + stateAction;
     const stageTone = project.status === "archived" ? "gray" : "blue";
     const displayStage = listStage(project);
@@ -187,22 +156,14 @@
   }
 
   function confirmProjectAction() {
-    const project = projects.find(function (item) { return item.id === pendingProjectId; });
-    if (!project) return;
-    if (pendingAction === "archive") {
-      projects = projects.map(function (item) {
-        if (item.id !== pendingProjectId) return item;
-        return Object.assign({}, item, { status: "archived", stage: "交付归档", stageDetail: "已完成交付并归档", progress: 100, deadlineText: "已归档" });
-      });
-    } else if (pendingAction === "delete") {
-      projects = projects.filter(function (item) { return item.id !== pendingProjectId; });
-    }
-    window.projectPrototype.closeLayers();
-    updateProjectCounts();
-    renderProjects();
-    if (window.showToast) window.showToast(pendingAction === "delete" ? "已删除归档项目" : "项目已归档");
-    pendingProjectId = "";
-    pendingAction = "";
+    try {
+      if (pendingAction === "archive") window.BiddingProjectStore.save(pendingProjectId, { status: "archived", stage: "交付归档", stageDetail: "已完成交付并归档", progress: 100, deadlineText: "已归档" });
+      else window.BiddingProjectStore.remove(pendingProjectId);
+      projects = window.BiddingProjectStore.all();
+      window.projectPrototype.closeLayers(); updateProjectCounts(); renderProjects();
+      if (window.showToast) window.showToast(pendingAction === "delete" ? "已删除归档项目" : "项目已归档");
+      pendingProjectId = ""; pendingAction = "";
+    } catch (error) { if (window.showToast) window.showToast(error.message, "warning"); }
   }
 
   function initEvents() {

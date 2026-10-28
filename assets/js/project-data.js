@@ -33,4 +33,161 @@
       { id: "BID-202603-026", name: "公共卫生数据分析平台项目", purchaser: "市疾病预防控制中心", deadline: "2026-04-26 14:00", deadlineText: "已完成交付", stage: "交付归档", stageDetail: "已完成交付并归档", progress: 100, owner: "周晓雯", status: "archived", budget: "730 万元" }
     ]
   };
+
+  const seeds = JSON.parse(JSON.stringify(window.BiddingProjectData.projects));
+  const registryKey = "biddingProjects:v1";
+  const opportunityKey = "biddingOpportunityPrototype:v1";
+  function copy(value) { return JSON.parse(JSON.stringify(value)); }
+  function read(key, fallback) {
+    for (const name of ["localStorage", "sessionStorage"]) {
+      try { const value = window[name].getItem(key); if (value) return JSON.parse(value); } catch (error) { /* Try the available storage. */ }
+    }
+    return copy(fallback);
+  }
+  function write(key, value) {
+    for (const name of ["localStorage", "sessionStorage"]) {
+      try {
+        window[name].setItem(key, JSON.stringify(value));
+        if (name === "sessionStorage") { try { window.localStorage.removeItem(key); } catch (error) { /* The fallback remains available. */ } }
+        return;
+      } catch (error) { /* Try the available storage. */ }
+    }
+    throw new Error("项目数据未能保存，请重试。");
+  }
+  function opportunities() { return window.OpportunityStore ? window.OpportunityStore.get() : read(opportunityKey, { projects: [], opportunities: [] }); }
+  function files(project) {
+    const list = copy(project.files || []);
+    if (!Array.isArray(project.files) && project.fileName) list.push({ name: project.fileName, size: "—", main: true });
+    if (!Array.isArray(project.files) && !list.length && !project.workspaceProfile) {
+      ["采购文件.doc", "技术需求及服务规范.pdf", "投标文件格式及报价清单.xlsx", "合同主要条款.pdf", "澄清答疑纪要.pdf"].forEach(function (name, i) { list.push({ name: name, size: ["372 KB", "1.8 MB", "86 KB", "620 KB", "428 KB"][i], main: i === 0 }); });
+    }
+    if (list.length && !list.some(function (file) { return file.main; })) {
+      const main = list.find(function (file) { return /\.(pdf|docx?)$/i.test(file.name); });
+      if (main) main.main = true;
+    }
+    return list.sort(function (a, b) { return Number(Boolean(b.main)) - Number(Boolean(a.main)); });
+  }
+  function sourceSnapshot(item) {
+    if (!item) return null;
+    const saved = item.assessmentSnapshot || (window.OpportunityStore && window.OpportunityStore.assessment(item));
+    return copy({ id: item.id, name: item.name, number: item.number, revision: item.revision, summary: item.summary,
+      purchaser: item.purchaser, amount: item.amount, deadline: item.deadline, qualification: item.qualification,
+      notices: item.notices || [], sources: (opportunities().sources || []).filter(function (source) { return (item.sourceIds || []).includes(source.id); }), sourceIds: item.sourceIds || [], changes: item.changes || [],
+      assessment: saved || null, confirmedBy: item.confirmedBy || "", confirmedAt: item.confirmedAt || "",
+      history: (item.history || []).filter(function (record) { return /确认投标|重新确认/.test(record.action); }) });
+  }
+  function normalize(project) {
+    const next = copy(project);
+    next.files = files(next);
+    next.fileName = (next.files.find(function (file) { return file.main; }) || {}).name || "";
+    if (next.status === "parsing") { next.progress = Number(next.progress || 12); next.stageDetail = "AI 正在解析招标文件"; }
+    if (next.opportunityId) {
+      next.sourceType = "opportunity";
+      next.workspaceProfile = true;
+      if (!next.sourceOpportunity) {
+        next.sourceOpportunity = sourceSnapshot((opportunities().opportunities || []).find(function (item) { return item.id === next.opportunityId; }));
+        if (next.sourceOpportunity && next.opportunityRevision !== next.sourceOpportunity.revision) {
+          next.sourceOpportunity.revision = next.opportunityRevision;
+          next.sourceOpportunity.summary = next.sourceSummary;
+          next.sourceOpportunity.deadline = next.deadline;
+          next.sourceOpportunity.assessment = { at: "", noticeRevision: next.opportunityRevision, result: { score: next.opportunityScore } };
+        }
+      }
+    }
+    return next;
+  }
+  function all() {
+    const registry = read(registryKey, { projects: [], deleted: [] });
+    const ordinary = seeds.filter(function (project) { return !(registry.deleted || []).includes(project.id); }).map(function (project) { return Object.assign({}, project, (registry.projects || []).find(function (saved) { return saved.id === project.id; }) || {}); });
+    (registry.projects || []).forEach(function (project) { if (!project.opportunityId && !ordinary.some(function (entry) { return entry.id === project.id; }) && !(registry.deleted || []).includes(project.id)) ordinary.unshift(project); });
+    return (opportunities().projects || []).filter(function (project) { return project.opportunityId; }).concat(ordinary).map(normalize);
+  }
+  function get(id) { return all().find(function (project) { return project.id === id; }) || null; }
+  function sync() { window.BiddingProjectData.projects = all(); }
+  function save(id, patch) {
+    const current = get(id);
+    if (!current) throw new Error("项目不存在或已移除，请返回项目列表。");
+    const next = normalize(Object.assign({}, current, copy(patch || {}), { id: id, updatedAt: new Date().toISOString() }));
+    if (patch && patch.filesChanged) Object.assign(next, { stage: "解析结果", status: "ongoing", stageDetail: "文件变更，待重新解析", progress: 38 });
+    if (next.opportunityId) {
+      if (window.OpportunityStore) window.OpportunityStore.updateProject(id, next);
+      else {
+        const state = opportunities();
+        const index = state.projects.findIndex(function (project) { return project.id === id; });
+        if (index < 0) throw new Error("来源项目已恢复或移除，请返回项目列表。");
+        state.projects[index] = next; write(opportunityKey, state);
+      }
+    } else {
+      const registry = read(registryKey, { projects: [], deleted: [] });
+      registry.projects = (registry.projects || []).filter(function (project) { return project.id !== id; });
+      registry.projects.unshift(next); write(registryKey, registry);
+    }
+    try { window.sessionStorage.removeItem("biddingPendingProject"); } catch (error) { /* Legacy cache is optional. */ }
+    sync();
+    if (window.projectPrototype && window.projectPrototype.currentProject && window.projectPrototype.currentProject.id === id && window.projectPrototype.updateHeader) window.projectPrototype.updateHeader(next);
+    return next;
+  }
+  function create(uploaded, owner) {
+    if (!uploaded.length || !uploaded.some(function (file) { return /\.(pdf|docx?)$/i.test(file.name) && file.main; })) throw new Error("请上传一份 PDF / Word 主招标文件。");
+    const id = "BID-" + Date.now().toString(36).toUpperCase() + "-" + Math.random().toString(36).slice(2, 6).toUpperCase();
+    const main = uploaded.find(function (file) { return file.main; });
+    const project = normalize({ id: id, sourceType: "upload", workspaceProfile: true, name: main.name.replace(/\.[^.]+$/, ""), purchaser: "待解析", deadline: "待解析", budget: "待解析", owner: owner || "李明远", files: uploaded,
+      status: "parsing", stage: "解析中", stageDetail: "AI 正在解析招标文件", progress: 12, createdAt: new Date().toISOString() });
+    const registry = read(registryKey, { projects: [], deleted: [] });
+    registry.projects.unshift(project); write(registryKey, registry); sync(); return project;
+  }
+  function clearSession(ids) {
+    const archived = {};
+    try {
+      const storage = window.sessionStorage;
+      for (let i = storage.length - 1; i >= 0; i -= 1) {
+        const key = storage.key(i);
+        if (ids.some(function (id) { return key === "biddingParseStartedAt:" + id || key.endsWith(":" + id) || key.includes(":" + id + ":"); })) { archived[key] = storage.getItem(key); storage.removeItem(key); }
+      }
+      const pending = JSON.parse(storage.getItem("biddingPendingProject") || "null");
+      if (pending && ids.includes(pending.id)) storage.removeItem("biddingPendingProject");
+    } catch (error) { /* Unrelated sessions remain untouched. */ }
+    return archived;
+  }
+  function remove(id) {
+    const project = get(id); if (!project) return;
+    if (project.opportunityId) {
+      const mutate = function (state) {
+        state.projects = state.projects.filter(function (entry) { return entry.id !== id; });
+        const item = state.opportunities.find(function (entry) { return entry.id === project.opportunityId; });
+        if (item) { item.projectId = ""; item.review = "approved"; item.recheck = Boolean(item.recheck || item.approvedRevision !== item.revision); item.history.unshift({ action: "移除关联项目", note: "归档项目已删除，原投标决定和初评记录保留。", user: project.owner, at: new Date().toISOString() }); }
+      };
+      if (window.OpportunityStore) window.OpportunityStore.change(mutate);
+      else { const state = opportunities(); mutate(state); write(opportunityKey, state); }
+    } else {
+      const registry = read(registryKey, { projects: [], deleted: [] });
+      registry.projects = registry.projects.filter(function (entry) { return entry.id !== id; });
+      registry.deleted = (registry.deleted || []).concat(id); write(registryKey, registry);
+    }
+    clearSession([id]); sync();
+  }
+  function entry(project) {
+    const stage = String(project.stage || "");
+    return project.filesChanged || project.status === "parsing" || stage === "解析中" ? "project-files.html" : /交付/.test(stage) || project.status === "archived" ? "project-delivery.html" : /质量/.test(stage) ? "project-quality.html" : /编制|生成/.test(stage) ? "project-writing.html" : "project-analysis.html";
+  }
+  function allowed(project, section) {
+    if (!project) return false;
+    if (section === "files") return true;
+    if (project.filesChanged || project.status === "parsing") return false;
+    const order = ["files", "analysis", "writing", "quality", "delivery"];
+    const current = entry(project).replace("project-", "").replace(".html", "");
+    return order.indexOf(section) <= order.indexOf(current);
+  }
+  window.BiddingProjectStore = { all: all, get: get, save: save, create: create, remove: remove, files: files, sourceSnapshot: sourceSnapshot, clearSession: clearSession, sync: sync, entry: entry, allowed: allowed };
+
+  // Migrate the previous single-project cache once; opportunity records stay authoritative.
+  try {
+    const legacy = JSON.parse(window.sessionStorage.getItem("biddingPendingProject") || "null");
+    if (legacy && !legacy.opportunityId) {
+      const registry = read(registryKey, { projects: [], deleted: [] });
+      if (!registry.projects.some(function (project) { return project.id === legacy.id; }) && !(registry.deleted || []).includes(legacy.id)) { registry.projects.unshift(legacy); write(registryKey, registry); }
+      window.sessionStorage.removeItem("biddingPendingProject");
+    }
+  } catch (error) { /* Legacy storage may be unavailable. */ }
+  sync();
 })();

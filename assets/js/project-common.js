@@ -29,6 +29,7 @@
 
   function stageRank(project) {
     const stage = String(project.stage || "");
+    if (project.filesChanged) return 0;
     if (stage.indexOf("交付") !== -1 || project.status === "archived") return 4;
     if (isParsingProject(project) || stage.indexOf("解析中") !== -1) return 0;
     if (stage.indexOf("质量") !== -1 || stage.indexOf("人工审核") !== -1) return 3;
@@ -36,32 +37,16 @@
     return 1;
   }
 
-  function readPendingProject() {
-    try {
-      const value = window.sessionStorage.getItem("biddingPendingProject");
-      return value ? JSON.parse(value) : null;
-    } catch (error) {
-      return null;
-    }
-  }
-
   function selectedProject() {
     const id = new URLSearchParams(window.location.search).get("id");
-    const pending = readPendingProject();
-    const projects = (data.projects || []).slice();
-    if (pending) {
-      const existingIndex = projects.findIndex(function (project) { return project.id === pending.id; });
-      if (existingIndex === -1) projects.unshift(pending);
-      else projects[existingIndex] = Object.assign({}, projects[existingIndex], pending);
-    }
-    if (id) {
-      const matched = projects.find(function (project) { return project.id === id; });
-      if (matched) return matched;
-    }
-    return data.featuredProject || projects[0] || {};
+    return window.BiddingProjectStore.get(id || (data.featuredProject || {}).id);
   }
 
   function buildWorkspaceHeader(activeKey, project) {
+    project = Object.assign({}, project);
+    ["id", "name", "purchaser", "budget", "owner", "deadline", "deadlineText", "stage"].forEach(function (key) {
+      if (project[key] != null) project[key] = String(project[key]).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; });
+    });
     const projectId = project.id || "项目编号生成中";
     const isParsing = isParsingProject(project);
     const currentRank = stageRank(project);
@@ -72,9 +57,9 @@
     }).join("");
     const deadline = project.deadline || "待解析";
     const progress = Number(project.progress || 0);
-    const parseSummary = isParsing ? "正在后台解析" : "解析已完成";
-    const deadlineHint = isParsing ? "将从投标人须知前附表自动识别" : (project.deadlineText || "请按计划完成终审与交付");
-    const progressHint = isParsing ? "已完成 8 / 34 页，正在识别采购需求" : "当前阶段：" + (project.stage || "项目推进中");
+    const parseSummary = isParsing ? "正在解析文件" : "解析已完成";
+    const deadlineHint = project.opportunityId && isParsing ? "来自机会公告，解析后需复核" : isParsing ? "将从投标人须知前附表自动识别" : (project.deadlineText || "请按计划完成终审与交付");
+    const progressHint = isParsing ? "正在处理主文件及附件" : "当前阶段：" + (project.stage || "项目推进中");
     const budget = project.budget || "待解析";
     const budgetMarkup = budget === "待解析" ? budget : '<b class="amount-text">' + budget + "</b>";
 
@@ -84,13 +69,13 @@
       '<div class="project-identity-main">',
       '<a class="project-back" href="projects.html">' + icon.back + '<span>返回项目列表</span></a>',
       '<div class="project-title-line"><h1>' + (project.name || "项目信息识别中") + '</h1><span class="status-tag blue">' + (project.stage || "解析中") + '</span></div>',
-      '<div class="project-meta"><span>' + (isParsing ? "项目编号生成中" : projectId) + '</span><i></i><span>采购人：' + (project.purchaser || "待解析") + '</span><i></i><span>预算：' + budgetMarkup + '</span></div>',
+      '<div class="project-meta"><span>' + projectId + '</span><i></i><span>采购人：' + (project.purchaser || "待解析") + '</span><i></i><span>预算：' + budgetMarkup + '</span></div>',
       '</div>',
       '<div class="project-status-grid">',
       '<div class="project-status-item' + (isParsing ? '' : ' danger') + '">' + icon.clock + '<div><span>投标截止</span><strong>' + deadline + '</strong><small>' + deadlineHint + '</small></div></div>',
       '<div class="project-status-item">' + icon.progress + '<div><span>' + (isParsing ? "文件解析进度" : "总体进度") + '</span><strong>' + progress + '%</strong><small>' + progressHint + '<i class="mini-progress"><b style="width:' + progress + '%"></b></i></small></div></div>',
-      '<div class="project-status-item">' + icon.user + '<div><span>项目负责人</span><strong>' + (project.owner || "李明远") + '</strong><small>当前登录用户 · 可在解析后调整</small></div></div>',
-      '<div class="project-status-item">' + icon.file + '<div><span>AI 自动处理</span><strong>' + parseSummary + '</strong><small>' + (isParsing ? "完成后自动进入解析结果" : "已完成解析、研判和知识匹配") + '</small></div></div>',
+      '<div class="project-status-item">' + icon.user + '<div><span>项目负责人</span><strong>' + (project.owner || "李明远") + '</strong><small>' + (project.opportunityId ? "机会转入时已确认" : "当前登录用户 · 可在解析后调整") + '</small></div></div>',
+      '<div class="project-status-item">' + icon.file + '<div><span>AI 自动处理</span><strong>' + parseSummary + '</strong><small>' + (project.opportunityId ? "来源机会与文件信息可追溯" : isParsing ? "完成后自动进入解析结果" : "已完成解析、研判和知识匹配") + '</small></div></div>',
       '</div>',
       '<nav class="workspace-tabs" aria-label="项目工作台页面">' + tabHtml + '</nav>',
       '</section>'
@@ -196,13 +181,13 @@
     const fullTime = completedAt.getFullYear() + "-" + shortTime;
     setNodeText("projectLatestParseTime", shortTime);
     const latestNode = document.getElementById("projectLatestParseTime");
-    if (latestNode && latestNode.nextElementSibling) latestNode.nextElementSibling.textContent = "本次模拟解析耗时" + (project.parseDurationText || "约 15 秒");
+    if (latestNode && latestNode.nextElementSibling) latestNode.nextElementSibling.textContent = "本次解析耗时" + (project.parseDurationText || "约 15 秒");
     const completeNote = document.getElementById("fileParseCompleteNote");
     if (completeNote) {
       const value = completeNote.querySelector("strong");
       const hint = completeNote.querySelector("small");
       if (value) value.textContent = fullTime;
-      if (hint) hint.textContent = "模拟解析耗时" + (project.parseDurationText || "约 15 秒") + " · AI 已生成完整解析结果";
+      if (hint) hint.textContent = "解析耗时" + (project.parseDurationText || "约 15 秒") + " · AI 已生成完整解析结果";
     }
   }
 
@@ -285,15 +270,35 @@
 
   function initWorkspace() {
     const root = document.getElementById("projectWorkspaceHeader");
+    if (!root) { initLayers(); return; }
     const activeKey = document.body.getAttribute("data-project-section") || "files";
     const project = selectedProject();
     window.projectPrototype.currentProject = project;
+    if (!project) {
+      const content = document.querySelector(".workspace-content");
+      if (content) content.innerHTML = '<section class="content-card card"><div class="empty-state"><strong>项目不存在或已移除</strong><span>请返回项目列表选择当前项目。</span><a class="secondary-btn" href="projects.html"><span class="btn-icon">' + icon.back + '</span><span>返回项目列表</span></a></div></section>';
+      return;
+    }
+    if (root && !window.BiddingProjectStore.allowed(project, activeKey)) {
+      window.projectPrototype.currentProject = null;
+      window.location.replace(window.BiddingProjectStore.entry(project) + "?id=" + encodeURIComponent(project.id));
+      return;
+    }
+    if (window.ProjectWorkspaceData) window.ProjectWorkspaceData.prepare(activeKey, project);
     if (root) root.innerHTML = buildWorkspaceHeader(activeKey, project);
     if (!applyDeliveryGuard(activeKey, project)) applyProjectState(activeKey, project);
+    if (root && window.ProjectWorkspaceData) window.ProjectWorkspaceData.source(root, project);
     initLayers();
   }
 
-  window.projectPrototype = { openLayer: openLayer, closeLayers: closeLayers, applyProjectState: applyProjectState };
+  function updateHeader(project) {
+    const root = document.getElementById("projectWorkspaceHeader");
+    if (!root) return;
+    window.projectPrototype.currentProject = project;
+    root.innerHTML = buildWorkspaceHeader(document.body.getAttribute("data-project-section") || "files", project);
+    if (window.ProjectWorkspaceData) window.ProjectWorkspaceData.source(root, project);
+  }
+  window.projectPrototype = { openLayer: openLayer, closeLayers: closeLayers, applyProjectState: applyProjectState, updateHeader: updateHeader };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", initWorkspace);
   else initWorkspace();
 })();

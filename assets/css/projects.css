@@ -4182,3 +4182,8 @@
 .layer-head h3 {
   font-size: var(--font-size-modal-title);
 }
+.project-source-summary { margin-top: 12px; font-size: 13px; color: var(--muted); }
+.project-source-summary .inline-actions { flex-wrap: wrap; gap: 8px; }
+.project-source-summary details { margin-top: 8px; line-height: 1.7; }
+.project-source-summary summary { cursor: pointer; color: var(--primary); }
+.project-source-summary p { margin: 6px 0; overflow-wrap: anywhere; }

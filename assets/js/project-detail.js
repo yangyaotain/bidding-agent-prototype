@@ -11,8 +11,7 @@
   }
   function saveCurrentProject(patch) {
     const current = (window.projectPrototype && window.projectPrototype.currentProject) || {};
-    const next = Object.assign({}, current, patch || {});
-    try { window.sessionStorage.setItem("biddingPendingProject", JSON.stringify(next)); } catch (error) { /* storage unavailable */ }
+    const next = window.BiddingProjectStore.save(current.id, patch || {});
     if (window.projectPrototype) window.projectPrototype.currentProject = next;
     return next;
   }
@@ -47,6 +46,7 @@
     const successIcon = '<svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/><circle cx="12" cy="12" r="9"/></svg>';
 
     function setReparseControls(isParsing) {
+      all('.replace-project-file-btn, .delete-project-file-btn, [data-open-layer="addProjectFileModal"]').forEach(function (button) { button.disabled = isParsing; });
       const trigger = one('[data-open-layer="reparseProjectModal"]');
       const confirm = one("#confirmProjectReparse");
       if (trigger) {
@@ -114,6 +114,8 @@
 
     function openFilePreview(row) {
       const name = fileNameFromRow(row);
+      const project = window.projectPrototype.currentProject;
+      if (project.workspaceProfile) { window.BiddingFilePreview.open({ profile: "project-source", name: name, projectId: project.id, size: row.children[2].textContent, context: "项目采购文件" }); return; }
       const previewFiles = {
         "采购文件.doc": { profile: "procurement", size: "372 KB" },
         "技术需求及服务规范.pdf": { profile: "technical", size: "1.8 MB" },
@@ -160,11 +162,16 @@
       const count = all("[data-project-file-row]").length;
       const node = one("#projectFileCount");
       if (node) node.textContent = String(count);
+      const rows = all("[data-project-file-row]");
+      const mainRow = rows.find(function (row) { return row.dataset.main === "true"; }) || rows.find(function (row) { return /\.(pdf|docx?)$/i.test(fileNameFromRow(row)); });
+      rows.forEach(function (row) { row.dataset.main = String(row === mainRow); });
+      saveCurrentProject({ files: rows.map(function (row) { return { name: fileNameFromRow(row), size: row.children[2].textContent, main: row === mainRow, version: Number(row.dataset.version || 1), kind: row.dataset.kind || "uploaded" }; }), fileName: mainRow ? fileNameFromRow(mainRow) : "" });
     }
 
     function markFilesChanged() {
       const currentProject = window.projectPrototype.currentProject || {};
       if (currentProject.status === "parsing") return;
+      saveCurrentProject({ filesChanged: true });
       const card = one("#fileParseStatusCard");
       if (!card) return;
       card.classList.remove("completed", "parsing");
@@ -347,7 +354,7 @@
         setMetric("projectFileCount", String(fileCount), attachmentCount ? "主文件 1、附件 " + attachmentCount + "，全部解析完成" : "主文件 1，解析完成");
         setMetric("projectParsedPageCount", attachmentCount === 4 ? "74 页 / 3 表" : "34 / 34", attachmentCount === 4 ? "页面及工作表均已建立来源定位" : "所有页面均已建立来源定位");
         setMetric("projectRequirementCount", "8 项 / 93 条", "项目信息 8 项、采购要求 93 条");
-        setMetric("projectLatestParseTime", pad(now.getMonth() + 1) + "-" + pad(now.getDate()) + " " + pad(now.getHours()) + ":" + pad(now.getMinutes()), "本次模拟解析耗时约 15 秒");
+        setMetric("projectLatestParseTime", pad(now.getMonth() + 1) + "-" + pad(now.getDate()) + " " + pad(now.getHours()) + ":" + pad(now.getMinutes()), "本次解析耗时约 15 秒");
         setMetric("mainParseTaskDescription", "34 页全部处理完成");
         setTag("mainParseTaskStatus", "green", "已完成");
         setMetric("attachmentParseTaskDescription", attachmentCount ? attachmentCount + " 份附件全部识别完成" : "未检测到独立附件");
@@ -360,7 +367,7 @@
           const noteValue = completeNote.querySelector("strong");
           const noteHint = completeNote.querySelector("small");
           if (noteValue) noteValue.textContent = completedAt;
-          if (noteHint) noteHint.textContent = "模拟解析耗时约 15 秒 · AI 已完成资格研判和投标事项整理";
+          if (noteHint) noteHint.textContent = "解析耗时约 15 秒 · AI 已完成资格研判和投标事项整理";
         }
         updateWorkspaceProgress(100, "生成解析结果", 6);
 
@@ -369,15 +376,18 @@
           stage: "解析结果",
           stageDetail: "待确认生成投标文件",
           progress: 38,
-          purchaser: currentProject.purchaser && currentProject.purchaser.indexOf("识别") === -1 ? currentProject.purchaser : "某港口集团有限公司",
-          budget: currentProject.budget && currentProject.budget !== "待解析" ? currentProject.budget : "60 万元",
-          deadline: currentProject.deadline && currentProject.deadline !== "待解析" ? currentProject.deadline : "待从平台公告补充",
+          purchaser: !currentProject.purchaser || /待解析|正在.*提取/.test(currentProject.purchaser) ? "待补充" : currentProject.purchaser,
+          budget: !currentProject.budget || currentProject.budget === "待解析" ? "待补充" : currentProject.budget,
+          deadline: currentProject.deadline && currentProject.deadline !== "待解析" ? currentProject.deadline : "待补充",
           deadlineText: "解析完成，待确认生成投标文件",
           parseCompletedAt: now.toISOString(),
           parseDurationText: "约 15 秒"
         });
+        completedProject.filesChanged = false;
+        completedProject.parseRevision = Number(currentProject.parseRevision || 0) + 1;
+        if (currentProject.workspaceProfile && window.ProjectWorkspaceData) completedProject.analysis = window.ProjectWorkspaceData.analysis(completedProject);
+        window.BiddingProjectStore.save(currentProject.id, completedProject);
         try {
-          window.sessionStorage.setItem("biddingPendingProject", JSON.stringify(completedProject));
           window.sessionStorage.removeItem(storageKey);
         } catch (error) { /* storage unavailable */ }
         toast("AI 已完成解析，正在进入解析结果");
@@ -417,6 +427,7 @@
         const row = document.createElement("tr");
         row.setAttribute("data-project-file-row", "");
         row.setAttribute("data-file-type", "attachment");
+        row.dataset.kind = "uploaded"; row.dataset.version = "1";
         row.innerHTML = '<td><div class="file-name-cell">' + fileTypeIconMarkup(name) + '<div class="cell-stack"><strong>' + escapeHtml(name) + '</strong><span>李明远 · 刚刚上传</span></div></div></td><td>招标附件</td><td>' + size + '</td><td><span class="status-tag orange file-parse-status">待重新解析</span></td><td><div class="row-actions"><button class="text-btn compact-btn file-preview-btn" type="button" title="在新页面预览" aria-label="在新页面预览文件"><span class="btn-icon">' + previewIcon + '</span><span>预览</span></button><button class="text-btn compact-btn replace-project-file-btn" type="button" title="重新上传文件"><span class="btn-icon">' + replaceIcon + '</span><span>重新上传</span></button><button class="text-btn compact-btn delete-project-file-btn" type="button"><span class="btn-icon">' + deleteIcon + '</span><span>删除</span></button></div></td>';
         tableBody.appendChild(row);
       } else {
@@ -481,6 +492,8 @@
       if (!selectedFiles.length) { toast("请选择需要上传的招标文件", "warning", "#projectFileUploadZone"); return; }
       if (replacingRow) {
         const name = selectedFiles[0].name;
+        if (replacingRow.dataset.main === "true" && !/\.(pdf|docx?)$/i.test(name)) { toast("主招标文件须为 PDF / Word", "warning"); return; }
+        replacingRow.dataset.version = String(Number(replacingRow.dataset.version || 1) + 1);
         replacingRow.querySelector(".cell-stack strong").textContent = name;
         refreshFileTypeIcon(replacingRow, name);
         const detail = replacingRow.querySelector(".cell-stack span");
@@ -497,6 +510,7 @@
       window.projectPrototype.closeLayers();
     });
     one("#confirmDeleteProjectFile").addEventListener("click", function () {
+      if (deletingRow && deletingRow.dataset.main === "true") { toast("主招标文件需保留，请使用重新上传更换", "warning"); return; }
       if (deletingRow) deletingRow.remove();
       deletingRow = null;
       updateFileCount();
@@ -559,6 +573,8 @@
             source.setAttribute("data-source", "采购文件 · 第" + page + "页 · AI来源定位");
             source.setAttribute("data-page", String(page));
             source.setAttribute("data-section", "AI来源定位");
+            const current = window.projectPrototype.currentProject;
+            if (current.workspaceProfile) { source.setAttribute("data-source", current.fileName + " · 第" + page + "页"); if (sourceLabel) sourceLabel.textContent = current.fileName + " · 第" + page + "页"; }
           }
         }
         return row;
@@ -637,7 +653,7 @@
     });
     renderMatterPage();
 
-    const processRecords = {};
+    const processRecords = JSON.parse(JSON.stringify(window.projectPrototype.currentProject.analysisHandling || {}));
     let activeProcessCode = "";
     let activeProcessStatus = "";
     let selectedProcessFiles = [];
@@ -774,6 +790,7 @@
       if (activeProcessStatus === "unmet" && !selectedProcessFiles.length) { toast("该事项缺少真实材料，请上传附件", "warning", ".result-process-upload"); return; }
       const nextStatus = activeProcessStatus === "unmet" ? "satisfied" : activeProcessStatus;
       processRecords[activeProcessCode] = { note: note, files: selectedProcessFiles.map(function (file) { return Object.assign({}, file); }), status: nextStatus };
+      saveCurrentProject({ analysisHandling: processRecords });
       updateProcessedMatter(activeProcessCode, nextStatus, note, selectedProcessFiles);
       rerunScoreButton.disabled = false;
       rerunScoreButton.removeAttribute("title");
@@ -783,6 +800,8 @@
     });
 
     const scoreForecastCard = one("#scoreForecastStatusCard");
+    Object.keys(processRecords).forEach(function (code) { const record = processRecords[code]; updateProcessedMatter(code, record.status, record.note, record.files || []); });
+    if (Object.keys(processRecords).length) { rerunScoreButton.disabled = false; renderMatterPage(); }
     const scoreForecastDetails = one("#scoreForecastStatusDetails");
     const scoreForecastDetailsToggle = one("#toggleScoreForecastDetails");
     const confirmScoreForecast = one("#confirmScoreForecast");
@@ -847,6 +866,12 @@
       factor.querySelector("i").textContent = "+";
       factor.querySelector("em").textContent = "项目人员证书及社保证明已补充";
       one("#resultRecommendationText").textContent = "资格条件已满足，补充材料已纳入当前项目并完成重新匹配。最新预测商务评分提升 2 分，建议继续完善待 AI 处理事项并核实关键承诺。";
+      const current = window.projectPrototype.currentProject;
+      if (current.workspaceProfile) {
+        one("#resultRecommendationText").textContent = "本次处理材料已纳入项目，最新预估分为 86 分；请继续核对资格证明、报价和关键承诺。";
+        factor.querySelector("em").textContent = "本次处理材料已纳入，其他材料待补充";
+      }
+      if (current.analysis) saveCurrentProject({ analysis: Object.assign({}, current.analysis, { forecastScore: 86, forecastAt: new Date().toISOString() }) });
     }
 
     function startScoreForecastSimulation() {
@@ -949,6 +974,7 @@
       const startedAt = Date.now();
       try {
         window.sessionStorage.removeItem("biddingQualityReview:v2:" + projectId);
+        window.sessionStorage.removeItem("biddingManualQualityReview:v1:" + projectId);
         window.sessionStorage.removeItem("biddingWritingStartedAt:" + projectId);
         window.sessionStorage.setItem("biddingWritingGeneration:v1:" + projectId, JSON.stringify({
           status: "generating",
@@ -1123,7 +1149,7 @@
         one("#finishExportBtn").classList.add("hidden");
         window.projectPrototype.openLayer("exportProgressModal");
         window.setTimeout(function () {
-          one("#exportProgressText").textContent = names[type] + "已完成模拟生成，目录、页码、书签和文件命名检查通过。";
+          one("#exportProgressText").textContent = names[type] + "已生成，目录、页码、书签和文件命名检查通过。";
           one("#finishExportBtn").classList.remove("hidden");
         }, 1100);
       });
@@ -1131,6 +1157,7 @@
   }
 
   function init() {
+    if (!window.projectPrototype || !window.projectPrototype.currentProject) return;
     initFilePage();
     initAnalysisPage();
     initWritingPage();

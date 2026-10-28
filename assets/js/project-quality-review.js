@@ -1,22 +1,16 @@
 (function () {
   "use strict";
 
-  const data = window.BidDocumentFlowData || {};
+  const sourceData = window.BidDocumentFlowData || {};
+  const requested = new URLSearchParams(window.location.search).get("id");
+  const activeProject = window.BiddingProjectStore.get(requested || window.BiddingProjectData.featuredProject.id);
+  const data = activeProject && activeProject.workspaceProfile ? window.ProjectWorkspaceData.documents(activeProject) : sourceData;
   if (!data.technical || !data.business) return;
 
-  const projectData = window.BiddingProjectData || {};
   const requestedProjectId = new URLSearchParams(window.location.search).get("id");
-  let pendingProject = null;
-  try {
-    const storedPendingProject = window.sessionStorage.getItem("biddingPendingProject");
-    if (storedPendingProject) pendingProject = JSON.parse(storedPendingProject);
-  } catch (error) {
-    pendingProject = null;
-  }
-  const project = (pendingProject && requestedProjectId && pendingProject.id === requestedProjectId ? pendingProject : null) ||
-    (projectData.projects || []).find(function (item) { return item.id === requestedProjectId; }) ||
-    projectData.featuredProject ||
-    { id: "BID-202601-001", owner: "李明远" };
+  const project = window.BiddingProjectStore.get(requestedProjectId || window.BiddingProjectData.featuredProject.id);
+  if (!project) return;
+  if (!window.BiddingProjectStore.allowed(project, "quality")) return;
   const projectId = project.id || "BID-202601-001";
   const versionApi = window.BiddingBidVersions || null;
   let bidVersions = versionApi ? versionApi.load(project) : [];
@@ -65,7 +59,7 @@
   function saveProjectPatch(patch) {
     const next = Object.assign({}, project, patch || {});
     Object.assign(project, next);
-    safeStorageSet("biddingPendingProject", JSON.stringify(next));
+    window.BiddingProjectStore.save(project.id, patch || {});
     if (window.projectPrototype) window.projectPrototype.currentProject = next;
     return next;
   }

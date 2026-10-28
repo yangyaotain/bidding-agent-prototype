@@ -10,19 +10,10 @@
     });
   }
 
-  const projectData = window.BiddingProjectData || {};
   const requestedProjectId = new URLSearchParams(window.location.search).get("id");
-  let pendingProject = null;
-  try {
-    const storedPendingProject = window.sessionStorage.getItem("biddingPendingProject");
-    if (storedPendingProject) pendingProject = JSON.parse(storedPendingProject);
-  } catch (error) {
-    pendingProject = null;
-  }
-  let currentProject = (pendingProject && requestedProjectId && pendingProject.id === requestedProjectId ? pendingProject : null) ||
-    (projectData.projects || []).find(function (item) { return item.id === requestedProjectId; }) ||
-    projectData.featuredProject ||
-    { id: "BID-202601-001", owner: "李明远" };
+  let currentProject = window.BiddingProjectStore.get(requestedProjectId || window.BiddingProjectData.featuredProject.id);
+  if (!currentProject) return;
+  if (!window.BiddingProjectStore.allowed(currentProject, "delivery")) return;
   const versionApi = window.BiddingBidVersions || null;
   let bidVersions = versionApi ? versionApi.load(currentProject) : [];
   let activeArchiveVersionId = "";
@@ -42,7 +33,7 @@
 
   function saveProject(patch) {
     const next = Object.assign({}, currentProject, patch || {});
-    try { window.sessionStorage.setItem("biddingPendingProject", JSON.stringify(next)); } catch (error) { /* storage unavailable */ }
+    window.BiddingProjectStore.save(currentProject.id, patch || {});
     currentProject = next;
     if (window.projectPrototype) window.projectPrototype.currentProject = next;
     return next;
@@ -199,6 +190,11 @@
 
   function openArchiveFilePreview(item) {
     const name = one("strong", item).textContent.trim();
+    if (currentProject.workspaceProfile) {
+      const generated = /技术标|商务标/.test(name);
+      window.BiddingFilePreview.open({ profile: generated ? name.includes("技术标") ? "bid-technical" : "bid-business" : "project-source", name: name, projectId: currentProject.id, versionId: item.dataset.versionId || (selectedArchiveVersion() || {}).id, context: currentProject.name });
+      return;
+    }
     const description = one("small", item).textContent.trim();
     const sizeMatch = description.match(/\d+(?:\.\d+)?\s*(?:KB|MB|GB)/i);
     window.BiddingFilePreview.open({
@@ -212,6 +208,12 @@
 
   function downloadArchiveFile(item, button) {
     const name = one("strong", item).textContent.trim();
+    if (currentProject.workspaceProfile) {
+      const version = versionApi.find(bidVersions, item.dataset.versionId) || selectedArchiveVersion();
+      if (!/技术标|商务标/.test(name)) { openArchiveFilePreview(item); return; }
+      window.BiddingProjectExport.download(window.BiddingProjectExport.file(currentProject, version, name.includes("技术标") ? "technical" : "business", "docx"), name, "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+      return;
+    }
     const link = document.createElement("a");
     link.href = archiveDownloadHref(name);
     link.download = name;
@@ -356,8 +358,8 @@
       purchaser: currentProject.purchaser || "某港口集团有限公司",
       bidDate: bidDate,
       bidDateText: bidDateText,
-      archiveDate: bidDate,
-      archiveTime: bidDate + " 10:12",
+      archiveDate: currentProject.workspaceProfile ? new Date().toLocaleDateString("sv-SE") : bidDate,
+      archiveTime: currentProject.workspaceProfile ? new Date().toLocaleString("sv-SE").slice(0,16) : bidDate + " 10:12",
       archiveVersion: "正式交付 " + (deliveryVersion ? deliveryVersion.number : "V1.0"),
       deliveryVersionId: deliveryVersion ? deliveryVersion.id : "",
       archiveVersions: bidVersions.map(function (version) {
@@ -374,7 +376,7 @@
         };
       }),
       archiveOperator: currentProject.owner || "李明远",
-      bidAmount: currentProject.id === "BID-202601-001" ? 59.76 : numericAmount(currentProject.budget),
+      bidAmount: currentProject.workspaceProfile ? "" : currentProject.id === "BID-202601-001" ? 59.76 : numericAmount(currentProject.budget),
       owner: currentProject.owner || "李明远",
       archiveFiles: archiveFilesFromPage(),
       knowledgeItems: knowledgeItemsForLedger()
@@ -581,6 +583,14 @@
 
   function init() {
     if (!one("#confirmDeliveryArchive")) return;
+    if (currentProject.workspaceProfile) {
+      ["downloadWordPackage", "downloadPdfPackage"].forEach(function (id) {
+        const link = one("#" + id); link.removeAttribute("href"); link.removeAttribute("download");
+        link.setAttribute("role", "button"); link.setAttribute("tabindex", "0");
+        const run = function (event) { event.preventDefault(); const version = selectedDeliveryVersion(); if (version && version.review.status === "approved") window.BiddingProjectExport.packageDownload(currentProject, version, id === "downloadPdfPackage" ? "pdf" : "docx"); else toast("请先完成人工质量审核", "warning"); };
+        link.addEventListener("click", run); link.addEventListener("keydown", function (event) { if (event.key === "Enter" || event.key === " ") run(event); });
+      });
+    }
     renderDeliveryVersionState();
     renderKnowledgeState();
     const returnButton = one("#returnDeliveryRevision");
@@ -624,7 +634,8 @@
           profile: button.getAttribute("data-delivery-preview"),
           name: button.getAttribute("data-preview-name"),
           size: button.getAttribute("data-preview-size"),
-          context: "交付归档正式文件"
+          context: "交付归档正式文件",
+          projectId: currentProject.id, versionId: (selectedDeliveryVersion() || {}).id
         });
       });
     });
