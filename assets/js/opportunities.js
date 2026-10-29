@@ -21,13 +21,17 @@
   };
   const reviews = { pending: ["待确认", "blue"], approved: ["已确认投标", "green"], rejected: ["已放弃", "gray"], transferred: ["已转项目", "green"] };
   const pageParams = new URLSearchParams(location.search);
-  const ui = { tab: pageParams.get("tab") || "list", page: 1, sourcePage: 1, runPage: positivePage(pageParams.get("runPage")), metric: ["pending", "approved", "urgent", "transferred"].includes(pageParams.get("metric")) ? pageParams.get("metric") : "", busy: false, collectingSource: "", checkingSource: "", files: [], timer: null };
+  const ui = { tab: pageParams.get("tab") || "list", page: 1, sourcePage: 1, runPage: positivePage(pageParams.get("runPage")), metric: ["pending", "approved", "urgent", "transferred"].includes(pageParams.get("metric")) ? pageParams.get("metric") : "", busy: false, collectingSource: "", checkingSource: "", scheduledCollecting: false, files: [], timer: null };
   let activeAction = null;
+  let activeSourceEdit = null;
+  let transferDraft = null;
   let lastTimingSignature = "", timingViewDirty = false;
+  let collectionViewPending = false;
   let sourceAccessSignature = "";
+  let scheduleSignature = "";
   const configPageSize = 8;
   ui.page = positivePage(pageParams.get("listPage"));
-  ui.filters = { query: pageParams.get("listQuery") || "", review: pageParams.get("listReview") || "", region: pageParams.get("listRegion") || "", source: pageParams.get("listSource") || "", score: pageParams.get("listScore") || "" };
+  ui.filters = { query: pageParams.get("listQuery") || "", review: pageParams.get("listReview") || "", region: pageParams.get("listRegion") || "", source: pageParams.get("listSource") || "", sourceQuery: pageParams.get("listSourceQuery") || "", score: pageParams.get("listScore") || "" };
   ui.restoreListScroll = true;
   ui.runFilters = { source: pageParams.get("runSource") || "", sourceQuery: pageParams.get("runSourceText") || "", result: ["completed", "failed"].includes(pageParams.get("runResult")) ? pageParams.get("runResult") : "", from: validRunDate(pageParams.get("runFrom")), to: validRunDate(pageParams.get("runTo")) };
   const detailId = pageParams.get("id");
@@ -52,6 +56,7 @@
     { key: "source-entry", name: "collectionUrl", label: "采集入口", required: true, type: "url", wide: true, help: "填写该网站的公告列表页、栏目页或搜索结果页地址，用于持续发现公告。不同栏目有不同地址时，请填写实际采集入口。" },
     { key: "source-column", name: "column", label: "采集栏目（选填）", type: "text", wide: true, max: 80, help: "按网站原有名称填写，如采购公告、招标信息等，仅用于说明入口所在栏目；公告类型将根据内容识别。" }
   ];
+  const urgentHelp = { key: "metric-urgent", help: "仅统计待确认、已确认但未转项目的机会，包含 72 小时内获取、报名或投标截止；已放弃、已转项目不计入。" };
   let modalTrigger, ruleHelpTrigger, ruleHelpTimer;
   function one(selector) { return document.querySelector(selector); }
   function positivePage(value) { const number = Number(value); return Number.isSafeInteger(number) && number > 0 ? number : 1; }
@@ -64,7 +69,7 @@
     const target = pageParams.get("returnTo") || "";
     if (target.startsWith("opportunities.html?")) {
       const input = new URLSearchParams(target.slice(target.indexOf("?") + 1)), output = new URLSearchParams({ tab: "list" });
-      ["listPage", "listQuery", "listReview", "listRegion", "listSource", "listScore", "metric", "listScroll"].forEach(function (key) { if (input.has(key)) output.set(key, input.get(key)); });
+      ["listPage", "listQuery", "listReview", "listRegion", "listSource", "listSourceQuery", "listScore", "metric", "listScroll"].forEach(function (key) { if (input.has(key)) output.set(key, input.get(key)); });
       return "opportunities.html?" + output.toString();
     }
     if (!target.startsWith("collection-detail.html?")) return "";
@@ -117,7 +122,7 @@
   function scoreMarkup(value, variant) {
     const numeric = value == null ? NaN : Number(value), valid = Number.isFinite(numeric);
     const band = !valid ? "unknown" : numeric >= 80 ? "high" : numeric >= 60 ? "medium" : "low";
-    const range = !valid ? "尚无初评分" : numeric >= 80 ? "80 分及以上" : numeric >= 60 ? "60～79 分" : "60 分以下";
+    const range = !valid ? "尚无初评分" : numeric >= 80 ? "80 分及以上" : numeric >= 60 ? "60 分及以上、80 分以下" : "60 分以下";
     const label = valid ? "机会初评分 " + numeric + " 分，" + range : range;
     return '<strong class="op-score op-score-' + band + (variant === "detail" ? ' op-detail-saved-score' : variant === "inline" ? ' op-score-inline' : '') + '" title="' + esc(label) + '" aria-label="' + esc(label) + '">' + (valid ? esc(numeric) : "—") + (variant === "detail" ? '<small>分</small>' : '') + '</strong>';
   }
@@ -132,15 +137,31 @@
     const project = store.get().projects.find(function (entry) { return entry.id === item.projectId; });
     return (item.files || []).concat(project && project.files || []).some(function (file) { return file.main && /\.(pdf|doc|docx)$/i.test(file.name); });
   }
+  function currentTimeRisks(item) {
+    if (store.status(item).blocked) return [];
+    const now = Date.now(), risks = [];
+    if (!item.acquired && store.time(item.acquisitionStart) > now) risks.push("文件获取尚未开始，请关注公告列明的获取时间。");
+    [["文件获取", item.acquired ? "" : item.acquisitionEnd, "请及时办理获取手续。"], ["报名", item.registered ? "" : item.registrationEnd, "请关注公告报名要求。"], ["投标", item.deadline, "请及时安排投标准备。"]].forEach(function (entry) {
+      const remaining = store.time(entry[1]) - now;
+      if (remaining > 0 && remaining <= 72 * 3600000) risks.push(entry[0] + "临近截止，" + entry[2]);
+    });
+    return risks;
+  }
   function currentRisks(item) {
-    return (item.risks || []).map(function (risk) {
+    const risks = (item.risks || []).map(function (risk) {
       if (risk === "业务团队本期资源已排满，主动放弃本次机会。") return "业务团队本期资源已排满，请关注团队安排。";
       if (/^(?:已确认参与[，,]\s*)?(?:尚未取得|缺少|尚未获取|未取得|未获取)主招标文件/.test(risk)) return hasMainFile(item) ? "" : "缺少主招标文件，转入投标项目时需补传。";
-      return risk;
+      return risk.split(/[；;]/).map(function (part) {
+        const temporal = /^(?:文件获取和报名|文件获取|获取文件|获取|报名|投标)(?:将在|将于|临近截止|即将截止|尚未开始|未开始|已截止)[^，,。；;]*(?:[，,。]|$)/;
+        if (!temporal.test(part.trim())) return part;
+        const remaining = part.trim().replace(temporal, "").trim();
+        return /^(?:请及时办理获取手续|请关注公告列明的获取时间|请关注公告参与条件)[。.]?$/.test(remaining) ? "" : remaining;
+      }).filter(Boolean).join("；");
     }).filter(Boolean);
+    return Array.from(new Set(risks.concat(currentTimeRisks(item))));
   }
   function assessmentMessage(value) {
-    return String(value || "").replace(/初评仍有\s*\d+(?:\.\d+)?\s*分对应条件待核验/g, "部分公告信息尚未明确").replace(/未核实内容不计入得分/g, "未明确的信息未计入初评分");
+    return String(value || "").replace(/初评仍有\s*\d+(?:\.\d+)?\s*分对应条件待核验/g, "部分初评条件依据不足").replace(/未核实内容不计入得分/g, "缺少依据的条件未计入初评分");
   }
   function assessmentRisk(item) {
     const saved = store.assessment(item).snapshot;
@@ -190,9 +211,25 @@
     return "opportunities.html?" + params.toString();
   }
   function detailUrl(id) { return "opportunity-detail.html?id=" + encodeURIComponent(id) + "&returnTo=" + encodeURIComponent(listPositionUrl()); }
-  function sourcesFor(item) { return item.sourceIds.map(function (id) { const source = store.get().sources.find(function (s) { return s.id === id; }); return source ? source.name : "来源已停用"; }).join(" / "); }
+  function opportunitySource(item, id) {
+    const current = store.get().sources.find(function (source) { return source.id === id; });
+    if (current) return { id: id, name: current.name, collectionUrl: current.collectionUrl || current.url, historical: false };
+    const snapshots = item.sourceSnapshots || {}, saved = Array.isArray(snapshots) ? snapshots.find(function (source) { return source.id === id; }) : snapshots[id];
+    const record = websiteRecords().find(function (entry) { return entry.sourceId === id; });
+    return { id: id, name: saved && saved.name || record && record.source || "来源配置已移除", collectionUrl: saved && saved.collectionUrl || record && record.sourceSnapshot.collectionUrl || "", historical: true };
+  }
+  function sourcesFor(item) { const id = item.sourceIds[0]; return id ? opportunitySource(item, id).name : ""; }
+  function opportunitySourceOptions() {
+    const records = websiteRecords().slice();
+    store.get().opportunities.forEach(function (item) { [item.sourceIds[0]].filter(Boolean).forEach(function (id) {
+      if (records.some(function (record) { return record.sourceId === id; })) return;
+      const source = opportunitySource(item, id);
+      records.push({ sourceId: id, source: source.name, sourceSnapshot: source });
+    }); });
+    return collectionSourceOptions(records);
+  }
   function toast(text, tone) { if (window.showToast) window.showToast(text, tone); const live = one("#opportunityLive"); if (live) live.textContent = text; }
-  function guard(handler) { try { return handler(); } catch (error) { if (error.code === "OPPORTUNITY_CONTEXT_CHANGED") invalidateAction(error.message); const feedback = one("#opFeedback"); if (feedback) { feedback.hidden = false; feedback.textContent = error.message; feedback.focus(); } else toast(error.message, "warning"); return null; } }
+  function guard(handler) { try { return handler(); } catch (error) { if (error.code === "OPPORTUNITY_CONTEXT_CHANGED") invalidateAction(error.message); const feedback = one("#opFeedback"); if (feedback) { feedback.hidden = false; feedback.textContent = error.message; if (error.code === "OP_SOURCE_CONTEXT_CHANGED" && activeSourceEdit) feedback.insertAdjacentHTML("beforeend", button("载入最新配置", "reloadSource", activeSourceEdit.id, "text-btn compact-btn", "collect")); feedback.focus(); } else toast(error.message, "warning"); return null; } }
   function save(handler) { return store.change(handler); }
   function empty(title, text) { return '<div class="op-empty">' + svg("search") + '<strong>' + esc(title) + '</strong><span>' + esc(text) + '</span></div>'; }
   function field(label, name, value, type, extra) {
@@ -214,10 +251,15 @@
     const boundary = store.capability(item);
     return tag(boundary.label, boundary.blocked ? "red" : boundary.key === "allowed" ? "green" : "orange") + '<small>' + esc(boundary.group) + '</small>';
   }
-  function nextText(rule) { return store.stamp((rule.lastRun || Date.now()) + rule.hours * 3600000); }
+  function nextText(rule) {
+    if (!store.get().sources.some(function (source) { return !sourceCollectionBlock(source); })) return "暂无可采集来源";
+    const next = (rule.lastRun || Date.now()) + rule.hours * 3600000;
+    return ui.collectingSource === "all" ? "正在采集" : next <= Date.now() ? "等待采集" : store.stamp(next);
+  }
   function modal(title, description, body, submitLabel, onSubmit, customFooter, appearance) {
     hideRuleHelp();
     activeAction = null;
+    activeSourceEdit = null;
     modalTrigger = document.activeElement;
     one("#opportunityLayers").innerHTML = '<section class="prototype-modal' + (appearance ? ' ' + appearance : '') + '" id="opModal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="opModalTitle"><form id="opModalForm"><header class="layer-head"><div><h3 id="opModalTitle">' + esc(title) + '</h3>' + (description ? '<p>' + esc(description) + '</p>' : '') + '</div><button class="layer-close" type="button" data-close-layer title="关闭弹窗" aria-label="关闭弹窗">' + svg("close") + '</button></header><div class="layer-body"><div class="op-feedback" id="opFeedback" role="alert" tabindex="-1" hidden></div>' + body + '</div><footer class="layer-footer" id="opModalFooter">' + (customFooter || button("取消", "close", "", "ghost-btn", "close") + (submitLabel ? '<button class="primary-btn" type="submit"><span class="btn-icon">' + svg("check") + '</span><span>' + esc(submitLabel) + '</span></button>' : button("关闭", "close", "", "primary-btn", "check"))) + '</footer></form></section>';
     window.projectPrototype.openLayer("opModal");
@@ -231,17 +273,18 @@
     store.refresh(); render();
     const latestForm = one("#opFilters");
     if (draft && latestForm && latestForm.elements) Object.keys(draft).forEach(function (key) { if (latestForm.elements[key]) latestForm.elements[key].value = draft[key]; });
-    lastTimingSignature = opportunityTimingSignature(); timingViewDirty = false;
+    lastTimingSignature = opportunityTimingSignature(); timingViewDirty = false; collectionViewPending = false;
     window.setTimeout(function () { if (window.scrollTo) window.scrollTo(0, y); }, 0);
   }
   function close(sync) {
-    let changed = false;
+    let changed = sync !== false && collectionViewPending && !ui.busy;
+    if (sync !== false && activeAction && activeAction.type === "transfer") transferDraft = null;
     if (sync !== false && activeAction) {
       store.refresh();
       const item = store.find(activeAction.id);
-      changed = activeAction.invalid || activeAction.viewDirty || timingViewDirty || Boolean(store.contextMessage(activeAction.id, activeAction.expected)) || Boolean(item && activeAction.timingKey !== store.status(item).key);
+      changed = changed || activeAction.invalid || activeAction.viewDirty || timingViewDirty || Boolean(store.contextMessage(activeAction.id, activeAction.expected)) || Boolean(item && activeAction.timingKey !== store.status(item).key);
     }
-    activeAction = null; hideRuleHelp(); window.projectPrototype.closeLayers();
+    activeAction = null; activeSourceEdit = null; hideRuleHelp(); window.projectPrototype.closeLayers();
     if (changed) syncOpportunityView();
     else if (modalTrigger && document.contains(modalTrigger)) modalTrigger.focus();
   }
@@ -264,6 +307,10 @@
     if (!activeAction || !one("#opModal.open")) return;
     const item = store.find(activeAction.id); if (!item) return;
     const timing = store.status(item);
+    if (activeAction.type === "transfer" && !activeAction.invalid) {
+      const message = store.contextMessage(activeAction.id, activeAction.expected);
+      if (message) invalidateAction(message);
+    }
     if (activeAction.timingKey !== timing.key) { activeAction.viewDirty = true; timingViewDirty = true; activeAction.timingKey = timing.key; }
     const stale = Boolean(activeAction.invalid);
     if (activeAction.type === "transfer") {
@@ -290,6 +337,19 @@
       }
     }
     if (stale) return;
+    const checks = store.participationChecks(item);
+    if (activeAction.type === "review") {
+      const concerns = reviewConcerns(item), signature = JSON.stringify(concerns);
+      const area = one("#opReviewConcerns");
+      if (area && activeAction.concernsSignature !== signature) {
+        area.hidden = !concerns.length; area.innerHTML = reviewConcernsMarkup(concerns); activeAction.concernsSignature = signature;
+      }
+    } else {
+      const area = one("#opTransferTiming"), signature = JSON.stringify(checks);
+      if (area && activeAction.concernsSignature !== signature) {
+        area.hidden = !checks.length; area.textContent = checks.join("；"); activeAction.concernsSignature = signature;
+      }
+    }
     const message = !timing.blocked ? "" : activeAction.type === "transfer" ? timing.text + "，暂不能转入投标项目。" : activeAction.expected.review === "rejected" ? timing.text + "，暂不能重新确认投标，原放弃记录保留。" : timing.text + "，暂不能确认投标，仍可放弃机会。";
     const feedback = one("#opFeedback");
     if (message && message !== activeAction.deadlineMessage) { feedback.hidden = false; feedback.textContent = message; }
@@ -307,14 +367,18 @@
       if (sourceAccessSignature && sourceAccessSignature !== accessSignature && !one(".prototype-modal.open") && !ui.busy) renderSources();
       if (!one(".prototype-modal.open") && !ui.busy) sourceAccessSignature = accessSignature;
     }
+    if (!isDetail && ui.tab === "rules") {
+      const value = nextText(store.get().collection);
+      if (scheduleSignature !== value && !one(".prototype-modal.open")) { renderRules(); scheduleSignature = value; }
+    }
     const signature = opportunityTimingSignature();
     if (lastTimingSignature && signature !== lastTimingSignature) timingViewDirty = true;
     lastTimingSignature = signature;
     syncActionTiming();
-    if (timingViewDirty && !one(".prototype-modal.open") && !ui.busy && (isDetail || ui.tab === "list")) syncOpportunityView();
+    if ((timingViewDirty || collectionViewPending) && !one(".prototype-modal.open") && !ui.busy && (isDetail || ui.tab === "list" || collectionViewPending)) syncOpportunityView();
   }
   function reviewFeedback(item, reconfirming) {
-    const filteredOut = !isDetail && ui.filters && ui.filters.review && ui.filters.review !== item.review;
+    const filteredOut = !isDetail && (ui.filters && ui.filters.review && ui.filters.review !== item.review || ui.metric === "urgent" && !isUrgent(item));
     if (item.review === "rejected") return filteredOut ? "已放弃机会，记录已保留，可在“已放弃”中查看。" : "已放弃机会，相关记录已保留。";
     const prefix = reconfirming ? "已重新确认投标" : "已确认投标";
     return prefix + (filteredOut ? "，可在“已确认投标”中转入投标项目。" : "，可转入投标项目。");
@@ -378,12 +442,17 @@
     const metrics = [
       ["pending", "待确认", items.filter(function (i) { return i.review === "pending"; }).length, "查看初评并处理机会", "search", ""],
       ["approved", "已确认投标", items.filter(function (i) { return i.review === "approved"; }).length, "转入投标项目或调整决定", "check", "green"],
-      ["urgent", "关键期限临近", items.filter(isUrgent).length, "72 小时内获取、报名或投标截止", "clock", "red"],
+      ["urgent", "关键期限临近", items.filter(isUrgent).length, "72 小时内关键期限到期", "clock", "red"],
       ["transferred", "已转项目", items.filter(function (i) { return i.review === "transferred"; }).length, "已关联现有投标项目工作台", "check", "green"]
     ];
-    one("#opportunityMetrics").innerHTML = metrics.map(function (m) { return '<button type="button" class="project-metric card' + (ui.metric === m[0] ? " active" : "") + '" data-op-action="metric" data-id="' + m[0] + '"><span class="metric-symbol ' + m[5] + '">' + svg(m[4]) + '</span><span class="metric-copy"><span>' + m[1] + '</span><strong>' + m[2] + '</strong><small>' + m[3] + '</small></span></button>'; }).join("");
+    one("#opportunityMetrics").innerHTML = metrics.map(function (m) {
+      const content = '<span class="metric-symbol ' + m[5] + '">' + svg(m[4]) + '</span><span class="metric-copy"><span>' + m[1] + '</span><strong>' + m[2] + '</strong><small>' + m[3] + '</small></span>';
+      const active = ui.metric === m[0] ? " active" : "";
+      if (m[0] === "urgent") return '<div class="project-metric card op-metric-with-help' + active + '"><button type="button" class="op-metric-entry" data-op-action="metric" data-id="urgent">' + content + '</button><button type="button" class="op-rule-help op-metric-help" data-rule-help="metric-urgent" title="查看临期统计说明" aria-label="临期统计说明">' + svg("info") + '</button></div>';
+      return '<button type="button" class="project-metric card' + active + '" data-op-action="metric" data-id="' + m[0] + '">' + content + '</button>';
+    }).join("");
   }
-  function isUrgent(item) { const now = Date.now(); return !store.status(item).blocked && [item.acquired ? null : item.acquisitionEnd, item.registrationEnd && !item.registered ? item.registrationEnd : null, item.deadline].some(function (value) { const delta = store.time(value) - now; return delta > 0 && delta <= 72 * 3600000; }); }
+  function isUrgent(item) { const now = Date.now(); return !item.projectId && ["pending", "approved"].includes(item.review) && !store.status(item).blocked && [item.acquired ? null : item.acquisitionEnd, item.registrationEnd && !item.registered ? item.registrationEnd : null, item.deadline].some(function (value) { const delta = store.time(value) - now; return delta > 0 && delta <= 72 * 3600000; }); }
   function moduleShell() {
     const target = one("#opportunityModule");
     if (!target || target.dataset.ready === "true") return;
@@ -403,19 +472,35 @@
     if (ui.tab === "list") renderListShell();
     if (ui.tab === "rules") renderRules();
     if (ui.tab === "sources") renderSources();
-    if (ui.tab === "runs") renderRuns();
+    if (ui.tab === "runs") renderRuns(true);
+  }
+  function readListFilters() {
+    const values = Object.fromEntries(new FormData(one("#opFilters"))), choices = opportunitySourceOptions();
+    return Object.assign(values, resolveRunSource(values.source, choices, choices.length > 10));
   }
   function renderListShell() {
-    const sources = store.get().sources;
-    one("#opportunityContent").innerHTML = '<form id="opFilters" class="op-filter-bar"><label class="search-box"><span class="visually-hidden">搜索机会</span>' + svg("search") + '<input name="query" type="search" placeholder="搜索项目名称、编号、采购人" autocomplete="off" /></label><select name="review" aria-label="确认状态">' + option("", "全部确认状态") + Object.keys(reviews).map(function (key) { return option(key, reviews[key][0]); }).join("") + '</select><input name="region" list="opRegions" placeholder="全部地区 · 输入搜索" aria-label="按实施地区筛选" /><datalist id="opRegions">' + Array.from(new Set(store.get().opportunities.map(function (i) { return i.region; }))).map(function (v) { return option(v, v); }).join("") + '</datalist><input name="source" list="opSourceOptions" placeholder="全部来源 · 输入搜索" aria-label="按来源筛选" /><datalist id="opSourceOptions">' + sources.map(function (s) { return option(s.name, s.name); }).join("") + '</datalist><select name="score" aria-label="初评区间">' + option("", "全部初评分") + option("80", "80 分及以上") + option("60", "60～79 分") + option("low", "60 分以下") + '</select><div class="op-filter-actions">' + button("查询", "query", "", "secondary-btn", "search") + button("重置", "reset", "", "ghost-btn", "collect") + '</div></form><div id="opListResults"></div>';
+    const choices = opportunitySourceOptions(), searchable = choices.length > 10;
+    if (ui.filters.source) Object.assign(ui.filters, resolveRunSource(ui.filters.source, choices, searchable));
+    const selected = choices.find(function (source) { return source.id === ui.filters.source; });
+    const sourceControl = searchable ? '<input name="source" list="opSourceOptions" type="search" placeholder="全部来源 · 输入搜索" aria-label="按来源网站筛选" autocomplete="off"/><datalist id="opSourceOptions">' + choices.map(function (source) { return option(source.label, source.label); }).join("") + '</datalist>' : '<select name="source" aria-label="按来源网站筛选">' + option("", "全部来源网站") + choices.map(function (source) { return option(source.id, source.label, source.id === ui.filters.source); }).join("") + '</select>';
+    const regions = Array.from(new Set(store.get().opportunities.map(function (item) { return item.region; }).filter(Boolean)));
+    one("#opportunityContent").innerHTML = '<form id="opFilters" class="op-filter-bar"><label class="search-box"><span class="visually-hidden">搜索机会</span>' + svg("search") + '<input name="query" type="search" placeholder="搜索项目名称、编号、采购人" autocomplete="off" /></label><select name="review" aria-label="确认状态">' + option("", "全部确认状态") + Object.keys(reviews).map(function (key) { return option(key, reviews[key][0]); }).join("") + '</select><input name="region" list="opRegions" placeholder="全部地区 · 输入搜索" aria-label="按实施地区筛选" /><datalist id="opRegions">' + regions.map(function (region) { return option(region, region); }).join("") + '</datalist>' + sourceControl + '<select name="score" aria-label="初评区间">' + option("", "全部初评分") + option("80", "80 分及以上") + option("60", "60～不足80分") + option("low", "60 分以下") + '</select><div class="op-filter-actions">' + button("查询", "query", "", "secondary-btn", "search") + button("重置", "reset", "", "ghost-btn", "collect") + '</div></form><div id="opListResults"></div>';
     const form = one("#opFilters");
-    if (ui.filters) Object.keys(ui.filters).forEach(function (key) { if (form.elements[key]) form.elements[key].value = ui.filters[key]; });
+    Object.keys(ui.filters || {}).forEach(function (key) { if (key !== "source" && form.elements[key]) form.elements[key].value = ui.filters[key]; });
+    form.elements.source.value = searchable ? selected ? selected.label : ui.filters.sourceQuery || "" : ui.filters.source || "";
     form.addEventListener("submit", function (event) { event.preventDefault(); query(); });
-    form.addEventListener("change", function (event) { if (event.target.name !== "query") query(); });
+    form.addEventListener("change", function (event) {
+      const name = event.target.name, value = event.target.value;
+      if (name === "query") return;
+      if (name === "region" && value && !regions.includes(value)) return;
+      if (name === "source" && searchable && value && !choices.some(function (source) { return source.label === value; })) return;
+      query();
+    });
     renderRows();
   }
   function query() {
-    ui.filters = Object.fromEntries(new FormData(one("#opFilters")));
+    ui.filters = readListFilters();
+    if (ui.metric === "urgent" && ["rejected", "transferred"].includes(ui.filters.review)) ui.metric = "";
     if (["pending", "approved", "transferred"].includes(ui.metric) && ui.filters.review !== ui.metric) ui.metric = "";
     ui.page = 1; renderMetrics(); renderRows();
   }
@@ -425,7 +510,7 @@
       const result = assess(item);
       const matchesReview = function (value) { return item.review === value; };
       const metric = !ui.metric || (ui.metric === "urgent" ? isUrgent(item) : matchesReview(ui.metric));
-      return metric && (!f.query || [item.name, item.number, item.purchaser].join(" ").toLowerCase().includes(f.query.trim().toLowerCase())) && (!f.review || matchesReview(f.review)) && (!f.region || item.region.includes(f.region.trim())) && (!f.source || sourcesFor(item).includes(f.source.trim())) && (!f.score || (f.score === "80" ? result.score >= 80 : f.score === "60" ? result.score >= 60 && result.score < 80 : result.score < 60));
+      return metric && (!f.query || [item.name, item.number, item.purchaser].join(" ").toLowerCase().includes(f.query.trim().toLowerCase())) && (!f.review || matchesReview(f.review)) && (!f.region || item.region.includes(f.region.trim())) && (!f.source || item.sourceIds[0] === f.source) && (!f.sourceQuery || sourcesFor(item).includes(f.sourceQuery.trim())) && (!f.score || (f.score === "80" ? result.score >= 80 : f.score === "60" ? result.score >= 60 && result.score < 80 : result.score < 60));
     }).sort(function (a, b) { return assess(b).score - assess(a).score; });
     const pages = Math.max(1, Math.ceil(items.length / 8));
     ui.page = Math.min(ui.page, pages);
@@ -473,7 +558,7 @@
     ruleHelpTrigger = null;
   }
   function showRuleHelp(trigger) {
-    const spec = ruleFormFields.concat(sourceFormFields).find(function (item) { return item.key === trigger.dataset.ruleHelp; });
+    const spec = ruleFormFields.concat(sourceFormFields, [urgentHelp]).find(function (item) { return item.key === trigger.dataset.ruleHelp; });
     if (!spec || !spec.help) return;
     hideRuleHelp();
     let popup = one("#opRuleTooltip");
@@ -571,7 +656,7 @@
       const blocked = sourceCollectionBlock(source), checking = ui.checkingSource === source.id;
       const access = store.sourceAccess(source);
       const checked = source.checked ? (source.status === "pending" ? "上次检查：" : "最近检查：") + source.checked.slice(5) : "尚无检查记录";
-      return '<tr><td><strong>' + esc(source.name) + '</strong><small>' + esc(source.type + " · " + (source.enabled ? "已启用" : "已停用")) + '</small></td><td><strong>' + esc(source.column || "未填写栏目名称") + '</strong>' + sourceLinks(source) + '</td><td>' + tag(checking ? "检查中" : access.reason ? access.label : source.status === "ready" ? "可采集" : source.status === "error" ? "检查失败" : "待检查", checking ? "blue" : access.reason ? "orange" : source.status === "ready" ? "green" : "orange") + '<small title="' + esc(source.checked ? "最近检查：" + source.checked + (source.status === "pending" ? "；配置已变更，需重新检查" : "") : checked) + '">' + esc(checked) + '</small><small class="op-source-truncate" title="' + esc(access.reason || source.accessScope || access.label) + '">' + esc(access.label + (source.accessMode === "login" ? ' · 账号密码' : '')) + '</small>' + (source.status === "error" ? '<small class="op-source-truncate" title="' + esc(sourceCheckMessage(source)) + '">' + esc(sourceCheckMessage(source)) + '</small>' : '') + '</td><td>' + sourceCollectionView(source) + '</td><td><div class="op-table-actions op-source-row-actions">' + button(ui.collectingSource === source.id ? "正在采集" : "立即采集", "collectSource", source.id, "secondary-btn compact-btn op-source-collect", "collect", ui.busy || !!blocked, blocked || "采集此来源") + button("编辑", "source", source.id, "text-btn compact-btn", "edit", ui.busy) + button(checking ? "检查中" : source.accessMode === "login" && access.reason ? "登录检查" : "检查来源", "verify", source.id, "text-btn compact-btn", "check", ui.busy) + button(source.enabled ? "停用" : "启用", "toggleSource", source.id, "text-btn compact-btn", source.enabled ? "pause" : "play", ui.busy) + '</div></td></tr>';
+      return '<tr><td><strong>' + esc(source.name) + '</strong><small>' + esc(source.type + " · " + (source.enabled ? "已启用" : "已停用")) + '</small></td><td><strong>' + esc(source.column || "未填写栏目名称") + '</strong>' + sourceLinks(source) + '</td><td>' + tag(checking ? "检查中" : source.status === "ready" ? "检查通过" : source.status === "error" ? "检查失败" : "待检查", checking ? "blue" : source.status === "error" ? "red" : source.status === "ready" ? "green" : "orange") + '<small title="' + esc(source.checked ? "最近检查：" + source.checked + (source.status === "pending" ? "；配置已变更，需重新检查" : "") : checked) + '">' + esc(checked) + '</small><small class="op-source-truncate' + (access.state === "expired" ? ' op-source-access-expired' : '') + '" title="' + esc(access.reason || source.accessScope || access.label) + '">' + esc(access.label + (source.accessMode === "login" ? ' · 账号密码' : '')) + '</small>' + (source.status === "error" ? '<small class="op-source-truncate" title="' + esc(sourceCheckMessage(source)) + '">' + esc(sourceCheckMessage(source)) + '</small>' : '') + '</td><td>' + sourceCollectionView(source) + '</td><td><div class="op-table-actions op-source-row-actions">' + button(ui.collectingSource === source.id ? "正在采集" : "立即采集", "collectSource", source.id, "secondary-btn compact-btn op-source-collect", "collect", ui.busy || !!blocked, blocked || "采集此来源") + button("编辑", "source", source.id, "text-btn compact-btn", "edit", ui.busy) + button(checking ? "检查中" : source.accessMode === "login" && access.reason ? "登录检查" : "检查来源", "verify", source.id, "text-btn compact-btn", "check", ui.busy) + button(source.enabled ? "停用" : "启用", "toggleSource", source.id, "text-btn compact-btn", source.enabled ? "pause" : "play", ui.busy) + '</div></td></tr>';
     }).join("") + '</tbody></table></div>' + page.footer;
   }
   function sourceCollectionBlock(source) {
@@ -638,7 +723,9 @@
   function countHeading(label, help) {
     return '<span class="op-run-count-heading"><span>' + label + '</span><span class="op-run-count-note" tabindex="0" title="' + help + '" aria-label="' + help + '">' + svg("info") + '</span></span>';
   }
-  function renderRuns() {
+  function renderRuns(preserveDraft) {
+    const previousForm = one("#opRunFilters"), previousInput = previousForm && previousForm.elements && previousForm.elements.source;
+    const draft = preserveDraft && previousInput && previousInput.type === "search" ? { value: previousInput.value, focused: document.activeElement === previousInput, start: previousInput.selectionStart, end: previousInput.selectionEnd } : null;
     const allRecords = websiteRecords(), filters = ui.runFilters;
     const choices = collectionSourceOptions(allRecords);
     const searchSources = choices.length > 10;
@@ -654,11 +741,18 @@
     const rows = page.items.map(function (record) {
       const state = record.state;
       const label = state === "completed" ? ["采集成功", "green"] : ["采集失败", "red"];
-      const reason = state === "completed" ? record.collectedCount === 0 ? "未发现公告" : record.newCount === 0 && record.updatedCount === 0 ? "无新增或更新，已完成去重和筛选" : "采集及初评处理完成" : (record.collectedCount > 0 ? "已处理 " + record.collectedCount + " 条公告；" : "") + (record.message || "网站连接中断，本次采集未完成，请稍后重试。");
+      const reason = state === "completed" ? record.collectedCount === 0 ? "未发现公告" : record.newCount === 0 && record.updatedCount === 0 ? "无新增或更新，已完成去重和筛选" : "公告采集及处理完成" : (record.collectedCount > 0 ? "已处理 " + record.collectedCount + " 条公告；" : "") + (record.message || "网站连接中断，本次采集未完成，请稍后重试。");
       return '<tr><td><strong>' + esc(record.at) + '</strong></td><td><span class="op-run-source" title="' + esc(collectionSourceTitle(record)) + '">' + esc(record.source) + '</span></td><td>' + tag(label[0], label[1]) + '</td><td class="op-run-number">' + recordQuantity(record.collectedCount) + '</td><td class="op-run-number">' + recordQuantity(record.newCount, true) + '</td><td class="op-run-number">' + recordQuantity(record.updatedCount) + '</td><td class="op-run-number">' + recordQuantity(record.duplicateCount) + '</td><td class="op-run-number">' + recordQuantity(record.excludedCount) + '</td><td><span class="op-run-reason" title="' + esc(reason) + '">' + esc(reason) + '</span></td></tr>';
     }).join("");
     one("#opportunityContent").innerHTML = filterBar + (records.length ? '<div class="table-wrap"><table class="op-table op-run-table"><colgroup><col style="width:17%"/><col style="width:16%"/><col style="width:9%"/><col style="width:9%"/><col style="width:7%"/><col style="width:7%"/><col style="width:7%"/><col style="width:7%"/><col style="width:21%"/></colgroup><thead><tr><th>执行时间</th><th>来源网站</th><th>采集结果</th><th class="op-run-number">' + countHeading("采集总数", "本次从该网站成功读取并完成处理的公告条数，等于新增、更新、去重、筛除之和。每条公告只归入一种结果。") + '</th><th class="op-run-number">' + countHeading("新增", "符合规则并形成新机会的公告条数。") + '</th><th class="op-run-number">' + countHeading("更新", "内容变化并更新已有机会的公告条数，如新更正公告；不是项目数。") + '</th><th class="op-run-number">' + countHeading("去重", "系统已有相同内容、无需新增或更新的公告条数，包括重复采集和跨网站转载；已处理的更正公告再次采集也归入去重。") + '</th><th class="op-run-number">' + countHeading("筛除", "不符合筛选条件、低于初评入库标准或超出首次回溯范围，未进入机会库的公告条数。") + '</th><th>概要说明</th></tr></thead><tbody>' + rows + '</tbody></table></div>' : empty(allRecords.length ? "暂无符合条件的采集记录" : "暂无采集记录", allRecords.length ? "请调整查询条件或重置后查看。" : "请在“来源网站”发起采集，完成后可在此查看结果。")) + page.footer;
     const form = one("#opRunFilters");
+    if (searchSources && draft) {
+      form.elements.source.value = draft.value;
+      if (draft.focused) {
+        form.elements.source.focus();
+        if (typeof form.elements.source.setSelectionRange === "function" && draft.start != null) form.elements.source.setSelectionRange(draft.start, draft.end);
+      }
+    }
     form.addEventListener("submit", function (event) { event.preventDefault(); queryRuns(); });
     form.addEventListener("change", function (event) { if (event.target.name !== "source" || !searchSources || !event.target.value || choices.some(function (item) { return item.label === event.target.value; })) queryRuns(); });
     form.elements.to.min = filters.from;
@@ -682,42 +776,202 @@
   function fact(label, value, wide) { return '<div' + (wide ? ' class="wide"' : "") + '><span>' + esc(label) + '</span><strong>' + esc(value || "公告未明确") + '</strong></div>'; }
   function ruleSnapshotView(rule) {
     if (!rule || !["structured", "form"].includes(rule.format)) return '<p class="op-help">历史业务要求，待按当前规则重新初评。</p>';
-    const model = store.ruleModel(rule);
-    return '<p>' + esc(store.ruleSummary(rule)) + '</p><p class="op-help">关键词：' + esc(rule.format === "form" ? rule.keywords : model.accepted.concat(model.extraAccepted).join("、")) + '</p><p class="op-help">排除条件：' + esc(rule.format === "form" ? rule.excludes || "无" : model.excluded.concat(model.extraExcluded).join("、") || "无") + '</p>' + (rule.remarks ? '<p class="op-help op-rule-remarks">备注说明：' + esc(rule.remarks) + '</p>' : '');
+    const model = store.ruleModel(rule), values = rule.format === "form" ? rule : Object.assign({}, model, {
+      description: model.description || "", keywords: model.accepted.concat(model.extraAccepted).join("、"),
+      excludes: model.excluded.concat(model.extraExcluded).join("、"), regions: model.regionMode === "all" ? "" : model.regions.join("、")
+    });
+    return '<dl class="op-form-grid op-rule-fields op-rule-snapshot">' + ruleFormFields.filter(function (field) { return !["hours", "lookback"].includes(field.key); }).map(function (field) { return ruleFieldMarkup(field, values, false); }).join("") + '</dl>';
   }
   function historyRule(record) {
     return record.ruleSnapshot && ["structured", "form"].includes(record.ruleSnapshot.format) ? '<details class="op-rule-history"><summary>' + svg("file") + '查看当时的规则 · V' + esc(record.ruleSnapshot.revision) + '</summary>' + ruleSnapshotView(record.ruleSnapshot) + '</details>' : "";
   }
   function fileIcon(name) { return window.BiddingFileIcons ? window.BiddingFileIcons.markup(name) : '<span class="file-type-icon">' + svg("file") + '</span>'; }
   function noticeSections(notice) {
-    return [
-      { title: "项目基本情况", text: [notice.name, "项目编号：" + notice.number, notice.package, "本包预算：" + money(notice.amount), "最高限价：" + money(notice.cap)].join("；") },
-      { title: "采购内容", text: notice.summary || "公告未披露具体采购内容" },
-      { title: "申请人资格", text: notice.qualification || "公告未披露完整资格条件" },
-      { title: "文件获取与投标", text: "文件获取：" + (notice.acquisitionStart || "未明确") + " 至 " + (notice.acquisitionEnd || "未明确") + "；单独报名截止：" + (notice.registrationEnd || "公告未单独列明") + "；投标截止：" + (notice.deadline || "未明确") + "（北京时间）" },
-      { title: "实施与服务要求", text: "实施地：" + (notice.region || "未明确") + "；履约期限：" + (notice.term || "未明确") }
-    ];
+    return window.OpportunityEvidence.noticeSections(notice);
+  }
+  function evidenceLink(label, href) {
+    return '<a class="op-source-link" href="' + esc(href) + '" target="_blank" rel="noopener noreferrer">' + svg("external") + esc(label) + '</a>';
   }
   function opportunitySources(item) {
-    return item.sourceIds.map(function (id) {
-      const source = store.get().sources.find(function (entry) { return entry.id === id; });
-      const specific = item.noticeUrls && item.noticeUrls[id] || item.noticeUrl;
-      return '<div class="op-notice-source"><strong>' + esc(source ? source.name : "公告来源") + '</strong><div class="op-filter-actions">' + (specific ? external(specific, "查看来源公告") : "") + (source ? external(source.collectionUrl || source.url, "访问来源网站") : "") + '</div></div>';
+    return [item.sourceIds[0]].filter(Boolean).map(function (id) {
+      const source = opportunitySource(item, id);
+      const href = window.OpportunityEvidence.noticeHref(item, id, source) || window.OpportunityEvidence.sampleNoticeHref(source);
+      return '<div class="op-notice-source"><strong>' + esc(source.name) + '</strong>' + (href ? evidenceLink("查看公告原文", href) : '<span class="op-source-link" role="link" aria-disabled="true">' + svg("external") + '查看公告原文</span>') + '</div>';
     }).join("");
   }
-  function assessmentRows(item) {
-    const saved = store.assessment(item).snapshot, notice = saved.notice;
-    const details = saved.result.details || [];
-    if (!notice) return '<tr><td><strong>初评留存记录</strong></td><td>已保存 ' + esc(saved.result.score) + ' 分</td><td>' + esc(saved.decision.reason) + '</td><td>' + button("查看依据", "basis", item.id + ":0", "text-btn compact-btn", "file") + '</td></tr>';
-    const results = notice ? [saved.result.boundary.key === "unknown" ? "公告信息不完整" : saved.result.boundary.label, details[1] && details[1].unknown ? "材料依据不完整" : "需结合完整文件核对", notice.amount == null ? "公告未明确预算" : "已识别预算", notice.region ? "已识别实施要求" : "公告未明确实施地", notice.deadline ? "已识别参与期限" : "公告未明确截止时间"] : ["查看留存依据", "查看留存依据", "查看留存依据", "查看留存依据", "查看留存依据"];
-    const reasons = notice ? [saved.result.boundary.reason, notice.qualification || "公告未披露完整资格要求", "本包预算：" + money(notice.amount) + "；最高限价：" + money(notice.cap), "实施地：" + (notice.region || "未明确") + "；履约期限：" + (notice.term || "未明确"), "获取截止：" + (notice.acquisitionEnd || "未明确") + "；投标截止：" + (notice.deadline || "未明确")] : Array(5).fill(saved.decision.reason);
-    return store.dimensions.map(function (name, index) {
-      return '<tr><td><strong>' + esc(name) + '</strong></td><td>' + esc(results[index]) + '</td><td>' + esc(reasons[index]) + '</td><td>' + button("查看依据", "basis", item.id + ":" + index, "text-btn compact-btn", "file") + '</td></tr>';
+  function qualificationMaterialRows(match) {
+    return window.OpportunityEvidence.qualificationViewRows(match);
+  }
+  function qualificationRequirement(row) {
+    return window.OpportunityEvidence.requirementText(row);
+  }
+  function qualificationCountSummary(match) {
+    return window.OpportunityEvidence.qualificationSummary(qualificationMaterialRows(match)).summary;
+  }
+  function qualificationTable(match, mode) {
+    if (!qualificationMaterialRows(match).length) return '<p class="op-help">未列明需知识库证明的资格要求。</p>';
+    return '<div class="table-wrap"><table class="op-table op-qualification-table"><colgroup><col style="width:190px"/><col style="width:140px"/><col style="width:84px"/><col/></colgroup><thead><tr><th>具体要求</th><th>判断结果</th><th class="op-assessment-score-cell">得分</th><th>主要依据</th></tr></thead><tbody>' + qualificationDetailRows(match, mode || "saved") + '</tbody></table></div>';
+  }
+  function evidenceLine(label, value, markup) {
+    return '<div class="op-evidence-line"><span class="op-evidence-label">' + esc(label) + '</span><div class="op-evidence-value">' + (markup ? value : esc(value)) + '</div></div>';
+  }
+  function assessmentResult(item, index) {
+    const saved = store.assessment(item).snapshot;
+    const part = (saved.result.details || []).find(function (row) { return row.name === store.dimensions[index]; });
+    const score = part && Number.isFinite(part.score) ? '<strong class="op-assessment-points" data-assessment-score="' + index + '" title="评估时留存的分项得分">' + esc(part.score) + '<small>分</small></strong>' : '<span class="op-assessment-points-missing" data-assessment-score="' + index + '">未留存</span>';
+    return score;
+  }
+  function qualificationRows(item, judgment) {
+    const assessment = store.assessment(item), snapshot = assessment.snapshot, saved = assessment.result.qualificationMatch;
+    const match = saved || window.OpportunityEvidence.matchQualification(item), rows = qualificationMaterialRows(match);
+    const mode = !saved ? "current" : assessment.stale ? "previous" : "saved";
+    const aggregate = window.OpportunityEvidence.qualificationSummary(rows);
+    const label = !saved ? judgment.label : aggregate.label;
+    const tone = !saved ? judgment.tone : aggregate.tone;
+    const summary = saved ? qualificationCountSummary(match) : "以下为当前参考对照，不计入留存初评分。";
+    const caption = saved ? assessment.stale ? "上次初评依据 · 公告 V" + match.noticeRevision : "按评估时材料版本留存" : "留存初评 · 公告 V" + snapshot.noticeRevision;
+    const historical = !saved && snapshot.notice && snapshot.noticeRevision !== item.revision ? evidenceLine("留存要求", qualificationRequirement({ clause: snapshot.notice.qualification }) || "未列明需知识库证明的资格要求") : "";
+    const reference = saved ? "" : evidenceLine("当前对照", "公告 V" + item.revision + " · " + qualificationCountSummary(match));
+    const overview = '<tr class="op-qualification-overview" data-assessment-item="1" data-evidence-mode="' + (saved ? mode : "historical") + '"><td><strong>' + esc(store.dimensions[1]) + '</strong></td><td><span class="op-judgment op-judgment-' + tone + '" title="' + esc(label) + '">' + esc(label) + '</span></td><td class="op-assessment-score-cell">' + assessmentResult(item, 1) + '</td><td class="op-assessment-evidence"><div class="op-qualification-summary">' + esc(summary) + '</div><p class="op-evidence-caption">' + esc(caption) + '</p>' + historical + reference + '</td></tr>';
+    return overview + qualificationDetailRows(match, mode);
+  }
+  function materialPeriod(record) {
+    const name = [record.name, record.file].join("；"), summary = String(record.summary || "").split(/[；;\n]/);
+    const dated = /20\d{2}[-/.年]\s*\d{1,2}/;
+    if (/社保/.test(name)) {
+      const coverageRange = /^\s*20\d{2}[-/.年]\s*\d{1,2}(?:[-/.月]\s*\d{1,2}日?|月)?\s*(?:至|到|～|~|—)\s*(?:20\d{2}[-/.年]\s*)?\d{1,2}(?:[-/.月]\s*\d{1,2}日?|月)?\s*$/;
+      const usable = function (value) { return dated.test(value) && !/归档|更新|计划补充|补充日期|上传/.test(value) && (/覆盖|缴费|缴纳|期间|月份/.test(value) || coverageRange.test(value)); };
+      const period = [record.period, record.dateRange].concat(summary).find(usable);
+      return "社保覆盖月份：" + (period || "未记录具体月份");
+    }
+    if (record.category === "cases" || record.recordType === "experience") {
+      const sources = [record.period, record.dateRange].concat(summary).filter(Boolean);
+      const explicit = sources.map(function (value) { return String(value).match(/^(履约期间|履约期|合同期间|合同期|合同签订日期|合同日期)[：:\s]*(.+)$/); }).find(function (match) { return match && /20\d{2}/.test(match[2]); });
+      if (explicit) return (/^履约/.test(explicit[1]) ? "履约期间" : /日期$/.test(explicit[1]) ? explicit[1] : "合同期间") + "：" + explicit[2];
+      if (record.period && /20\d{2}/.test(record.period) && !/归档|更新|补充|计划/.test(record.period)) return (record.recordType === "experience" ? "项目经历期间：" : "合同/履约期间：") + record.period;
+      return "合同/履约期间：未记录";
+    }
+    if (record.category === "certificates" || record.recordType === "certificate" || /证书|认证|营业执照|许可证/.test(name)) {
+      const label = /营业执照/.test(name) ? "证照有效期：" : "证书有效期：";
+      const start = record.validityStartDate || record.startDate || "", end = record.validityDueDate || record.endDate || "";
+      if (end) return label + (start ? start + " 至 " + end : "截至 " + end);
+      if (record.validityMode === "longterm") return label + "长期有效";
+      return label + (start ? start + " 起，截止时间未记录" : "未记录");
+    }
+    const end = record.validityDueDate || record.endDate;
+    return end ? "有效期至 " + end : "";
+  }
+  function materialMetadata(record) {
+    return [record.id, record.version || record.updatedAt || "未记录版本", materialPeriod(record)].filter(Boolean).join(" · ");
+  }
+  function qualificationDetailRows(match, mode) {
+    return qualificationMaterialRows(match).map(function (row) {
+      const materials = row.materials.length ? row.materials.map(function (record) {
+        return '<div class="op-evidence-material">' + evidenceLink(record.name, window.OpportunityEvidence.previewHref(window.OpportunityEvidence.materialPayload(record))) +
+          '<small>' + esc(materialMetadata(record)) + '</small>' +
+          (record.state !== 'supported' ? '<small class="op-judgment-' + (record.state === 'expired' ? 'red' : 'orange') + '">' + esc(record.reason) + '</small>' : '') + '</div>';
+      }).join('') : '<span class="op-help">知识库未找到对应证明</span>';
+      const tone = row.conclusion === "matched" ? "green" : row.conclusion === "unmatched" ? "red" : "orange";
+      const checks = row.checks || [], counts = [["passed", "符合"], ["failed", "不符合"], ["unknown", "依据不足"]].map(function (entry) { const count = checks.filter(function (check) { return check.result === entry[0]; }).length; return count ? count + " 项" + entry[1] : ""; }).filter(Boolean);
+      const explanation = (checks.length ? "共 " + checks.length + " 项条件：" + counts.join("，") + "；" : "") + row.reason;
+      const needsNote = explanation && (checks.length || !row.materials.some(function (record) { return record.state !== "supported" && record.reason === row.reason; }));
+      const points = Number.isFinite(row.score) ? '<strong class="op-assessment-points" title="' + (mode === "current" ? "当前参考，不计入留存初评分" : "已包含在资格与材料匹配得分中") + '" data-qualification-score="' + esc(row.id) + '">' + esc(row.score) + '<small>分</small></strong>' : '<span class="op-assessment-points-missing">未留存</span>';
+      return '<tr class="op-qualification-detail" data-assessment-item="1" data-qualification-item="' + esc(row.id) + '" data-evidence-mode="' + mode + '"><td><span class="op-assessment-subitem" title="' + esc(row.title) + '">' + esc(row.title) + '</span></td><td><span class="op-judgment op-judgment-' + tone + '" title="' + esc(row.label) + '">' + esc(row.label) + '</span></td><td class="op-assessment-score-cell">' + points + '</td><td class="op-assessment-evidence">' +
+        evidenceLine("公告要求", qualificationRequirement(row)) + evidenceLine("对应材料", materials, true) + (needsNote ? evidenceLine("判断说明", explanation) : '') + '</td></tr>';
     }).join("");
+  }
+  function assessmentEvidence(item, index, judgment) {
+    const saved = store.assessment(item).snapshot, notice = saved.notice;
+    if (!notice) return evidenceLine("留存依据", saved.result.details[index] ? saved.result.details[index].evidence : "该次初评未留存此项公告原文及判断说明，原总分保留。");
+    const rule = store.ruleModel(saved.rule);
+    if (index === 0) return evidenceLine("采购内容", notice.summary || "公告未披露具体采购内容") +
+      evidenceLine("业务要求", rule.description || "按留存的业务筛选要求判断") + evidenceLine("判断说明", judgment.reason);
+    if (index === 2) return evidenceLine("公告预算", "本包预算：" + money(notice.amount) + "；最高限价：" + money(notice.cap) + "；项目总预算：" + money(notice.totalAmount)) +
+      evidenceLine("筛选要求", rule.budgetMode === "range" ? "筛选范围：" + (rule.min || 0) + "～" + (rule.max == null ? "不限" : rule.max) + " 万元" : "本包预算不限");
+    if (index === 3) return evidenceLine("服务要求", "实施地：" + (notice.region || "公告未明确") + "；履约期限：" + (notice.term || "公告未明确")) +
+      evidenceLine("筛选要求", rule.regionMode === "selected" ? "实施地区：" + rule.regions.join("、") : "实施地区不限");
+    const at = saved.assessedAtMs || store.time(saved.at), days = (store.time(notice.deadline) - at) / 86400000;
+    const acquisitionDays = (store.time(notice.acquisitionEnd) - at) / 86400000;
+    const usesAcquisition = saved.result.preparationBasis !== "bidDeadline" && !notice.acquired;
+    const available = usesAcquisition ? Math.min(days, acquisitionDays) : days;
+    const distance = function (value) { return !Number.isFinite(value) ? "未明确" : value <= 0 ? "评估时已截止" : (Math.floor(value * 10) / 10).toFixed(1) + " 天"; };
+    const inputs = "评估时间：" + saved.at + "；投标截止：" + (notice.deadline || "公告未明确") + (usesAcquisition ? "；文件获取截止：" + (notice.acquisitionEnd || "公告未明确") : "");
+    const calculation = "距投标截止：" + distance(days) + (usesAcquisition ? "；距获取截止：" + distance(acquisitionDays) + "；按较早截止计算可准备时间：" + distance(available) : "") +
+      "；建议至少准备 " + rule.minDays + " 天" + (usesAcquisition ? "。历史口径按评估时留存要求展示。" : "");
+    const scored = saved.result.scoringBasis === "judgment-v1" && saved.result.preparationBasis === "bidDeadline" && saved.result.details.find(function (row) { return row.name === store.dimensions[4]; });
+    return evidenceLine("计算时间", inputs) + evidenceLine("准备依据", calculation) + (scored && scored.judgment ? evidenceLine("计分说明", scored.judgment.reason) : "");
+  }
+  function assessmentJudgments(item) {
+    const saved = store.assessment(item).snapshot, notice = saved.notice;
+    if (!notice) return [];
+    if (saved.result.scoringBasis === "judgment-v1" && saved.result.preparationBasis === "bidDeadline" && saved.result.details.length === store.dimensions.length && saved.result.details.every(function (row) { return row.judgment; })) return saved.result.details.map(function (row) { return row.judgment; });
+    const rule = store.ruleModel(saved.rule), conditions = saved.decision.conditions || { blocked: [], unknown: [], warnings: [] };
+    const details = saved.result.details || [], at = saved.assessedAtMs || store.time(saved.at), qualification = saved.result.qualificationMatch;
+    const qualificationResult = qualification && window.OpportunityEvidence.qualificationSummary(qualificationMaterialRows(qualification));
+    const budgetLimited = rule.budgetMode === "range";
+    const overBudget = notice.amount != null && budgetLimited && ((rule.min != null && notice.amount < rule.min) || (rule.max != null && notice.amount > rule.max));
+    const regionBlocked = conditions.blocked.find(function (reason) { return /地区|地点/.test(reason); });
+    const regionUnknown = conditions.unknown.find(function (reason) { return /地区|地点/.test(reason); });
+    const timing = saved.result.timing || store.status(notice, at), days = (store.time(notice.deadline) - at) / 86400000;
+    const acquisitionDays = (store.time(notice.acquisitionEnd) - at) / 86400000;
+    const byDeadline = saved.result.preparationBasis === "bidDeadline";
+    const availableDays = byDeadline || notice.acquired ? days : Math.min(days, acquisitionDays);
+    const enough = Number.isFinite(availableDays) && availableDays >= rule.minDays;
+    const materialHint = item.projectId ? "当前材料对照仅供参考，历史初评分保留。" : "可查看当前知识库对照，重新初评后保存材料依据。";
+    return [
+      { label: saved.result.boundary.key === "unknown" ? "公告信息不完整" : saved.result.boundary.label, tone: saved.result.boundary.blocked ? "red" : saved.result.boundary.key === "allowed" ? "green" : "orange", reason: saved.result.boundary.reason },
+      { label: qualificationResult ? qualificationResult.label : "历史初评未留存材料对照", tone: qualificationResult ? qualificationResult.tone : "orange", reason: qualificationResult ? qualificationResult.summary : (notice.qualification || "公告未披露完整资格要求") + "；" + materialHint },
+      { label: notice.amount == null ? "预算未披露" : overBudget ? "超出预算范围" : budgetLimited ? "符合预算范围" : "预算不限", tone: notice.amount == null ? "orange" : overBudget ? "red" : "green", reason: "本包预算：" + money(notice.amount) + "；最高限价：" + money(notice.cap) + (budgetLimited ? "；筛选范围：" + (rule.min || 0) + "～" + (rule.max == null ? "不限" : rule.max) + " 万元" : "；未限定预算范围") },
+      { label: !notice.region ? "实施地未披露" : regionBlocked ? "实施地区不符" : regionUnknown ? "实施地区待明确" : rule.regionMode === "selected" ? "符合实施地区" : "实施地区不限", tone: !notice.region || regionUnknown ? "orange" : regionBlocked ? "red" : "green", reason: "实施地：" + (notice.region || "未明确") + "；筛选地区：" + (rule.regionMode === "selected" ? rule.regions.join("、") : "不限") + "；履约期限：" + (notice.term || "未明确") },
+      { label: timing.blocked ? timing.text : !Number.isFinite(days) ? "截止时间未明确" : !byDeadline && timing.key === "acquisitionClosed" ? timing.text : !Number.isFinite(availableDays) ? "获取期限未明确" : enough ? "准备时间充足" : "准备时间不足", tone: timing.blocked ? "red" : (byDeadline || timing.key !== "acquisitionClosed") && enough ? "green" : "orange", reason: "评估时距投标截止：" + (Number.isFinite(days) ? (Math.floor(Math.max(0, days) * 10) / 10).toFixed(1) + " 天" : "未明确") + (!byDeadline && !notice.acquired ? "；距获取截止：" + (Number.isFinite(acquisitionDays) ? (Math.floor(Math.max(0, acquisitionDays) * 10) / 10).toFixed(1) + " 天" : "未明确") : "") + "；建议至少准备 " + rule.minDays + " 天；投标截止：" + (notice.deadline || "未明确") + (!byDeadline ? "。历史判断按评估当时的参与时间口径保留。" : "") }
+    ];
+  }
+  function assessmentSummary(item) {
+    const saved = store.assessment(item).snapshot, conditions = saved.decision.conditions || {};
+    if (!saved.notice) return assessmentMessage(saved.decision.reason);
+    if (saved.result.boundary.blocked) return saved.result.boundary.reason;
+    if ((conditions.blocked || []).length) return conditions.blocked.join("；");
+    const parts = saved.result.details || [], total = Math.round(parts.reduce(function (sum, row) { return sum + row.score; }, 0) * 10) / 10;
+    const retained = saved.result.scoringBasis !== "judgment-v1" && parts.length === store.dimensions.length && total !== saved.result.score ? "历史总分按留存结果保留。" : "";
+    return "初评 " + saved.result.score + " 分，" + (saved.result.score < saved.rule.threshold ? "低于" : "达到") + "入库标准 " + saved.rule.threshold + " 分。" + retained;
+  }
+  function fileEntry(item, index) {
+    const file = item.files[index], href = window.OpportunityEvidence.previewHref(window.OpportunityEvidence.documentPayload(item, file));
+    return '<a class="text-btn compact-btn" href="' + esc(href) + '" target="_blank" rel="noopener"><span class="btn-icon">' + svg("search") + '</span><span>预览</span></a>';
+  }
+  function assessmentRows(item) {
+    const judgments = assessmentJudgments(item);
+    return store.dimensions.map(function (name, index) {
+      const row = judgments[index] || { label: "未留存分项结论", tone: "muted", reason: "该次初评未留存分项判断，原总分保留。" };
+      if (index === 1) return qualificationRows(item, row);
+      return '<tr data-assessment-item="' + index + '"><td><strong>' + esc(name) + '</strong></td><td><span class="op-judgment op-judgment-' + row.tone + '">' + esc(row.label) + '</span></td><td class="op-assessment-score-cell">' + assessmentResult(item, index) + '</td><td class="op-assessment-evidence">' + assessmentEvidence(item, index, row) + '</td></tr>';
+    }).join("");
+  }
+  function uniqueConcerns(values) {
+    const keys = new Set();
+    return values.filter(Boolean).filter(function (value) {
+      const key = /未.*(?:明确|披露).*本包预算|本包预算未披露/.test(value) ? "budget-unknown" : /(?:地区|地点).*(?:未明确|未披露)|未明确实施地/.test(value) ? "region-unknown" : /(?:未明确|未披露).*投标截止|投标截止时间未明确/.test(value) ? "deadline-unknown" : /缺少主招标文件|尚未取得主招标文件/.test(value) ? "main-file" : value.replace(/[，。；;：:、\\s]/g, "");
+      if (keys.has(key)) return false;
+      keys.add(key); return true;
+    });
+  }
+  function currentAttention(item) {
+    const timing = store.status(item), boundary = store.capability(item), conditions = store.projectConditions(item, ruleFor());
+    return uniqueConcerns([timing.blocked ? timing.text : "", boundary.blocked ? boundary.reason : ""].concat(store.participationChecks(item), conditions.blocked, currentRisks(item), noticeUnknowns(item), conditions.unknown, conditions.warnings));
+  }
+  function reviewConcerns(item) {
+    const concerns = currentAttention(item).slice(0, 3), saved = store.assessment(item);
+    if (!concerns.length && saved.decision.key === "excluded") concerns.push((saved.stale ? "上次初评：" : "") + assessmentSummary(item));
+    return concerns;
+  }
+  function reviewConcernsMarkup(concerns) {
+    return '<strong>关键关注</strong><ul class="op-risk-list">' + concerns.map(function (concern) { return '<li>' + esc(concern) + '</li>'; }).join("") + '</ul>';
   }
   function processingRecord(record) {
     const saved = record.assessmentSnapshot;
-    return '<article><strong>' + esc(record.action) + '</strong><small>' + esc(record.user + " · " + record.at) + ' · 公告 V' + esc(record.revision) + (record.score != null ? ' · 初评 ' + esc(record.score) + ' 分' + (saved ? '（公告 V' + esc(saved.noticeRevision) + ' / 规则 V' + esc(saved.ruleRevision) + '）' : '') : '') + '</small>' + (record.note ? '<p>' + esc(record.note) + '</p>' : '') + historyRule(record) + (record.previousAssessmentSnapshot ? '<details class="op-detail-fold"><summary>查看上次初评</summary><p>' + esc(record.previousAssessmentSnapshot.at) + ' · 公告 V' + record.previousAssessmentSnapshot.noticeRevision + ' · 规则 V' + record.previousAssessmentSnapshot.ruleRevision + ' · ' + record.previousAssessmentSnapshot.result.score + ' 分</p>' + ruleSnapshotView(record.previousAssessmentSnapshot.rule) + '</details>' : '') + '</article>';
+    const materialBasis = saved && saved.result.qualificationMatch ? '<details class="op-detail-fold"><summary>查看当时的资格与材料依据</summary>' + qualificationTable(saved.result.qualificationMatch) + '</details>' : '';
+    const previous = record.previousAssessmentSnapshot;
+    return '<article><strong>' + esc(record.action) + '</strong><small>' + esc(record.user + " · " + record.at) + ' · 公告 V' + esc(record.revision) + (record.score != null ? ' · 初评 ' + esc(record.score) + ' 分' + (saved ? '（公告 V' + esc(saved.noticeRevision) + ' / 规则 V' + esc(saved.ruleRevision) + '）' : '') : '') + '</small>' + (record.note ? '<p>' + esc(record.note) + '</p>' : '') + historyRule(record) + materialBasis + (previous ? '<details class="op-detail-fold"><summary>查看上次初评</summary><p>' + esc(previous.at) + ' · 公告 V' + previous.noticeRevision + ' · 规则 V' + previous.ruleRevision + ' · ' + previous.result.score + ' 分</p>' + ruleSnapshotView(previous.rule) + (previous.result.qualificationMatch ? qualificationTable(previous.result.qualificationMatch, "previous") : '') + '</details>' : '') + '</article>';
   }
   function renderDetail() {
     const returnTo = opportunityReturnUrl(), backUrl = returnTo || "opportunities.html";
@@ -734,26 +988,17 @@
     const decisionBy = item.confirmedBy || lastDecision && lastDecision.user;
     const decisionAt = item.confirmedAt || lastDecision && lastDecision.at;
     const checks = store.participationChecks(item);
-    const risks = Array.from(new Set(checks.concat(noticeUnknowns(item), currentRisks(item))));
-    const versionText = '评估时间 ' + esc(saved.at) + ' · 公告 V' + esc(saved.noticeRevision) + ' · 规则 V' + esc(saved.ruleRevision);
+    const risks = uniqueConcerns(checks.concat(currentRisks(item), assessment.stale ? currentAttention(item) : [])).filter(function (risk) { return risk !== timing.text; });
+    const versionText = assessment.stale ? "以下为上次初评留存结果" : "";
     const changeMessage = (item.projectId ? item.recheck ? '来源信息已更新，请在关联项目中核对影响。' : '' : timing.blocked ? item.review === 'rejected' ? '该公告暂不能重新确认投标，原放弃记录保留。' : '该公告暂不能确认投标或转入投标项目，仍可查看或放弃机会。' : item.review === 'rejected' ? assessment.stale ? '如需重新参与，可重新确认投标。' : '' : item.recheck && item.review === 'approved' ? '请重新确认是否投标，可按需重新初评。' : assessment.stale ? item.review === 'pending' ? '可直接确认是否投标，或按需重新初评。' : '可按需重新初评，原确认结果保留。' : '');
     const alert = changeMessage ? '<div class="op-assessment op-warning">' + changeMessage + '</div>' : '';
-    const hero = '<section class="card op-detail-summary"><div class="op-detail-summary-main"><div class="op-status-row">' + reviewTag(item) + noticeException(item) + '</div><div class="op-detail-title"><h1>' + esc(item.name) + '</h1><p>' + esc(item.number + " · " + item.package + " · " + item.round) + '</p></div><div class="op-detail-quick-facts"><div><span>本包预算</span>' + moneyMarkup(item.amount, "hero") + '</div><div><span>投标截止</span><strong>' + esc(item.deadline || "公告未明确") + '</strong>' + deadlineNotes(item) + '</div><div><span>机会初评分</span>' + scoreMarkup(score.score, "detail") + '</div></div>' + (decisionBy ? '<p class="op-help">' + esc((item.review === "rejected" ? "放弃记录：" : "确认记录：") + decisionBy + " · " + decisionAt) + '</p>' : '') + (project ? '<div class="op-linked-project"><span>关联项目</span>' + link(project.name, projectUrl(project.id), "op-source-link", "arrow") + '<small>负责人：' + esc(project.owner) + '</small>' + transferFilesSummary(item, project) + '</div>' : '') + '</div><div class="heading-actions op-detail-main-actions">' + actions + '</div></section>';
+    const hero = '<section class="card op-detail-summary"><div class="op-detail-summary-main"><div class="op-status-row">' + reviewTag(item) + noticeException(item) + '</div><div class="op-detail-title"><h1>' + esc(item.name) + '</h1><p>' + esc(item.number + " · " + item.package + " · " + item.round) + '</p></div><div class="op-detail-quick-facts"><div><span>本包预算</span>' + moneyMarkup(item.amount, "hero") + '</div><div><span>投标截止</span><strong>' + esc(item.deadline || "公告未明确") + '</strong>' + deadlineNotes(item) + '</div><div class="op-detail-score-fact"><span>' + (assessment.stale ? "上次初评分" : "机会初评分") + '</span>' + scoreMarkup(score.score, "detail") + '<small class="op-score-meta">评估时间 ' + esc(saved.at) + '<br/>公告 V' + esc(saved.noticeRevision) + ' · 规则 V' + esc(saved.ruleRevision) + '</small></div></div>' + (decisionBy ? '<p class="op-help">' + esc((item.review === "rejected" ? "放弃记录：" : "确认记录：") + decisionBy + " · " + decisionAt) + '</p>' : '') + (project ? '<div class="op-linked-project"><span>关联项目</span>' + link(project.name, projectUrl(project.id), "op-source-link", "arrow") + '<small>负责人：' + esc(project.owner) + '</small>' + transferFilesSummary(item, project) + '</div>' : '') + '</div><div class="heading-actions op-detail-main-actions">' + actions + '</div></section>';
     const facts = '<div class="op-detail-overview"><section class="card op-section"><h2>项目概况</h2><div class="op-facts op-compact-facts">' + fact("采购人", item.purchaser) + fact("代理机构", item.agency) + fact("项目实施地", item.region) + fact("采购方式", item.method) + moneyFact("项目总预算", item.totalAmount) + moneyFact("本包最高限价", item.cap) + fact("履约期限", item.term) + fact("联系方式", item.contact) + fact("采购需求", item.summary, true) + '</div></section><section class="card op-section"><h2>参与时间</h2><div class="op-facts op-compact-facts">' + fact("公告发布时间", item.published) + fact("文件获取开始", item.acquisitionStart) + fact("文件获取截止", item.acquisitionEnd) + fact("单独报名截止", item.registrationEnd || "公告未单独列明") + fact("投标截止", item.deadline) + fact("开标时间", item.opening) + '</div></section></div>';
-    const breakdown = score.details.length ? '<details class="op-detail-fold"><summary>查看分项得分</summary><div class="op-detail-score-grid">' + score.details.map(function (row) { return '<div class="op-score-row"><header><span>' + esc(row.name) + '</span><strong>' + esc(row.score) + ' 分</strong></header><small>' + esc(row.evidence) + '</small></div>'; }).join("") + '</div></details>' : '';
-    const analysis = '<section class="card op-section"><header class="op-section-heading"><div><h2>初评分析</h2><p class="op-help">' + versionText + '</p></div>' + (editable ? button("重新初评", "evaluate", item.id, "secondary-btn", "collect", ui.busy) : '') + '</header><div class="op-assessment">' + esc((assessment.stale ? "上次初评：" : "") + assessmentMessage(saved.decision.reason)) + '</div>' + (risks.length ? '<div class="op-current-risks"><strong>当前需关注</strong><ul class="op-risk-list">' + risks.map(function (risk) { return '<li>' + esc(risk) + '</li>'; }).join("") + '</ul></div>' : '') + '<div class="table-wrap"><table class="op-table op-assessment-table"><colgroup><col style="width:17%"/><col style="width:18%"/><col style="width:51%"/><col style="width:14%"/></colgroup><thead><tr><th>判断项</th><th>判断结果</th><th>主要依据或关注点</th><th>操作</th></tr></thead><tbody>' + assessmentRows(item) + '</tbody></table></div>' + breakdown + '<details class="op-detail-fold"><summary>查看本次评估的筛选规则 · V' + esc(saved.ruleRevision) + '</summary>' + ruleSnapshotView(saved.rule) + '</details></section>';
+    const analysis = '<section class="card op-section"><header class="op-section-heading"><div><h2>初评分析</h2>' + (versionText ? '<p class="op-help">' + versionText + '</p>' : '') + '</div>' + (editable ? button("重新初评", "evaluate", item.id, "secondary-btn", "collect", ui.busy) : '') + '</header><div class="op-assessment">' + esc((assessment.stale ? "上次初评：" : "") + assessmentSummary(item)) + '</div>' + (risks.length ? '<div class="op-current-risks"><strong>当前需关注</strong><ul class="op-risk-list">' + risks.map(function (risk) { return '<li>' + esc(risk) + '</li>'; }).join("") + '</ul></div>' : '') + '<div class="table-wrap"><table class="op-table op-assessment-table"><colgroup><col style="width:190px"/><col style="width:140px"/><col style="width:84px"/><col/></colgroup><thead><tr><th>判断项</th><th>判断结果</th><th class="op-assessment-score-cell">得分</th><th>主要依据</th></tr></thead><tbody>' + assessmentRows(item) + '</tbody></table></div><details class="op-detail-fold"><summary>查看本次评估的筛选规则 · V' + esc(saved.ruleRevision) + '</summary>' + ruleSnapshotView(saved.rule) + '</details></section>';
     const sections = noticeSections(item);
-    const notices = '<section class="card op-section" id="opNotice"><header class="op-section-heading"><h2>公告与附件</h2><span class="op-help">公告 V' + item.revision + ' · 最近更新 ' + esc(item.verified) + '</span></header><div class="op-notice-sources">' + opportunitySources(item) + '</div><details class="op-detail-fold"><summary>查看当前公告内容</summary><article class="op-notice">' + sections.map(function (section, index) { return '<section id="opNoticeSection' + index + '"><h3>' + esc(section.title) + '</h3><p>' + esc(section.text) + '</p></section>'; }).join("") + '</article></details><div class="op-detail-files">' + (item.files.length ? item.files.map(function (file, index) { return '<div class="op-file">' + fileIcon(file.name) + '<div><strong>' + esc(file.name) + '</strong><small>' + esc(file.size + " · " + (file.main ? "主招标文件" : "附件")) + '</small></div>' + button("预览", "file", item.id + ":" + index, "text-btn compact-btn", "search") + '</div>'; }).join("") : '<p class="op-help">暂无公开主招标文件' + (editable ? item.review === "approved" ? '，转入投标项目时需补传主招标文件。' : '，转入投标项目时可补传。' : hasMainFile(item) ? '，已带入项目的文件可在关联项目中查看。' : '。') + '</p>') + '</div>' + (item.changes.length ? '<details class="op-detail-fold"><summary>关联公告与变更（' + item.changes.length + '）</summary><div class="op-history">' + item.changes.map(function (change) { return '<article><strong>' + esc(change.title) + '</strong><small>' + esc(change.at) + ' · 公告 V' + esc(change.revision) + '</small><p>' + esc(change.text) + '</p></article>'; }).join("") + '</div></details>' : '') + '</section>';
+    const notices = '<section class="card op-section" id="opNotice"><header class="op-section-heading"><h2>公告与附件</h2><span class="op-help">公告 V' + item.revision + ' · 最近更新 ' + esc(item.verified) + '</span></header><div class="op-notice-sources">' + opportunitySources(item) + '</div><details class="op-detail-fold"><summary>查看当前公告内容</summary><article class="op-notice">' + sections.map(function (section, index) { return '<section id="opNoticeSection' + index + '"><h3>' + esc(section.title) + '</h3><p>' + esc(section.text) + '</p></section>'; }).join("") + '</article></details><div class="op-detail-files">' + (item.files.length ? item.files.map(function (file, index) { return '<div class="op-file">' + fileIcon(file.name) + '<div><strong>' + esc(file.name) + '</strong><small>' + esc(file.size + " · " + (file.main ? "主招标文件" : "附件") + " · 文件版本 " + window.OpportunityEvidence.versionLabel(file.version)) + '</small></div>' + fileEntry(item, index) + '</div>'; }).join("") : '<p class="op-help">暂无公开主招标文件' + (editable ? item.review === "approved" ? '，转入投标项目时需补传主招标文件。' : '，转入投标项目时可补传。' : hasMainFile(item) ? '，已带入项目的文件可在关联项目中查看。' : '。') + '</p>') + '</div>' + (item.changes.length ? '<details class="op-detail-fold"><summary>关联公告与变更（' + item.changes.length + '）</summary><div class="op-history">' + item.changes.map(function (change) { return '<article><strong>' + esc(change.title) + '</strong><small>' + esc(change.at) + ' · 公告 V' + esc(change.revision) + '</small><p>' + esc(change.text) + '</p>' + (window.OpportunityEvidence.noticeHref({ noticeUrl: change.url, sourceIds: [item.sourceIds[0]] }, item.sourceIds[0]) ? evidenceLink("查看更正公告", change.url) : '') + '</article>'; }).join("") + '</div></details>' : '') + '</section>';
     const history = '<section class="card op-section"><h2>处理记录</h2>' + (item.history.length ? '<div class="op-history">' + item.history.slice(0, 3).map(processingRecord).join("") + '</div>' + (item.history.length > 3 ? '<details class="op-detail-fold"><summary>查看更早记录（' + (item.history.length - 3) + '）</summary><div class="op-history">' + item.history.slice(3).map(processingRecord).join("") + '</div></details>' : '') : '<p class="op-help">尚无处理记录。</p>') + '</section>';
     one("#opportunityDetail").innerHTML = '<div class="op-detail-page">' + hero + alert + facts + analysis + notices + history + '</div>';
-  }
-  function basisModal(value) {
-    const split = value.lastIndexOf(":"), item = store.find(value.slice(0, split)), index = Number(value.slice(split + 1));
-    if (!item || !Number.isInteger(index) || index < 0 || index > 4) return;
-    const saved = store.assessment(item).snapshot, sectionIndex = [1, 2, 0, 4, 3][index];
-    const section = saved.notice ? noticeSections(saved.notice)[sectionIndex] : { title: "留存初评记录", text: saved.decision.reason };
-    const row = saved.result.details[index];
-    modal("查看初评依据", store.dimensions[index], '<dl class="op-basis-meta"><div><dt>对应公告</dt><dd>' + esc(item.name) + ' · V' + esc(saved.noticeRevision) + '</dd></div><div><dt>来源位置</dt><dd>' + esc(section.title) + '</dd></div><div><dt>评估记录</dt><dd>' + esc(saved.at) + ' · 规则 V' + esc(saved.ruleRevision) + '</dd></div></dl><article class="op-notice op-basis-original"><h3>' + (saved.notice ? '公告对应内容' : '留存评估说明') + '</h3><p><mark>' + esc(section.text) + '</mark></p></article>' + (row ? '<div class="op-assessment"><strong>初评依据说明</strong><p>' + esc(row.evidence) + '</p></div>' : '') + (saved.noticeRevision !== item.revision ? '<p class="op-help">当前公告为 V' + item.revision + '，以上为本次初评留存依据。</p>' : ''), "", null, taskCloseButton(), "op-evidence-modal");
   }
 
   function reviewModal(id) {
@@ -765,15 +1010,14 @@
     const hasDecision = item.review === "approved" || reopening;
     const score = assess(item), timing = store.status(item), decision = store.assessment(item).decision;
     const expected = store.actionContext(id), stale = store.assessment(item).stale;
-    const boundary = store.capability(item);
-    const risk = store.participationChecks(item)[0] || noticeUnknowns(item)[0] || (boundary.blocked ? boundary.reason : currentRisks(item)[0] || (decision.key === "excluded" ? (stale ? "上次初评：" : "") + assessmentMessage(decision.reason) : assessmentUnknowns(item)[0] || ""));
+    const concerns = reviewConcerns(item);
     const approveReason = timing.blocked ? timing.text + "，暂不能确认投标" : item.review === "approved" && !item.recheck ? "当前已确认投标" : "";
     const approve = '<label class="op-review-option" title="' + esc(approveReason) + '"><input type="radio" id="opReviewApproved" name="outcome" value="approved" required' + (approveReason ? ' disabled' : '') + '/><span><strong>确认投标</strong><small>' + (item.review === "approved" && !item.recheck ? '当前已确认投标' : '确认参与，后续可转入投标项目') + '</small></span></label>';
     const reject = '<label class="op-review-option"><input type="radio" id="opReviewRejected" name="outcome" value="rejected" required' + (reopening ? ' disabled' : '') + '/><span><strong>放弃机会</strong><small>' + (reopening ? '当前已放弃' : '保留记录，后续可重新确认') + '</small></span></label>';
     const currentDecision = hasDecision ? '<p class="op-help">当前决定：' + esc(reviews[item.review][0]) + '</p>' : '';
     const choices = '<fieldset class="op-review-decision"><legend>处理结果 <span>（必选）</span></legend>' + currentDecision + '<div class="op-review-options">' + approve + reject + '</div></fieldset>';
     const footer = button("取消", "close", "", "ghost-btn", "close") + '<button type="submit" id="opReviewConfirm" class="primary-btn" disabled><span class="btn-icon">' + svg("check") + '</span><span>确认</span></button>';
-    modal(hasDecision ? "重新确认" : "人工确认", reconfirming ? "请根据最新信息重新选择处理结果，原记录保留。" : hasDecision ? "可调整是否参与投标，原记录保留。" : "请选择是否参与本次投标。", '<div class="op-modal-summary"><strong>' + esc(item.name) + '</strong><p>当前公告 V' + item.revision + ' · 筛选规则 V' + store.get().rules[0].revision + '</p><p>' + (stale ? '上次初评 ' : '初评 ') + scoreMarkup(score.score, 'inline') + ' 分（公告 V' + store.assessment(item).snapshot.noticeRevision + ' / 规则 V' + store.assessment(item).snapshot.ruleRevision + '）</p><p>本包预算：' + moneyMarkup(item.amount, 'inline') + ' · 投标截止：' + esc(item.deadline || '公告未明确') + '</p>' + '<p>采购需求：' + esc(item.summary || '公告未明确') + '</p>' + (noticeException(item) ? ' · ' + noticeException(item) : '') + (risk ? '<p class="op-help">' + esc(risk) + '</p>' : '') + '</div>' + choices + '<div class="op-form-grid">' + textarea("备注说明（选填）", "note", "", 'maxlength="600" placeholder="补充参与考虑或放弃原因"') + '</div>', "", function (data) {
+    modal(hasDecision ? "重新确认" : "人工确认", reconfirming ? "请根据最新信息重新选择处理结果，原记录保留。" : hasDecision ? "可调整是否参与投标，原记录保留。" : "请选择是否参与本次投标。", '<div class="op-modal-summary"><strong>' + esc(item.name) + '</strong><p>当前公告 V' + item.revision + ' · 筛选规则 V' + store.get().rules[0].revision + '</p><p>' + (stale ? '上次初评 ' : '初评 ') + scoreMarkup(score.score, 'inline') + ' 分（公告 V' + store.assessment(item).snapshot.noticeRevision + ' / 规则 V' + store.assessment(item).snapshot.ruleRevision + '）</p><p>本包预算：' + moneyMarkup(item.amount, 'inline') + ' · 投标截止：' + esc(item.deadline || '公告未明确') + '</p>' + '<p>采购需求：' + esc(item.summary || '公告未明确') + '</p>' + (noticeException(item) ? ' · ' + noticeException(item) : '') + '<div id="opReviewConcerns" class="op-review-concerns"' + (concerns.length ? '' : ' hidden') + '>' + reviewConcernsMarkup(concerns) + '</div>' + '</div>' + choices + '<div class="op-form-grid">' + textarea("备注说明（选填）", "note", "", 'maxlength="600" placeholder="补充参与考虑或放弃原因"') + '</div>', "", function (data) {
       if (!checkActionContext()) return;
       const outcome = data.get("outcome"), current = store.find(id);
       if (!["approved", "rejected"].includes(outcome)) throw new Error("请先选择处理结果。");
@@ -799,6 +1043,39 @@
     }, 40);
   }
 
+  function transferFileKey(file) { return file.id || file.name; }
+  function transferFileVersion(file) {
+    const value = store.copy(file); delete value.main; delete value.selected;
+    return JSON.stringify(Object.keys(value).sort().map(function (key) { return [key, value[key]]; }));
+  }
+  function mergeTransferDraft(item, draft) {
+    const conflicts = [], baseline = draft.baseline || [], previous = draft.files || [];
+    const latest = store.copy(item.files), chosen = previous.find(function (file) { return file.main && file.selected !== false; });
+    latest.forEach(function (file) {
+      const key = transferFileKey(file), before = baseline.find(function (entry) { return transferFileKey(entry) === key || entry.name === file.name; });
+      const edited = previous.find(function (entry) { return transferFileKey(entry) === key || entry.name === file.name; });
+      const uploadedConflict = edited && !before;
+      if (uploadedConflict || before && transferFileVersion(before) !== transferFileVersion(file)) {
+        file.selected = false; conflicts.push((uploadedConflict ? "补传文件与最新公告文件同名，请核对后重新选择：" : "公告文件已更新，请重新选择：") + file.name);
+      } else if (edited) file.selected = edited.selected !== false;
+      file.main = false;
+    });
+    previous.forEach(function (file) {
+      const key = transferFileKey(file), before = baseline.find(function (entry) { return transferFileKey(entry) === key; });
+      if (before) {
+        if (!latest.some(function (entry) { return transferFileKey(entry) === key || entry.name === file.name; })) conflicts.push("文件已不在最新公告清单中：" + file.name);
+        return;
+      }
+      if (latest.some(function (entry) { return transferFileKey(entry) === key || entry.name === file.name; })) return;
+      if (!/\.(pdf|doc|docx|xls|xlsx|zip|rar)$/i.test(file.name)) { conflicts.push("文件格式不支持，未带入：" + file.name); return; }
+      latest.push(Object.assign({}, store.copy(file), { main: false }));
+    });
+    if (chosen) {
+      const validMain = latest.find(function (file) { return transferFileKey(file) === transferFileKey(chosen) && transferFileVersion(file) === transferFileVersion(chosen) && file.selected !== false && /\.(pdf|doc|docx)$/i.test(file.name); });
+      if (validMain) validMain.main = true;
+    }
+    return { files: latest, conflicts: conflicts };
+  }
   function transferModal(id) {
     store.refresh();
     const item = store.find(id);
@@ -807,17 +1084,30 @@
     if (item.review !== "approved" || item.recheck) { reviewModal(id); return; }
     if (store.status(item).blocked) { toast(store.status(item).text + "，暂不能转入投标项目。", "warning"); return; }
     const checks = store.participationChecks(item);
-    const expected = store.actionContext(id);
-    ui.files = store.copy(item.files);
-    modal("转入投标项目", "确认项目负责人及主招标文件，创建后进入现有招标文件解析流程。", '<div class="op-modal-summary"><strong>' + esc(item.name) + '</strong><br/>' + esc(item.purchaser + " · " + item.package) + " · " + moneyMarkup(item.amount, "inline") + '<br/>投标截止：' + esc(item.deadline) + '</div><div class="op-form-grid"><label class="op-field wide"><span>项目负责人 *</span><select name="owner" required>' + ["李明远", "周晓雯", "王子谦", "陈思远", "赵嘉怡"].map(function (name) { return option(name, name); }).join("") + '</select></label><label class="op-field wide"><span>补传主文件及附件</span><input type="file" id="opTransferUpload" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.zip,.rar"/><small>主招标文件须为 PDF / Word。</small></label><div class="wide" id="opTransferFiles"></div><p class="op-help wide" id="opTransferFileFeedback" aria-live="polite" hidden></p>' + (checks.length ? '<div class="op-assessment op-warning wide">' + checks.map(esc).join("；") + '。</div>' : '') + '<p class="op-help wide">公告信息、确认记录和初评分将与项目关联；正式文件解析后重新进行资格及响应研判。</p></div>', "确认转入投标项目", function (data) {
+    const expected = store.actionContext(id, null, "transfer");
+    const draft = transferDraft && transferDraft.id === id && transferDraft.round === expected.round ? transferDraft : null;
+    if (!draft) transferDraft = null;
+    const merged = draft ? mergeTransferDraft(item, draft) : { files: store.copy(item.files), conflicts: [] };
+    ui.files = merged.files;
+    const owners = ["李明远", "周晓雯", "王子谦", "陈思远", "赵嘉怡"];
+    const selectedOwner = draft ? draft.owner : (window.AppCurrentUser || {}).name || "";
+    const currentOwner = owners.includes(selectedOwner) ? selectedOwner : "";
+    modal("转入投标项目", "确认项目负责人及主招标文件，创建后进入现有招标文件解析流程。", '<div class="op-modal-summary"><strong>' + esc(item.name) + '</strong><br/>' + esc(item.purchaser + " · " + item.package) + " · " + moneyMarkup(item.amount, "inline") + '<br/>投标截止：' + esc(item.deadline || "公告未明确") + '</div><div class="op-form-grid"><label class="op-field wide"><span>项目负责人 *</span><select name="owner" required>' + option("", "请选择项目负责人", !owners.includes(currentOwner)) + owners.map(function (name) { return option(name, name, name === currentOwner); }).join("") + '</select></label><label class="op-field wide"><span>补传主文件及附件</span><input type="file" id="opTransferUpload" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.zip,.rar"/><small>主招标文件须为 PDF / Word。</small></label><div class="wide" id="opTransferFiles"></div><p class="op-help wide" id="opTransferFileFeedback" aria-live="polite" hidden></p>' + '<div id="opTransferTiming" class="op-assessment op-warning wide"' + (checks.length ? '' : ' hidden') + '>' + checks.map(esc).join("；") + '</div>' + '<p class="op-help wide">公告信息、确认记录和初评分将与项目关联；正式文件解析后重新进行资格及响应研判。</p></div>', "确认转入投标项目", function (data) {
       if (!checkActionContext()) return;
       const files = ui.files.filter(function (file) { return file.selected !== false; });
       const project = store.transfer(id, data.get("owner"), files, expected);
       store.updateProject(project.id, { sourceReturnUrl: isDetail ? "opportunity-detail.html" + location.search : detailUrl(id) });
+      transferDraft = null;
       close(false); location.href = "project-files.html?id=" + encodeURIComponent(project.id);
     });
-    activeAction = { type: "transfer", id: id, expected: expected, timingKey: store.status(item).key };
+    activeAction = { type: "transfer", id: id, expected: expected, timingKey: store.status(item).key, filesBaseline: store.copy(item.files) };
     renderTransferFiles();
+    if (draft) {
+      const feedback = one("#opTransferFileFeedback"), messages = ["已载入最新内容，保留仍有效的负责人和文件选择。"].concat(merged.conflicts);
+      if (!currentOwner) messages.push("请重新选择项目负责人。");
+      feedback.hidden = false; feedback.textContent = messages.join(" ");
+      transferDraft = { id: id, round: expected.round, owner: currentOwner, files: store.copy(ui.files), baseline: store.copy(item.files) };
+    }
     one("#opTransferUpload").addEventListener("change", function (event) {
       const duplicates = [], unsupported = []; let added = 0;
       Array.from(event.target.files).forEach(function (file) {
@@ -880,22 +1170,55 @@
     });
     update();
   }
-  function sourceModal(id) {
+  function sourceModal(id, retained) {
     if (!isAdmin || ui.busy) return;
-    const source = store.get().sources.find(function (entry) { return entry.id === id; }) || { name: "", type: "政府采购", collectionUrl: "", column: "" };
+    store.refresh();
+    const existing = store.get().sources.find(function (entry) { return entry.id === id; });
+    if (id && !existing) { toast("来源配置已移除，请返回来源网站查看。", "warning"); return; }
+    const source = store.copy(existing || { name: "", type: "政府采购", collectionUrl: "", column: "" });
+    const values = Object.assign({}, source, retained || {}), expected = id ? store.sourceEditContext(source) : null;
     const fields = sourceFormFields.map(function (spec) {
-      const caption = ruleFieldCaption(spec, true), value = source[spec.name] || "";
+      const caption = ruleFieldCaption(spec, true), value = values[spec.name] || "";
       const input = spec.type === "select" ? '<select id="opRuleField-' + spec.key + '" name="' + spec.name + '">' + Array.from(new Set(["政府采购", "公共资源交易", "企业采购", "代理机构", "标讯聚合", value].filter(Boolean))).map(function (type) { return option(type, type, type === value); }).join("") + '</select>' : '<input id="opRuleField-' + spec.key + '" name="' + spec.name + '" type="' + spec.type + '" value="' + esc(value) + '"' + (spec.required ? ' required' : '') + (spec.max ? ' maxlength="' + spec.max + '"' : '') + (spec.type === "url" ? ' maxlength="2048" placeholder="https://"' : '') + '/>';
       return '<div class="op-field' + (spec.wide ? ' wide' : '') + '">' + caption + input + '</div>';
     }).join("");
-    modal(id ? "编辑来源网站" : "新增来源网站", "填写实际采集入口，栏目名称按网站原有名称填写。", '<div class="op-form-grid">' + fields + '</div>' + sourceLoginFields(source), id ? "保存" : "保存并检查", function (data) {
-      const result = store.saveSource(Object.fromEntries(data), id);
+    modal(id ? "编辑来源网站" : "新增来源网站", "填写实际采集入口，栏目名称按网站原有名称填写。", '<div class="op-form-grid">' + fields + '</div>' + sourceLoginFields(values), id ? "保存" : "保存并检查", function (data) {
+      const result = store.saveSource(Object.fromEntries(data), id, expected);
       if (!id) ui.sourcePage = Math.max(1, Math.ceil(store.get().sources.length / configPageSize));
       close(); render();
       if (result.needsCheck) verifySource(result.source.id);
       else toast("来源信息已保存，原检查结果和采集记录保留。");
     }, button("取消", "close", "", "ghost-btn", "close") + '<button type="submit" class="primary-btn"><span class="btn-icon">' + svg("check") + '</span><span id="opSourceSaveText">保存</span></button>');
+    activeSourceEdit = { id: id, source: source };
+    if (retained && retained.loginPassword) one("#opSourceLoginPassword").value = retained.loginPassword;
     bindSourceLoginForm(source, id);
+    if (retained) {
+      const feedback = one("#opFeedback");
+      feedback.hidden = false; feedback.textContent = "已载入最新配置，并保留本次修改，请核对后保存。";
+    }
+  }
+  function reloadSource() {
+    if (!activeSourceEdit) return;
+    const edit = activeSourceEdit, values = Object.fromEntries(new FormData(one("#opModalForm"))), retained = {};
+    ["name", "type", "collectionUrl", "column", "accessMode", "loginAccount"].forEach(function (key) {
+      if (Object.prototype.hasOwnProperty.call(values, key) && values[key] !== String(edit.source[key] || (key === "accessMode" ? "public" : ""))) retained[key] = values[key];
+    });
+    if (values.loginPassword) retained.loginPassword = values.loginPassword;
+    sourceModal(edit.id, retained);
+  }
+  function collectionProgress(message, busy) {
+    const status = one("#opCollectionStatus");
+    if (!status) return;
+    status.hidden = !busy;
+    status.innerHTML = busy ? '<span class="op-task-spinner">' + svg("collect") + '</span><span>' + esc(message) + '</span>' : "";
+  }
+  function finishCollectionView() {
+    if (one(".prototype-modal.open")) {
+      collectionViewPending = true; timingViewDirty = true;
+      if (activeAction) { activeAction.viewDirty = true; checkActionContext(); }
+      return;
+    }
+    syncOpportunityView();
   }
   function collect(sourceId, scheduled) {
     if (ui.busy) return;
@@ -907,42 +1230,43 @@
     const execution = sources.filter(function (entry) { return !sourceCollectionBlock(entry); }).map(function (entry) { return { id: entry.id, config: store.sourceConfig(entry) }; });
     const fields = source ? [["来源", source.name], ["采集入口", source.collectionUrl]] : [["采集范围", sources.length + " 个来源 · " + available + " 个可采集"], ["来源", sources.map(function (entry) { return entry.name; }).join("、")]];
     const labels = ["读取公告", "筛选与初评", "保存结果"];
-    ui.busy = true; ui.collectingSource = sourceId || "all";
+    ui.busy = true; ui.collectingSource = sourceId || "all"; ui.scheduledCollecting = Boolean(scheduled);
     if (!isDetail && ui.tab === "sources") renderSources();
-    const task = taskOpen(scheduled ? "计划采集" : source ? "立即采集" : "全部采集", taskContext(fields), labels);
+    const task = scheduled ? null : taskOpen(source ? "立即采集" : "全部采集", taskContext(fields), labels);
+    function progress() {
+      if (task) taskPaint(task, taskProgress(labels, step));
+      else collectionProgress("计划采集中 · " + labels[step], true);
+    }
     let step = 0;
     function tick() {
-      taskPaint(task, taskProgress(labels, step));
+      progress();
       step += 1;
       if (step < labels.length) ui.timer = window.setTimeout(tick, 650);
       else ui.timer = window.setTimeout(function () {
         let result;
         try { result = store.collect(sourceId, scheduled ? [store.get().rules[0].id] : null, execution); }
         catch (error) {
-          ui.busy = false; ui.collectingSource = ""; render();
-          if (taskIsOpen(task)) close();
+          ui.busy = false; ui.collectingSource = ""; ui.scheduledCollecting = false; collectionProgress("", false);
+          if (task && taskIsOpen(task)) close();
+          finishCollectionView();
           toast("采集未完成：" + error.message, "warning");
           return;
         }
-        ui.busy = false; ui.collectingSource = ""; render();
-        if (taskIsOpen(task)) close();
-        const incomplete = result.rows.some(function (row) { return sourceRunState(row) !== "completed"; });
+        ui.busy = false; ui.collectingSource = ""; ui.scheduledCollecting = false; collectionProgress("", false);
+        if (task && taskIsOpen(task)) close();
+        finishCollectionView();
+        const failedCount = result.rows.filter(function (row) { return sourceRunState(row) !== "completed"; }).length;
+        const incomplete = failedCount > 0;
         const skipped = (result.skippedSources || []).map(function (entry) { return entry.name + "（" + entry.reason + "）"; });
-        toast((incomplete ? "采集已结束，部分网站采集失败，请在采集记录查看原因。" : "采集完成。") + (skipped.length ? "已跳过：" + skipped.join("、") + "。" : ""), incomplete || skipped.length ? "warning" : "success");
+        toast((incomplete ? failedCount === result.rows.length ? "本次采集失败，请在采集记录查看原因。" : "采集已结束，" + failedCount + " 个网站采集失败，请在采集记录查看原因。" : "采集完成。") + (skipped.length ? "已跳过：" + skipped.join("、") + "。" : ""), incomplete || skipped.length ? "warning" : "success");
       }, 650);
     }
     tick();
   }
-  function fileModal(id) {
+  function openOpportunityFile(id) {
     const split = id.lastIndexOf(":"), item = store.find(id.slice(0, split)), file = item && item.files[Number(id.slice(split + 1))];
     if (!file) return;
-    const format = window.BiddingFileIcons ? window.BiddingFileIcons.meta(file.name).label : file.name.split(".").pop().toUpperCase() + " 文件";
-    let content = '';
-    if (Array.isArray(file.sections) && file.sections.length) content = file.sections.map(function (section) { return '<h3>' + esc(section.title) + '</h3><p>' + esc(section.text) + '</p>'; }).join("");
-    else if (typeof file.previewText === "string" || typeof file.content === "string") content = '<p class="op-preview-text">' + esc(file.previewText || file.content) + '</p>';
-    else if (file.main) content = '<h3>关联采购信息</h3><p>' + esc(item.name + " · " + item.number + " · " + item.package) + '</p><p>' + esc(item.summary) + '</p><p>资格要求：' + esc(item.qualification) + '</p><p>本包预算：' + money(item.amount) + '；投标截止：' + esc(item.deadline || "待核实") + '</p><p class="op-help">以上为关联公告信息，完整文件内容请查看来源附件。</p>';
-    else content = '<p class="op-help">该附件暂无可在线预览的正文，请查看来源文件。</p>';
-    modal("文件预览", file.name, '<div class="op-preview-file-head">' + fileIcon(file.name) + '<div><strong>' + esc(file.name) + '</strong><small>' + esc(format + " · " + file.size + " · " + (file.main ? "主招标文件" : "附件")) + '</small></div></div><article class="op-notice">' + content + '</article>' + (file.url || file.sourceUrl ? '<p>' + external(file.url || file.sourceUrl, "查看来源文件") + '</p>' : ''), "", null, taskCloseButton(), "op-evidence-modal");
+    window.open(window.OpportunityEvidence.previewHref(window.OpportunityEvidence.documentPayload(item, file)), "_blank", "noopener");
   }
   function evaluateAgain(id) {
     if (ui.busy) return;
@@ -993,25 +1317,31 @@
     if (action === "reloadAction") {
       const previous = activeAction; if (!previous) return;
       const note = one('textarea[name="note"]'); const draft = note ? note.value : "";
+      if (previous.type === "transfer") {
+        const form = one("#opModalForm"), owner = form && form.elements && form.elements.owner;
+        transferDraft = { id: previous.id, round: previous.expected.round, owner: owner ? owner.value : "", files: store.copy(ui.files), baseline: store.copy(previous.filesBaseline || []) };
+      }
       close(false); syncOpportunityView();
       if (previous.type === "transfer") transferModal(previous.id); else reviewModal(previous.id);
       const latestNote = one('textarea[name="note"]'); if (latestNote) latestNote.value = draft;
       return;
     }
+    if (action === "reloadSource") { reloadSource(); return; }
     if (action === "query") { query(); return; }
     if (action === "reset") { ui.filters = {}; ui.metric = ""; ui.page = 1; render(); return; }
     if (action === "metric") {
       const previous = ui.metric;
-      if (ui.tab === "list" && one("#opFilters")) ui.filters = Object.fromEntries(new FormData(one("#opFilters")));
+      if (ui.tab === "list" && one("#opFilters")) ui.filters = readListFilters();
       ui.metric = ui.metric === id ? "" : id;
       ui.filters = ui.filters || {};
+      if (ui.metric === "urgent" && ["rejected", "transferred"].includes(ui.filters.review)) ui.filters.review = "";
       if (["pending", "approved", "transferred"].includes(ui.metric)) ui.filters.review = ui.metric;
       else if (["pending", "approved", "transferred"].includes(previous) && ui.filters.review === previous) ui.filters.review = "";
       ui.tab = "list"; ui.page = 1; render(); return;
     }
     if (action === "page") { ui.page = Number(id); renderRows(); return; }
     if (action === "sourcePage") { ui.sourcePage = Number(id); renderSources(); return; }
-    if (action === "runPage") { ui.runPage = Number(id); renderRuns(); return; }
+    if (action === "runPage") { ui.runPage = Number(id); renderRuns(true); return; }
     if (action === "runQuery") { queryRuns(); return; }
     if (action === "runReset") { ui.runFilters = { source: "", result: "", from: "", to: "" }; ui.runPage = 1; renderRuns(); return; }
     if (action === "review") reviewModal(id);
@@ -1022,8 +1352,7 @@
     if (action === "toggleSource") toggle("source", id);
     if (action === "collect" && isAdmin) collect();
     if (action === "collectSource" && isAdmin) collect(id);
-    if (action === "file") fileModal(id);
-    if (action === "basis") basisModal(id);
+    if (action === "file") openOpportunityFile(id);
     if (action === "evaluate") evaluateAgain(id);
   }
   function init() {
@@ -1036,7 +1365,7 @@
       const action = event.target.closest("[data-op-action]");
       if (action && !action.disabled) { event.preventDefault(); guard(function () { onAction(action.dataset.opAction, action.dataset.id); }); return; }
       const tab = event.target.closest("[data-op-tab]");
-      if (tab && !ui.busy) {
+      if (tab && (!ui.busy || ui.scheduledCollecting)) {
         ui.tab = tab.dataset.opTab; const params = new URLSearchParams(location.search); params.set("tab", ui.tab); replacePosition(params); render();
       }
     });

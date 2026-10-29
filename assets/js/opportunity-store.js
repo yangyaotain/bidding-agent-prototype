@@ -113,14 +113,14 @@
     function file(name, size) { return [{ name: name, size: size || "2.1 MB", kind: "demo", main: true }]; }
     const items = [
       opportunity("OP015", "某市公共数据可视化与运营分析平台", "某市数据运营中心", "广东", 320, RULE_ID, { summary: "建设数据可视化、BI 报表与运营分析功能，采用成熟平台完成实施与系统集成。", sourceIds: ["S2"], acquisitionEnd: stamp(Date.now() + 30 * 3600000), factors: [.9, .8, 1, 1, 1], files: file("数据可视化与运营分析平台采购文件.pdf"), risks: ["文件获取将在 30 小时内截止，请及时办理获取手续。"], history: [record("采集入库", "初评达到入库要求；文件获取临近截止，需尽快确认参与。", -12, 1, 84)] }),
-      opportunity("OP016", "某集团客户管理与合同管理系统一体化建设及办公审批协同、存量业务数据迁移与系统集成服务采购项目", "某市城市建设投资控股集团有限公司数字化运营与信息技术管理中心", "广东", 240, RULE_ID, { summary: "开发客户管理、合同管理和办公审批功能，完成存量数据迁移及系统集成。", sourceIds: ["S1", "S2", "S3"], review: "approved", approvedRevision: 1, confirmedBy: "周晓雯", confirmedAt: stamp(Date.now() - 6 * 3600000), confirmedRuleRevision: 1, factors: [1, 1, 1, .5, 1], risks: ["已确认参与，尚未取得主招标文件，转入项目时需补传。"], history: [record("确认投标", "", -6), record("采集入库", "初评 95 分，需求与业务方向匹配，主文件待获取。", -24, 1, 95)] }),
+      opportunity("OP016", "某集团客户管理与合同管理系统一体化建设及办公审批协同、存量业务数据迁移与系统集成服务采购项目", "某市城市建设投资控股集团有限公司数字化运营与信息技术管理中心", "广东", 240, RULE_ID, { summary: "开发客户管理、合同管理和办公审批功能，完成存量数据迁移及系统集成。", sourceIds: ["S1"], review: "approved", approvedRevision: 1, confirmedBy: "周晓雯", confirmedAt: stamp(Date.now() - 6 * 3600000), confirmedRuleRevision: 1, factors: [1, 1, 1, .5, 1], risks: ["已确认参与，尚未取得主招标文件，转入项目时需补传。"], history: [record("确认投标", "", -6), record("采集入库", "初评 95 分，需求与业务方向匹配，主文件待获取。", -24, 1, 95)] }),
       opportunity("OP017", "某市数据共享交换平台升级服务", "某市政务服务和数据管理局", "广东", 580, RULE_ID, { summary: "升级数据共享交换、数据目录与接口管理功能，交付软件平台及实施服务。", sourceIds: ["S2"], review: "transferred", approvedRevision: 1, acquired: true, registered: true, projectId: "BID-OP-OP017", files: file("数据共享交换平台升级采购文件.pdf", "3.2 MB"), history: [record("转入投标项目", "项目 BID-OP-OP017；负责人 周晓雯；主招标文件已带入。", -6), record("确认投标", "需求匹配、服务团队及主文件均已确认，进入项目准备。", -12), record("采集入库", "初评 100 分，符合入库要求。", -30, 1, 100)] }),
       opportunity("OP018", "某集团办公审批与资产管理平台", "某城市运营集团", "江苏", 210, RULE_ID, { summary: "建设办公审批、资产管理及项目管理功能，使用成熟技术开展应用开发。", sourceIds: ["S3"], review: "rejected", risks: ["业务团队本期资源已排满，主动放弃本次机会。"], history: [record("放弃机会", "实施窗口与现有项目冲突，团队资源不足，放弃本次投标。", -4), record("采集入库", "初评 100 分，符合业务范围及入库要求。", -24, 1, 100)] }),
       opportunity("OP019", "某区知识库问答与文档处理应用", "某区政务服务中心", "广东", 130, RULE_ID, { summary: "建设知识库问答、文档处理及报告生成功能，采用成熟 AI 应用组件实施。", sourceIds: ["S3"], acquisitionStart: dateAt(2, "09:00"), acquisitionEnd: dateAt(8), factors: [.8, .8, 1, 1, 1], files: file("知识库问答与文档处理应用采购文件.pdf"), risks: ["文件获取尚未开始，请关注公告列明的获取时间。"], history: [record("采集入库", "公告已发布，初评 88 分；文件获取将在两天后开始。", -12, 1, 88)] }),
       opportunity("OP020", "某单位运营支撑服务采购", "某公共数据服务中心", "北京", 160, RULE_ID, { summary: "采购范围调整为运营支撑与日常辅助服务，详细工作清单和新的投标截止时间将在补充公告中公布。", sourceIds: ["S1"], deadline: "", opening: "", revision: 2, recheck: true, factors: [1, .5, 1, 1, 0], unknown: [0, 0, 0, 0, 15], risks: ["采购范围已调整，核心交付与新的投标截止时间尚未明确，需要核对补充公告。"], evidence: ["更正公告第二节 · 工作清单待补充", "企业材料 · 调整后的类似业绩要求待核对", "更正公告第一节 · 本包预算 160 万元", "公告第二节 · 服务实施地点", "更正公告第四节 · 新的投标截止时间待补充"], changes: [{ at: stamp(Date.now() - 3 * 3600000), title: "采购范围及时间调整", text: "原数据治理与报表管理服务调整为运营支撑，详细工作清单和新的截止时间待补充；原入库记录保留，未核实部分不计分。", revision: 2 }], history: [record("关联更正公告", "采购范围和参与时间调整后信息不完整，当前分数下降；请核验补充公告后确认是否参与。", -3, 2), record("采集入库", "原公告为数据治理与报表管理服务，初评 95 分，符合当时入库要求。", -30, 1, 95)] }),
       opportunity("OP021", "某园区合同与项目管理系统升级", "某科技园运营公司", "广东", 190, RULE_ID, { summary: "升级合同管理、项目管理及办公审批功能，开展软件应用改造与系统集成。", sourceIds: ["S2"], lifecycle: "terminated", review: "rejected", factors: [1, .8, 1, 1, 1], risks: ["采购方已发布终止公告，本轮采购不再继续。"], changes: [{ at: stamp(Date.now() - 10 * 3600000), title: "终止采购", text: "因采购需求调整终止本轮采购，后续安排以新公告为准。", revision: 2 }], revision: 2, history: [record("放弃机会", "采购方已终止本轮采购，保留机会与终止依据。", -6, 2), record("关联更正公告", "本轮采购终止，停止推进投标。", -10, 2), record("采集入库", "初评 95 分，符合入库要求。", -30, 1, 95)] }),
       opportunity("OP022", "某市数据中台与质量治理平台建设", "某市公共数据中心", "四川", 480, RULE_ID, { summary: "建设数据中台、数据质量及共享接口功能；更正公告增加现场实施服务期限。", sourceIds: ["S2"], review: "approved", approvedRevision: 1, revision: 2, recheck: true, factors: [1, .8, 1, 1, 1], files: file("数据中台与质量治理平台采购文件.pdf", "2.8 MB"), risks: ["现场实施服务由 3 个月调整为 6 个月，需要重新确认人员安排。"], changes: [{ at: stamp(Date.now() - 3 * 3600000), title: "服务期限更正", text: "现场实施服务由 3 个月调整为 6 个月；原确认记录保留，请重新确认是否投标。", revision: 2 }], history: [record("关联更正公告", "服务期限调整为 6 个月，保留原决定，请重新确认是否投标。", -3, 2), record("确认投标", "按原公告的实施周期确认参与，团队安排可满足。", -16), record("采集入库", "初评 95 分，符合入库要求。", -30, 1, 95)] }),
-      opportunity("OP023", "某集团知识服务与智能助手应用平台", "某产业发展集团", "江苏", 350, RULE_ID, { summary: "建设知识库问答、智能助手及文档处理功能；更正公告将投标截止延长两天。", sourceIds: ["S1", "S3"], review: "transferred", projectId: "BID-OP-OP023", approvedRevision: 1, revision: 2, recheck: true, acquired: true, registered: true, deadline: dateAt(17, "09:30"), opening: dateAt(17, "09:30"), factors: [.9, 1, 1, 1, 1], files: file("知识服务与智能助手平台采购文件.pdf", "2.4 MB"), risks: ["投标截止已延期，需在关联项目中核对交付安排和公告版本。"], changes: [{ at: stamp(Date.now() - 2 * 3600000), title: "投标截止延期", text: dateAt(15, "09:30") + " → " + dateAt(17, "09:30") + "；请在关联项目中核对变更影响。", revision: 2 }], history: [record("关联更正公告", "投标截止延期两天，已同步关联项目的来源更新提醒。", -2, 2), record("转入投标项目", "项目 BID-OP-OP023；负责人 李明远；主招标文件已带入。", -14), record("确认投标", "需求与成熟 AI 应用方向匹配，确认参与。", -20), record("采集入库", "初评 97 分，符合入库要求。", -30, 1, 97)] }),
+      opportunity("OP023", "某集团知识服务与智能助手应用平台", "某产业发展集团", "江苏", 350, RULE_ID, { summary: "建设知识库问答、智能助手及文档处理功能；更正公告将投标截止延长两天。", sourceIds: ["S1"], review: "transferred", projectId: "BID-OP-OP023", approvedRevision: 1, revision: 2, recheck: true, acquired: true, registered: true, deadline: dateAt(17, "09:30"), opening: dateAt(17, "09:30"), factors: [.9, 1, 1, 1, 1], files: file("知识服务与智能助手平台采购文件.pdf", "2.4 MB"), risks: ["投标截止已延期，需在关联项目中核对交付安排和公告版本。"], changes: [{ at: stamp(Date.now() - 2 * 3600000), title: "投标截止延期", text: dateAt(15, "09:30") + " → " + dateAt(17, "09:30") + "；请在关联项目中核对变更影响。", revision: 2 }], history: [record("关联更正公告", "投标截止延期两天，已同步关联项目的来源更新提醒。", -2, 2), record("转入投标项目", "项目 BID-OP-OP023；负责人 李明远；主招标文件已带入。", -14), record("确认投标", "需求与成熟 AI 应用方向匹配，确认参与。", -20), record("采集入库", "初评 97 分，符合入库要求。", -30, 1, 97)] }),
       opportunity("OP024", "某园区数据可视化与视频分析平台", "某智慧园区运营公司", "广东", 280, RULE_ID, { summary: "更正后的核心交付新增特殊视频识别及复杂算法自研，需承担算法研究与准确率指标。", sourceIds: ["S3"], revision: 2, recheck: true, factors: [1, .5, 1, .5, 1], risks: ["更正后新增专项技术研究，超出当前成熟应用开发的承接范围。"], changes: [{ at: stamp(Date.now() - 2 * 3600000), title: "采购范围更正", text: "原范围为数据可视化与报表展示；新增特殊视频识别和复杂算法自研要求，当前初评低于入库标准，保留历史供人工确认。", revision: 2 }], history: [record("关联更正公告", "核心交付新增算法研究任务，当前范围不符且初评分下降；原机会保留，待人工决定。", -2, 2), record("采集入库", "原公告采购数据可视化与 BI 报表，初评 95 分，符合当时入库要求。", -30, 1, 95)] })
     ];
     items.forEach(function (item) {
@@ -152,6 +152,22 @@
       if (project) next.projects.push(project);
     });
     next.statusSamplesVersion = 2;
+    return next;
+  }
+  function sourceNoticeUrl(item, sourceId) {
+    return item.noticeUrls && item.noticeUrls[sourceId] || ((item.sourceIds || [])[0] === sourceId ? item.noticeUrl || "" : "");
+  }
+  function completePrimarySources(next) {
+    (next.opportunities || []).forEach(function (item) {
+      // Previous collection only appended sources, so the first ID remains the original intake site.
+      // Normalize active provenance only; historical assessment and processing snapshots stay intact.
+      const id = (item.sourceIds || [])[0];
+      if (!id) return;
+      const url = sourceNoticeUrl(item, id);
+      item.sourceIds = [id];
+      if (url) item.noticeUrl = url;
+      if (item.noticeUrls) item.noticeUrls = item.noticeUrls[id] ? { [id]: item.noticeUrls[id] } : {};
+    });
     return next;
   }
   let state;
@@ -492,7 +508,7 @@
     });
     return completeCollectionStatistics(next);
   }
-  state = completeStatusSamples(cleanStoredPresentation(upgradePreset(state)));
+  state = completePrimarySources(completeStatusSamples(cleanStoredPresentation(upgradePreset(state))));
   completeOpportunityAssessments(state);
   let restoredDefaults = false;
   function isOpportunityDocument() {
@@ -510,8 +526,15 @@
     const previous = { at: stamp(), opportunities: copy(next.opportunities), candidates: copy(next.candidates || []), projects: copy(next.projects) };
     if (!next.beforeOpportunitySamples) next.beforeOpportunitySamples = previous;
     else next.previousOpportunityRound = previous;
-    const seeds = completeOpportunityAssessments(completeStatusSamples(initial()));
+    const seeds = completeOpportunityAssessments(completePrimarySources(completeStatusSamples(initial())));
     seeds.opportunities.forEach(function (item) {
+      // Default cases demonstrate complete current analysis. Keep any old total-only assessment
+      // as a separate snapshot, rather than filling historical parts from current KB materials.
+      if (item.assessmentSnapshot.result.details.length !== dimensions.length || !item.assessmentSnapshot.result.qualificationMatch) {
+        const previousAssessment = copy(item.assessmentSnapshot);
+        const saved = captureAssessment(item, item.ruleSnapshot || seeds.rules[0]);
+        item.history.unshift({ action: "重新初评", note: "依据当前公告及在库材料完成初评，原评分与处理记录保留。", user: "系统", at: saved.at, revision: item.revision, score: saved.result.score, ruleSnapshot: copy(saved.rule), assessmentSnapshot: copy(saved), previousAssessmentSnapshot: previousAssessment });
+      }
       if (item.history.some(function (record) { return record.action === "采集入库"; })) return;
       const saved = item.assessmentSnapshot;
       item.history.push({ action: "采集入库", note: saved.decision.reason, user: "系统", at: saved.at, revision: saved.noticeRevision, score: saved.result.score, ruleSnapshot: copy(saved.rule), assessmentSnapshot: copy(saved) });
@@ -535,6 +558,7 @@
   if (isOpportunityDocument() && (isPageReload() || !state.opportunitySampleRound)) restoreOpportunitySamples(state);
   seedCollectionSamples(state);
   function commit(next) {
+    completePrimarySources(next);
     completeCollectionStatistics(next);
     completeOpportunityAssessments(next);
     if (storage) storage.setItem(KEY, JSON.stringify(next));
@@ -544,7 +568,7 @@
   function refresh() {
     if (!storage) return;
     const latest = JSON.parse(storage.getItem(KEY));
-    if (latest && latest.schema === 1 && Array.isArray(latest.projects)) { state = completeStatusSamples(cleanStoredPresentation(upgradePreset(latest))); completeOpportunityAssessments(state); }
+    if (latest && latest.schema === 1 && Array.isArray(latest.projects)) { state = completePrimarySources(completeStatusSamples(cleanStoredPresentation(upgradePreset(latest)))); completeOpportunityAssessments(state); }
   }
   function change(handler) { refresh(); const next = copy(state); const result = handler(next); commit(next); return result; }
   try { commit(state); } catch (error) { storage = null; }
@@ -596,7 +620,7 @@
     if (!groups.length) {
       const other = policyFor(presetRule()).groups.some(function (group) { return tokens(group.keywords).some(function (word) { return text.includes(word); }); });
       if (other) return { key: "outside", label: "不在关注范围", blocked: true, group: "业务范围不符", reason: "公告核心交付属于未选择的业务范围", hits: [] };
-      return { key: "unknown", label: "待核验", blocked: false, group: "核心交付待核验", reason: "现有公告不足以确认属于已选业务范围，需要人工核对核心交付内容。", hits: [] };
+      return { key: "unknown", label: "待核验", blocked: false, group: "核心交付待核验", reason: "现有公告不足以判断核心交付是否属于已选业务范围。", hits: [] };
     }
     return { key: "allowed", label: "可以做", blocked: false, group: groups.map(function (group) { return group.name; }).join(" / "), reason: "核心交付为" + groups.map(function (group) { return group.name; }).join("、") + "，未发现需承担的研究突破或专业业务判断。", hits: [] };
   }
@@ -626,29 +650,33 @@
   }
   function evaluate(item, rule, at) {
     rule = ruleModel(rule || state.rules[0]);
-    const ruleWeights = weights;
     const boundary = capability(item, rule);
     const current = at || Date.now(), timing = status(item, current);
-    const deadlineDays = Math.max(0, (time(item.deadline) - current) / 86400000);
-    const remaining = Math.min(deadlineDays, item.acquired ? deadlineDays : Math.max(0, (time(item.acquisitionEnd) - current) / 86400000));
-    const factors = item.factors.slice();
-    const missingPoints = item.unknown.slice();
-    if (boundary.key === "unknown") missingPoints[0] = weights[0];
-    if (!String(item.qualification || "").trim()) missingPoints[1] = weights[1];
-    if (item.amount == null) missingPoints[2] = weights[2];
+    const qualificationMatch = window.OpportunityEvidence ? window.OpportunityEvidence.matchQualification(item, current) : null;
     const conditions = projectConditions(item, rule, current);
-    if (!String(item.region || "").trim() || conditions.unknown.some(function (reason) { return /地区|地点|驻场/.test(reason); })) missingPoints[3] = weights[3];
-    if (!Number.isFinite(remaining)) missingPoints[4] = weights[4];
-    if (boundary.blocked) factors[0] = 0;
-    factors[4] = timing.blocked ? 0 : !Number.isFinite(remaining) ? 0 : remaining >= rule.minDays ? 1 : remaining > 1 ? .5 : 0;
-    const details = dimensions.map(function (name, index) {
-      const unknown = Math.min(ruleWeights[index], Math.round(ruleWeights[index] * (missingPoints[index] || 0) / weights[index]));
-      const score = Math.round((ruleWeights[index] - unknown) * factors[index] * 10) / 10;
-      return { name: name, weight: ruleWeights[index], score: score, unknown: unknown, evidence: item.evidence[index] };
-    });
-    const score = Math.round(details.reduce(function (sum, row) { return sum + row.score; }, 0));
-    const unknown = details.reduce(function (sum, row) { return sum + row.unknown; }, 0);
-    return { score: score, unknown: unknown, coverage: 100 - unknown, details: details, boundary: boundary, label: boundary.blocked ? "不能做 · 不予推荐" : boundary.key === "unknown" ? "核心交付待核验" : timing.blocked ? "暂停推荐" : item.recheck ? "需重新确认" : score >= 80 ? "优先确认" : score >= 60 ? "进一步了解" : "低优先级", timing: timing };
+    const rounded = function (value) { return Math.round(value * 10) / 10; };
+    function part(index, ratio, unknown, label, tone, reason) {
+      return { name: dimensions[index], weight: weights[index], score: rounded(weights[index] * ratio), unknown: rounded(weights[index] * unknown), evidence: reason, judgment: { label: label, tone: tone, reason: reason } };
+    }
+    const details = [part(0, boundary.key === "allowed" ? 1 : 0, boundary.key === "unknown" ? 1 : 0, boundary.key === "unknown" ? "公告信息不完整" : boundary.label, boundary.blocked ? "red" : boundary.key === "allowed" ? "green" : "orange", boundary.reason)];
+    const qualification = qualificationMatch && window.OpportunityEvidence.qualificationSummary(window.OpportunityEvidence.qualificationViewRows(qualificationMatch));
+    details.push({ name: dimensions[1], weight: weights[1], score: qualificationMatch ? qualificationMatch.score : 0, unknown: qualificationMatch ? qualificationMatch.unknown : weights[1], evidence: qualification ? qualification.summary : "未留存资格材料依据", judgment: { label: qualification ? qualification.label : "依据不足", tone: qualification ? qualification.tone : "orange", reason: qualification ? qualification.summary : "未取得资格材料判断依据" } });
+    const budgetUnknown = item.amount == null || !Number.isFinite(Number(item.amount));
+    const budgetLimited = rule.budgetMode === "range";
+    const overBudget = !budgetUnknown && budgetLimited && (item.amount < (rule.min || 0) || rule.max != null && item.amount > rule.max);
+    const budgetReason = budgetUnknown ? "公告未披露本包预算，本项缺少计分依据。" : "本包预算 " + item.amount + " 万元；" + (budgetLimited ? "要求 " + (rule.min || 0) + "～" + (rule.max == null ? "不限" : rule.max) + " 万元，" + (overBudget ? "不符合预算范围。" : "符合预算范围。") : "未限定预算范围。");
+    details.push(part(2, !budgetUnknown && !overBudget ? 1 : 0, budgetUnknown ? 1 : 0, budgetUnknown ? "预算未披露" : overBudget ? "超出预算范围" : budgetLimited ? "符合预算范围" : "预算不限", budgetUnknown ? "orange" : overBudget ? "red" : "green", budgetReason));
+    const regionBlocked = conditions.blocked.find(function (reason) { return /地区|地点|驻场/.test(reason); });
+    const regionUnknown = !String(item.region || "").trim() || conditions.unknown.find(function (reason) { return /地区|地点|驻场/.test(reason); });
+    const regionReason = regionBlocked || (typeof regionUnknown === "string" ? regionUnknown : regionUnknown ? "公告未明确实施地点，本项缺少计分依据。" : "实施地点：" + item.region + "；" + (rule.regionMode === "selected" ? "符合指定实施地区。" : "未限定实施地区。"));
+    details.push(part(3, !regionBlocked && !regionUnknown ? 1 : 0, regionUnknown && !regionBlocked ? 1 : 0, regionBlocked ? /驻场/.test(regionBlocked) ? "驻场要求不符" : "实施地区不符" : regionUnknown ? !item.region ? "实施地未披露" : "实施地区待明确" : rule.regionMode === "selected" ? "符合实施地区" : "实施地区不限", regionBlocked ? "red" : regionUnknown ? "orange" : "green", regionReason));
+    const days = (time(item.deadline) - current) / 86400000, known = Number.isFinite(days), enough = known && days >= rule.minDays;
+    const ratio = timing.blocked || !known ? 0 : rule.minDays <= 0 ? 1 : Math.min(1, Math.max(0, days) / rule.minDays);
+    const preparationReason = timing.blocked ? timing.text + "，本项不计分。" : !known ? "公告未明确投标截止时间，本项缺少计分依据。" : enough ? "可准备时间达到建议的 " + rule.minDays + " 天，本项计满分。" : "按距投标截止的实际可准备天数 ÷ 建议 " + rule.minDays + " 天的比例计分，最多计 " + weights[4] + " 分。";
+    details.push(part(4, ratio, !known ? 1 : 0, timing.blocked ? timing.text : !known ? "截止时间未明确" : enough ? "准备时间充足" : "准备时间不足", timing.blocked ? "red" : enough ? "green" : "orange", preparationReason));
+    const score = rounded(details.reduce(function (sum, row) { return sum + row.score; }, 0));
+    const unknown = rounded(details.reduce(function (sum, row) { return sum + row.unknown; }, 0));
+    return { score: score, unknown: unknown, coverage: rounded(100 - unknown), details: details, scoringBasis: "judgment-v1", preparationBasis: "bidDeadline", qualificationMatch: qualificationMatch, boundary: boundary, label: boundary.blocked ? "不能做 · 不予推荐" : boundary.key === "unknown" ? "核心交付待核验" : timing.blocked ? "暂停推荐" : item.recheck ? "需重新确认" : score >= 80 ? "优先确认" : score >= 60 ? "进一步了解" : "低优先级", timing: timing };
   }
   function projectConditions(item, rule, at) {
     rule = ruleModel(rule || state.rules[0]);
@@ -685,8 +713,8 @@
     if (boundary.blocked) return { key: "excluded", reason: boundary.reason, assessment: assessment, conditions: conditions };
     if (conditions.blocked.length) return { key: "excluded", reason: conditions.blocked.join("；"), assessment: assessment, conditions: conditions };
     if (boundary.key === "unknown" && /土建装修|土建施工/.test(item.summary)) return { key: "excluded", reason: "核心交付不属于已选软件应用范围", assessment: assessment, conditions: conditions };
-    const missing = conditions.unknown.concat(boundary.key === "unknown" ? [boundary.reason] : [], assessment.unknown ? ["初评仍有 " + assessment.unknown + " 分对应条件待核验"] : []);
-    const missingNote = missing.length ? "；" + missing.join("；") + "，未核实内容不计入得分" : "";
+    const missing = conditions.unknown.concat(boundary.key === "unknown" ? [boundary.reason] : [], assessment.unknown ? ["部分初评条件依据不足，对应 " + assessment.unknown + " 分未计入得分"] : []);
+    const missingNote = missing.length ? "；" + missing.join("；") + "，缺少依据的条件不计分" : "";
     if (assessment.score < rule.threshold) return { key: "excluded", reason: "初评 " + assessment.score + " 分，低于最低入库分数 " + rule.threshold + " 分" + missingNote, assessment: assessment, conditions: conditions };
     return { key: "admitted", reason: "初评 " + assessment.score + " 分，达到最低入库分数 " + rule.threshold + " 分" + missingNote + (conditions.warnings.length ? "；" + conditions.warnings.join("；") : ""), assessment: assessment, conditions: conditions };
   }
@@ -696,14 +724,16 @@
     return notice;
   }
   function captureAssessment(item, rule, at, retainedDecision) {
+    if (window.OpportunityEvidence) window.OpportunityEvidence.prepareFiles(item);
     const instant = typeof at === "number" ? at : Number.isFinite(time(at)) ? time(at) : Date.now();
     const assessedAt = typeof at === "string" ? at : stamp(instant), notice = assessmentNotice(item), decision = retainedDecision || admission(notice, rule, instant);
-    item.assessmentSnapshot = { at: assessedAt, assessedAtMs: instant, noticeRevision: item.revision, ruleRevision: rule.revision, rule: copy(rule), notice: notice, result: copy(decision.assessment), decision: { key: decision.key, reason: decision.reason, conditions: copy(decision.conditions) } };
+    item.assessmentSnapshot = { at: assessedAt, assessedAtMs: instant, noticeRevision: item.revision, ruleRevision: rule.revision, rule: copy(rule), notice: notice, noticeFiles: copy(item.files || []), result: copy(decision.assessment), decision: { key: decision.key, reason: decision.reason, conditions: copy(decision.conditions) } };
     item.assessmentInputsChanged = false;
     return item.assessmentSnapshot;
   }
   function completeOpportunityAssessments(next) {
     (next.opportunities || []).forEach(function (item) {
+      if (window.OpportunityEvidence) window.OpportunityEvidence.prepareFiles(item);
       if (!item.acquisitionStatus) item.acquisitionStatus = item.acquired ? "obtained" : "unknown";
       if (!item.registrationStatus) item.registrationStatus = item.registered ? "registered" : "unknown";
       if (item.assessmentSnapshot) return;
@@ -711,11 +741,16 @@
       const rule = record && record.ruleSnapshot || item.ruleSnapshot || next.rules[0];
       const saved = captureAssessment(item, rule, record && record.at || stamp());
       if (record) {
+        // A recorded total alone cannot establish which KB materials were used at that time.
+        delete saved.result.qualificationMatch;
+        delete saved.noticeFiles;
         saved.noticeRevision = record.revision || item.revision;
         // Preserve recorded totals. Missing historical breakdowns are not reconstructed from changed notices.
         if (saved.result.score !== record.score || saved.noticeRevision !== item.revision) {
           saved.result.score = record.score;
           saved.result.details = [];
+          delete saved.result.preparationBasis;
+          delete saved.result.qualificationMatch;
           saved.result.label = "已保存初评";
           saved.result.unknown = 0;
           saved.result.coverage = null;
@@ -735,7 +770,7 @@
     const notice = {}, source = saved.notice || {};
     ["name", "number", "package", "round", "purchaser", "region", "amount", "cap", "summary", "coreDelivery", "qualification", "term", "method", "acquisitionStart", "acquisitionEnd", "registrationEnd", "deadline", "opening", "lifecycle", "acquired", "registered", "factors", "unknown", "evidence", "risks"].forEach(function (key) { if (source[key] !== undefined) notice[key] = source[key]; });
     const result = saved.result, conditions = saved.decision.conditions || {};
-    return JSON.stringify({ noticeRevision: saved.noticeRevision, rule: ruleBasis(saved.rule), notice: notice, score: result.score, unknown: result.unknown, boundary: { key: result.boundary.key, reason: result.boundary.reason }, details: (result.details || []).map(function (row) { return { name: row.name, score: row.score, unknown: row.unknown, evidence: row.evidence }; }), decision: saved.decision.key, conditions: ["blocked", "unknown", "warnings"].map(function (key) { return (conditions[key] || []).slice().sort(); }) });
+    return JSON.stringify({ noticeRevision: saved.noticeRevision, rule: ruleBasis(saved.rule), notice: notice, score: result.score, unknown: result.unknown, qualification: window.OpportunityEvidence ? window.OpportunityEvidence.matchBasis(result.qualificationMatch) : "", boundary: { key: result.boundary.key, reason: result.boundary.reason }, details: (result.details || []).map(function (row) { return { name: row.name, score: row.score, unknown: row.unknown, evidence: row.evidence }; }), decision: saved.decision.key, conditions: ["blocked", "unknown", "warnings"].map(function (key) { return (conditions[key] || []).slice().sort(); }) });
   }
   function reassess(id) {
     return change(function (next) {
@@ -809,6 +844,9 @@
     try { const parsed = new URL(value); parsed.hash = ""; return parsed.href.replace(/\/$/, ""); } catch (error) { return String(value || "").trim(); }
   }
   function sourceConfig(source) { return JSON.stringify([sourceAddressKey(source.collectionUrl), source.accessMode || "public", source.loginMethod || "password", source.loginAccount || "", Number(source.credentialRevision) || 0]); }
+  function sourceEditContext(source) {
+    return source ? JSON.stringify([source.id, source.name, source.type, source.column || "", source.enabled, sourceConfig(source), Boolean(source.passwordSet)]) : "";
+  }
   function sourceAccess(source, now) {
     if (!source || source.accessMode !== "login") return { state: "public", label: "无需登录", reason: "", tone: "gray" };
     const current = now == null ? Date.now() : now;
@@ -816,10 +854,15 @@
     if (source.loginState === "expired" || source.loginState === "active") return { state: "expired", label: "登录已失效", reason: "登录已失效，请重新检查登录。", tone: "orange" };
     return { state: "pending", label: "待登录", reason: source.loginAccount && source.passwordSet ? "请先检查来源，验证账号登录。" : "请先配置登录账号和密码。", tone: "orange" };
   }
-  function saveSource(input, id) {
+  function saveSource(input, id, expected) {
     return change(function (next) {
       const previous = id ? next.sources.find(function (source) { return source.id === id; }) : null;
       if (id && !previous) throw new Error("来源网站不存在，请刷新后查看。");
+      if (id && expected != null && expected !== sourceEditContext(previous)) {
+        const error = new Error("来源配置已在其他页面更新，请载入最新配置后核对再保存。当前输入已保留。");
+        error.code = "OP_SOURCE_CONTEXT_CHANGED";
+        throw error;
+      }
       const values = { name: String(input.name || "").trim(), type: String(input.type || previous && previous.type || "政府采购").trim(), column: String(input.column || "").trim(), collectionUrl: sourceAddress(input.collectionUrl, "采集入口", true) };
       if (!values.name || values.name.length > 50) throw new Error("网站名称请填写 1～50 字。");
       if (values.column.length > 80) throw new Error("采集栏目最多填写 80 字。");
@@ -945,12 +988,15 @@
           if (collectedNotices.has(candidate.id)) return;
           collectedNotices.add(candidate.id);
           const item = next.opportunities.find(function (entry) { return entry.id === candidate.id; });
-          if (item) { if (!item.sourceIds.includes(source.id)) item.sourceIds.push(source.id); run.duplicate += 1; record(candidate, "duplicate", "重复去重", "公告已存在且内容未变，保留原确认状态", null, item.id, "本次仅去重并合并来源，未重新初评。"); return; }
+          if (item) { run.duplicate += 1; record(candidate, "duplicate", "重复去重", "公告已存在且内容未变，保留首次入库来源及原确认状态", null, item.id, "本次仅去重，保留首次入库来源，未重新初评。"); return; }
           if (Number.isFinite(time(candidate.published)) && time(candidate.published) < source.captureFrom) { run.excluded += 1; record(candidate, "excluded", "筛除", "公告发布时间早于该来源首次采集的历史回溯起点", null, null, "公告超出首次回溯范围，未进入初评。"); return; }
           const decision = admission(candidate, rule);
           if (decision.key === "excluded") { run.excluded += 1; record(candidate, "excluded", "筛除", decision.reason, decision.assessment); return; }
           const incoming = copy(candidate);
+          const noticeUrl = sourceNoticeUrl(candidate, profileId);
           incoming.sourceIds = [source.id];
+          incoming.noticeUrl = noticeUrl;
+          incoming.noticeUrls = noticeUrl ? { [source.id]: noticeUrl } : {};
           incoming.matchedRules = [RULE_ID];
           incoming.ruleId = RULE_ID;
           incoming.admission = { key: decision.key, reason: decision.reason };
@@ -962,14 +1008,13 @@
           run.newCount += 1;
           record(incoming, "added", "新增入库", decision.reason, decision.assessment, incoming.id);
         });
-        // The second public platform republishes OP001. Merge source and apply one amendment once.
+        // The second platform republishes OP001; keep its intake source and apply one amendment once.
         if (sourceRow.ok && profileId === "S2") {
           const item = next.opportunities.find(function (entry) { return entry.id === "OP001"; });
           if (item && !collectedNotices.has(item.id)) {
             collectedNotices.add(item.id);
-            if (!item.sourceIds.includes(source.id)) item.sourceIds.push(source.id);
             run.duplicate += 1;
-            record(item, "duplicate", "重复去重", "同项目转载或重复采集，保留已有机会及确认记录", null, item.id, "本次仅去重并合并来源，未执行初评。");
+            record(item, "duplicate", "重复去重", "同项目转载或重复采集，保留首次入库来源及确认记录", null, item.id, "本次仅去重，保留首次入库来源，未执行初评。");
           }
           if (item && !item.amendmentApplied && !collectedNotices.has(item.id + ":amendment")) {
             collectedNotices.add(item.id + ":amendment");
@@ -1008,19 +1053,25 @@
       return run;
     });
   }
-  function actionContext(id, current) {
+  function actionContext(id, current, type) {
     const next = current || state, item = next.opportunities.find(function (entry) { return entry.id === id; });
     if (!item) return null;
     const round = next.opportunitySampleRound || {}, notice = assessmentNotice(item);
     ["sourceIds", "noticeUrl", "noticeUrls", "verified", "captured"].forEach(function (key) { delete notice[key]; });
-    return { round: round.id || round.startedAt || "", noticeRevision: item.revision, notice: JSON.stringify(notice), rule: ruleBasis(next.rules[0]), assessment: item.assessmentSnapshot ? assessmentBasis(item.assessmentSnapshot) : "",
+    const context = { round: round.id || round.startedAt || "", noticeRevision: item.revision, notice: JSON.stringify(notice), rule: ruleBasis(next.rules[0]), assessment: item.assessmentSnapshot ? assessmentBasis(item.assessmentSnapshot) : "",
       review: item.review, recheck: Boolean(item.recheck), confirmedAt: item.confirmedAt || "", approvedRevision: item.approvedRevision || 0, projectId: item.projectId || "" };
+    if (type === "transfer") {
+      context.type = type;
+      context.files = JSON.stringify((item.files || []).map(function (file) { return Object.keys(file).filter(function (key) { return key !== "selected"; }).sort().map(function (key) { return [key, file[key]]; }); }));
+    }
+    return context;
   }
   function contextMessage(id, expected, current) {
     if (!expected) return "";
-    const actual = actionContext(id, current);
+    const actual = actionContext(id, current, expected.type);
     if (!actual || actual.round !== expected.round) return "机会记录已变化，请重新打开并查看当前记录。";
     if (actual.noticeRevision !== expected.noticeRevision || actual.notice !== expected.notice) return "公告内容已更新，请查看最新公告后再操作。";
+    if (expected.type === "transfer" && actual.files !== expected.files) return "公告附件已更新，请查看最新文件后再转入投标项目。";
     if (actual.rule !== expected.rule) return "筛选要求已更新，请查看最新要求后再操作。";
     if (actual.assessment !== expected.assessment) return "初评结果已更新，请查看最新结果后再操作。";
     if (["review", "recheck", "confirmedAt", "approvedRevision", "projectId"].some(function (key) { return actual[key] !== expected[key]; })) return "该机会的处理状态已变化，请查看最新记录后再操作。";
@@ -1090,5 +1141,5 @@
   }
   function due(now) { return dueRules(now).length > 0; }
   window.OpportunityStore = { key: KEY, get: function () { return state; }, copy: copy, refresh: refresh, change: change, find: find, status: status, participationChecks: participationChecks, capability: capability, evaluate: evaluate, assessment: assessment, reassess: reassess, collect: collect, review: review, transfer: transfer, updateProject: updateProject, stamp: stamp, time: time, due: due, dueRules: dueRules, dimensions: dimensions, admission: admission, projectConditions: projectConditions, ruleSummary: ruleSummary, ruleModel: ruleModel, scopeGroups: scopeGroups, exclusionGroups: exclusionGroups, focusOptions: focusOptions, saveRule: saveRule, saveSource: saveSource, checkSource: checkSource, sourceConfig: sourceConfig, ruleFields: ruleFields, restoredDefaults: restoredDefaults, persistent: Boolean(storage), storage: storage };
-  Object.assign(window.OpportunityStore, { ruleBasis: ruleBasis, actionContext: actionContext, contextMessage: contextMessage, sourceAccess: sourceAccess });
+  Object.assign(window.OpportunityStore, { ruleBasis: ruleBasis, actionContext: actionContext, contextMessage: contextMessage, sourceAccess: sourceAccess, sourceEditContext: sourceEditContext });
 })();

@@ -1039,3 +1039,4 @@ body.file-preview-page {
 .preview-package-list small {
   font-size: var(--font-size-secondary);
 }
+.bid-preview-content .opportunity-source-frame { width: 100%; height: 880px; border: 1px solid var(--line); border-radius: 10px; }

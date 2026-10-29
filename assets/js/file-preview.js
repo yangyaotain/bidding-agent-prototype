@@ -242,7 +242,9 @@
 
   const knownFile = fileKey === "quote" ? spreadsheetFile : documentFiles[fileKey];
   const bidFile = fileKey === "bid-technical" || fileKey === "bid-business" ? bidDocumentProfile(fileKey) : null;
-  const file = Object.assign({}, bidFile || knownFile || genericProfile());
+  const evidenceFile = fileKey === "opportunity-evidence" && window.OpportunityEvidence ? window.OpportunityEvidence.previewProfile(window.location.hash, requestedName) : null;
+  if (evidenceFile) evidenceFile.formatLabel = requestedFormat || inferredFormatLabel(evidenceFile.name);
+  const file = Object.assign({}, evidenceFile || bidFile || knownFile || genericProfile());
   if (requestedName) file.name = requestedName;
   if (requestedFormat) file.formatLabel = requestedFormat;
   if (requestedSize) file.size = requestedSize;

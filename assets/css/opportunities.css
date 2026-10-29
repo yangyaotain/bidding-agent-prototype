@@ -5,6 +5,11 @@
 .op-status-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 16px; }
 .opportunity-page .project-metric { width: 100%; text-align: left; border: 1px solid var(--border); transition: border-color .18s, box-shadow .18s; }
 .opportunity-page .project-metric:hover, .opportunity-page .project-metric.active { border-color: var(--primary-border); box-shadow: var(--soft-shadow); }
+.op-metric-with-help { position: relative; }
+.op-metric-entry { grid-column: 1 / -1; display: grid; grid-template-columns: 42px minmax(0, 1fr); gap: 12px; align-items: start; width: 100%; padding: 0; border: 0; color: inherit; background: transparent; text-align: left; font: inherit; cursor: pointer; }
+.op-metric-entry .metric-copy > span { padding-right: 22px; }
+.op-metric-entry:focus-visible { outline: 2px solid var(--primary); outline-offset: 5px; border-radius: 6px; }
+.op-metric-with-help .op-metric-help { position: absolute; top: 14px; right: 12px; }
 .op-main-panel { min-width: 0; overflow: hidden; }
 .opportunity-page .project-filter-tabs { flex-wrap: wrap; }
 .op-filter-bar { padding: 18px 20px; display: grid; grid-template-columns: minmax(240px, 2fr) repeat(4, minmax(100px, 1fr)) auto; gap: 12px; border-bottom: 1px solid var(--line); }
@@ -50,12 +55,13 @@
 .op-table-actions .text-btn { padding: 0; min-height: 24px; font-size: 13px; white-space: nowrap; }
 #opListResults .table-wrap { overflow-x: auto; }
 .op-table.op-opportunity-table { min-width: 1240px; }
-.op-opportunity-table .op-col-project { width: 25%; }
+.op-opportunity-table .op-col-project { width: clamp(228px, 21vw, 330px); }
 .op-opportunity-table .op-col-budget { width: clamp(110px, 8.5vw, 130px); }
 .op-opportunity-table .op-col-deadline { width: clamp(210px, 17vw, 250px); }
 .op-opportunity-table .op-col-score { width: 76px; }
 .op-opportunity-table .op-col-review { width: clamp(110px, 8vw, 124px); }
 .op-opportunity-table .op-col-actions { width: 280px; }
+.op-opportunity-table .op-col-risk { min-width: 180px; }
 .op-table.op-opportunity-table th { padding: 13px 14px; background: #fbfcfe; font-size: var(--font-size-secondary); font-weight: 700; }
 .op-table.op-opportunity-table td { padding: 10px 14px; vertical-align: middle; }
 .op-opportunity-table .op-project-link { line-height: 1.55; }
@@ -82,6 +88,7 @@
 .op-list-actions .text-btn { min-height: 32px; border-radius: 9px; }
 .op-list-actions .btn-icon svg { width: 16px; height: 16px; }
 .op-source-table .op-source-truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.op-source-table .op-source-access-expired { color: #b45309; font-weight: 600; }
 .op-source-table td { padding-top: 12px; padding-bottom: 12px; }
 .op-source-row-actions { flex-direction: row; align-items: center; flex-wrap: wrap; gap: 6px 10px; }
 .op-source-row-actions > button { flex-shrink: 0; gap: 6px; white-space: nowrap; }
@@ -126,6 +133,7 @@
 .op-facts strong { font-weight: 600; font-size: 14px; overflow-wrap: anywhere; }
 .op-facts .wide { grid-column: 1 / -1; }
 .op-source-link { display: inline-flex; gap: 6px; align-items: center; color: var(--primary); font-size: 13px; }
+.op-source-link[aria-disabled="true"] { color: var(--muted); cursor: default; }
 .op-notice { border: 1px solid var(--line); border-radius: 12px; padding: 18px; background: #fbfcfe; scroll-margin-top: 90px; }
 .op-notice p { font-size: 13px; }
 .op-score-summary { padding: 6px 0 16px; text-align: center; }
@@ -161,6 +169,8 @@
 .op-detail-quick-facts strong { color: var(--heading); font-size: var(--font-size-card-title); font-variant-numeric: tabular-nums; }
 .op-detail-quick-facts .op-detail-saved-score { color: var(--op-score-color); font-size: var(--font-size-page-title); line-height: 1.15; }
 .op-detail-quick-facts .op-money-hero { font-size: var(--font-size-page-title); line-height: 1.4; }
+.op-score-meta { color: var(--muted); font-size: var(--font-size-secondary); font-weight: 400; line-height: 1.6; }
+.op-detail-score-fact .op-detail-saved-score { justify-self: start; }
 .op-money-hero .op-money-unit { font-size: var(--font-size-control); }
 .op-detail-saved-score small { font-size: var(--font-size-control); margin-left: 5px; font-weight: 400; }
 .op-linked-project { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; margin-top: 14px; font-size: var(--font-size-control); }
@@ -177,8 +187,43 @@
 .op-current-risks { margin: 16px 0; font-size: var(--font-size-control); }
 .op-current-risks > strong { color: var(--heading); }
 .op-assessment-table { margin-top: 16px; }
-.op-assessment-table td { padding-top: 12px; padding-bottom: 12px; vertical-align: middle; }
-.op-assessment-table td:last-child { white-space: nowrap; }
+.op-table.op-assessment-table { min-width: 760px; table-layout: fixed; }
+.op-assessment-table td { padding-top: 12px; padding-bottom: 12px; vertical-align: top; white-space: normal; line-height: 1.75; }
+.op-table .op-assessment-score-cell { text-align: center; white-space: nowrap; }
+.op-table .op-assessment-points { display: inline-flex; align-items: baseline; gap: 3px; color: var(--heading); font-size: var(--font-size-control); font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.op-table .op-assessment-points small { display: inline; margin: 0; color: var(--muted); font-size: var(--font-size-secondary); font-weight: 400; line-height: inherit; }
+.op-assessment-points-missing { flex-shrink: 0; color: var(--muted); font-size: var(--font-size-secondary); white-space: nowrap; }
+.op-assessment-table td:nth-child(-n+2), .op-qualification-table td:nth-child(-n+2) { white-space: nowrap; }
+.op-assessment-table td:nth-child(-n+2) > strong, .op-assessment-table td:nth-child(-n+2) > span,
+.op-qualification-table td:nth-child(-n+2) > strong, .op-qualification-table td:nth-child(-n+2) > span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.op-table .op-qualification-detail .op-assessment-points { color: var(--text); font-weight: 500; }
+.op-table.op-assessment-table td.op-assessment-evidence { padding-left: 14px; padding-right: 16px; }
+.op-evidence-line { display: grid; grid-template-columns: 68px minmax(0, 1fr); gap: 10px; font-size: var(--font-size-control); }
+.op-evidence-line + .op-evidence-line { margin-top: 6px; }
+.op-evidence-label { color: var(--muted); }
+.op-evidence-value { min-width: 0; overflow-wrap: anywhere; white-space: pre-line; }
+.op-assessment-table .op-evidence-caption { margin: 0 0 10px; color: var(--muted); font-size: var(--font-size-secondary); }
+.op-assessment-table .op-qualification-overview td { background: #f8fafc; }
+.op-qualification-summary { color: var(--heading); font-size: var(--font-size-control); }
+.op-qualification-overview .op-evidence-caption { margin: 5px 0 0; }
+.op-assessment-subitem { display: block; padding-left: 14px; color: var(--text); font-weight: 500; }
+.op-assessment-table .op-qualification-detail td { padding-top: 10px; padding-bottom: 10px; }
+.op-qualification-detail .op-judgment { font-weight: 500; }
+.op-evidence-material + .op-evidence-material { margin-top: 7px; }
+.op-evidence-material .op-source-link { align-items: flex-start; line-height: 1.75; }
+.op-evidence-material small { margin-top: 3px; }
+.op-evidence-material small.op-judgment-red { color: var(--red); }
+.op-evidence-material small.op-judgment-orange { color: #b45309; }
+.op-table.op-qualification-table { min-width: 760px; table-layout: fixed; }
+.op-table.op-qualification-table td { padding: 10px 12px; vertical-align: top; line-height: 1.75; }
+.op-table.op-qualification-table td.op-assessment-evidence { padding-left: 14px; padding-right: 16px; }
+.op-notice p { white-space: pre-wrap; }
+.op-judgment { font-weight: 600; line-height: 1.7; }
+.op-judgment-green { color: var(--green); }
+.op-judgment-orange { color: #b45309; }
+.op-judgment-red { color: var(--red); }
+.op-judgment-blue { color: var(--primary); }
+.op-judgment-muted { color: var(--muted); }
 .op-detail-fold { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 14px; }
 .op-detail-fold > summary { color: var(--primary); cursor: pointer; font-size: var(--font-size-control); line-height: 1.7; }
 .op-detail-fold > summary:focus-visible { outline: 2px solid var(--primary); outline-offset: 4px; border-radius: 4px; }
@@ -188,12 +233,12 @@
 .op-notice-sources { display: grid; gap: 10px; }
 .op-notice-source { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--line); font-size: var(--font-size-control); }
 .op-detail-files { margin-top: 12px; }
-.op-basis-meta { display: grid; gap: 10px; margin: 0 0 18px; font-size: var(--font-size-control); }
-.op-basis-meta > div { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 14px; }
-.op-basis-meta dt { color: var(--muted); }
-.op-basis-meta dd { margin: 0; overflow-wrap: anywhere; }
-.op-basis-original { margin-bottom: 16px; }
-.op-basis-original mark { color: inherit; background: var(--orange-soft); padding: 2px 0; line-height: 1.9; }
+.op-detail-page .op-detail-fold { border-top: 0; padding-top: 0; }
+.op-detail-page .op-notice-source { border-bottom: 0; padding-bottom: 0; }
+.op-detail-page .op-notice-source + .op-notice-source { border-top: 1px solid var(--line); padding-top: 10px; }
+.op-detail-page .op-notice-source > strong { min-width: 0; overflow-wrap: anywhere; }
+.op-detail-page .op-notice-source > .op-source-link { flex-shrink: 0; }
+.op-detail-page .op-detail-files > .op-help { margin: 0; font-size: var(--font-size-control); }
 .op-preview-file-head { display: flex; gap: 12px; align-items: center; margin-bottom: 18px; min-width: 0; }
 .op-preview-file-head > div { min-width: 0; overflow-wrap: anywhere; }
 .op-preview-file-head small { display: block; color: var(--muted); margin-top: 5px; }
@@ -257,6 +302,13 @@
 .op-modal-summary { margin: 0 0 16px; padding: 14px; background: #f8fafc; border-radius: 12px; font-size: 13px; line-height: 1.8; }
 .op-transfer-summary { margin: 0; overflow-wrap: anywhere; }
 .op-modal-summary p { margin: 6px 0 0; }
+.op-review-concerns { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
+.op-review-concerns .op-risk-list { margin-bottom: 0; }
+.op-collection-status { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; padding: 9px 12px; color: var(--primary); background: var(--primary-soft); border-radius: 10px; font-size: var(--font-size-control); }
+.op-collection-status > span:first-child { display: inline-flex; }
+.op-collection-status svg { width: 16px; height: 16px; }
+.op-rule-snapshot { margin: 12px 0 0; }
+.op-rule-history .op-rule-snapshot { padding: 0 12px 12px; }
 .op-main-file-label { display: inline-flex; align-items: center; flex-shrink: 0; gap: 5px; white-space: nowrap; }
 .op-linked-project .op-transfer-record { flex-basis: 100%; line-height: 1.6; overflow-wrap: anywhere; }
 .op-list-actions .btn-icon svg { width: 14px; height: 14px; }
