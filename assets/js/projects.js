@@ -2,7 +2,8 @@
   "use strict";
 
   let projects = window.BiddingProjectStore.all();
-  let activeFilter = "all";
+  const entryParams = new URLSearchParams(window.location.search);
+  let activeFilter = ["all", "ongoing", "deadline", "archived", "active"].includes(entryParams.get("filter")) ? entryParams.get("filter") : "all";
   let currentPage = 1;
   const pageSize = 10;
   let pendingProjectId = "";
@@ -19,17 +20,16 @@
   }
 
   function listStage(project) {
-    const stage = String(project.stage || "");
-    if (stage.indexOf("编制") !== -1) return "标书编制";
-    if (stage.indexOf("质量审核") !== -1) return "质量审核";
-    return stage || "解析中";
+    const page = window.BiddingProjectStore.entry(project);
+    if (page === "project-files.html") return project.status === "parsing" ? "解析中" : "招标文件";
+    return { "project-analysis.html": "解析结果", "project-writing.html": "标书编制", "project-quality.html": "质量审核", "project-delivery.html": "交付归档" }[page];
   }
 
   function updateProjectCounts() {
     const counts = projects.reduce(function (summary, project) {
       summary.all += 1;
-      if (project.status === "deadline") summary.deadline += 1;
-      else if (project.status === "archived") summary.archived += 1;
+      if (window.BiddingProjectStore.isUrgent(project)) summary.deadline += 1;
+      if (project.status === "archived") summary.archived += 1;
       else summary.ongoing += 1;
       return summary;
     }, { all: 0, ongoing: 0, deadline: 0, archived: 0 });
@@ -46,6 +46,9 @@
       const node = document.getElementById(entry[0]);
       if (node) node.textContent = String(entry[1]);
     });
+    const near = projects.filter(function (project) { return window.BiddingProjectStore.isUrgent(project); }).sort(function (left, right) { return window.BiddingProjectStore.deadlineState(left).at - window.BiddingProjectStore.deadlineState(right).at; });
+    const hint = document.getElementById("deadlineProjectHint");
+    if (hint) hint.textContent = near.length ? "最早截止 " + near[0].deadline : "当前无 72 小时内截标的项目";
   }
 
   function projectMatches(project) {
@@ -54,10 +57,12 @@
     const owner = document.getElementById("ownerFilter").value;
     const searchable = [project.name, project.id, project.purchaser].join(" ").toLowerCase();
     const filterMatch = activeFilter === "all" ||
-      (activeFilter === "ongoing" && project.status !== "archived" && project.status !== "deadline") ||
-      (activeFilter === "deadline" && project.status === "deadline") ||
+      (activeFilter === "active" && project.status !== "archived") ||
+      (activeFilter === "ongoing" && project.status !== "archived") ||
+      (activeFilter === "deadline" && window.BiddingProjectStore.isUrgent(project)) ||
       (activeFilter === "archived" && project.status === "archived");
-    return filterMatch && (!query || searchable.indexOf(query) !== -1) && (stage === "all" || listStage(project) === stage) && (owner === "all" || project.owner === owner);
+    const stageMatch = stage === "all" || (stage === "解析与研判" ? ["project-files.html", "project-analysis.html"].includes(projectEntryPage(project)) : listStage(project) === stage);
+    return filterMatch && (!query || searchable.indexOf(query) !== -1) && stageMatch && (owner === "all" || project.owner === owner);
   }
 
   function projectEntryPage(project) {
@@ -79,7 +84,9 @@
     ["name", "purchaser", "budget", "deadline", "deadlineText", "stageDetail", "owner", "fileName"].forEach(function (key) {
       project[key] = String(project[key] || "").replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; });
     });
-    const urgentClass = project.status === "deadline" ? " style=\"color:#dc2626\"" : "";
+    const timing = window.BiddingProjectStore.deadlineState(rawProject);
+    const urgentClass = timing.key === "near" ? " style=\"color:#dc2626\"" : "";
+    project.deadlineText = timing.label;
     const projectSubline = project.opportunityId ? '<span>招标机会转入 · ' + project.id + '</span>' : project.status === "parsing" ?
       '<span class="project-row-parsing">' + project.fileName + " · 项目编号生成中</span>" :
       "<span>" + project.id + "</span>";
@@ -119,7 +126,8 @@
     body.innerHTML = pageProjects.map(rowTemplate).join("");
     tableWrap.classList.toggle("hidden", filtered.length === 0);
     empty.classList.toggle("hidden", filtered.length !== 0);
-    document.getElementById("projectResultCount").textContent = "共 " + filtered.length + " 条项目记录 · 每页 " + pageSize + " 条";
+    document.getElementById("projectResultCount").textContent = (activeFilter === "active" ? "未归档项目 · " : "") + "共 " + filtered.length + " 条项目记录 · 每页 " + pageSize + " 条";
+    document.querySelector(".module-heading p").textContent = activeFilter === "active" ? "当前仅查看未归档项目；可调整阶段、切换状态或重置筛选条件。" : "统一管理招标文件、解析结果、标书编制、质量审核与交付归档。";
     renderPagination(totalPages, filtered.length);
   }
 
@@ -210,6 +218,13 @@
 
   function init() {
     loadPendingProject();
+    const stageFilter = document.getElementById("stageFilter");
+    if (Array.from(stageFilter.options).some(function (option) { return option.value === entryParams.get("stage"); })) stageFilter.value = entryParams.get("stage");
+    // An active-stage entry includes deadline projects; retain the existing status tabs.
+    document.querySelectorAll("[data-project-filter]").forEach(function (button) {
+      const value = button.getAttribute("data-project-filter");
+      button.classList.toggle("active", value === activeFilter || activeFilter === "active" && value === "all");
+    });
     updateProjectCounts();
     renderProjects();
     initEvents();

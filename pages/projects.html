@@ -32,11 +32,11 @@
       </article>
       <article class="project-metric card">
         <div class="metric-symbol cyan"><svg viewBox="0 0 24 24"><path d="M4 19V9M10 19V5M16 19v-7M22 19V3"/></svg></div>
-        <div class="metric-copy"><span>进行中</span><strong id="ongoingProjectMetric">6</strong><small>其中 3 个处于标书编制或质量审核阶段</small></div>
+        <div class="metric-copy"><span>进行中</span><strong id="ongoingProjectMetric">6</strong><small>尚未归档，包含临近截标的项目</small></div>
       </article>
       <article class="project-metric card">
         <div class="metric-symbol orange"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
-        <div class="metric-copy"><span>72 小时内截标</span><strong id="deadlineProjectMetric">2</strong><small>最早剩余 61 小时</small></div>
+        <div class="metric-copy"><span>72 小时内截标</span><strong id="deadlineProjectMetric">0</strong><small id="deadlineProjectHint">按当前投标截止时间统计</small></div>
       </article>
       <article class="project-metric card">
         <div class="metric-symbol green"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="5" rx="1"/><path d="M5 9v11h14V9M9 13h6"/><path d="m9 17 2 2 4-4"/></svg></div>
@@ -60,6 +60,8 @@
         <div class="filter-group">
           <select class="toolbar-select" id="stageFilter" aria-label="按当前阶段筛选">
             <option value="all">全部阶段</option>
+            <option value="解析与研判">招标解析与研判</option>
+            <option value="招标文件">招标文件</option>
             <option value="解析中">解析中</option>
             <option value="解析结果">解析结果</option>
             <option value="标书编制">标书编制</option>

@@ -6,6 +6,7 @@
   const STORAGE_KEY = "biddingLedgerRecords";
   const ownerOptions = ["李明远", "周晓雯", "王子谦", "陈思远", "赵嘉怡"];
   let activeFilter = "all";
+  let homeScope = "";
   let currentPage = 1;
   let editingId = null;
   let feeId = null;
@@ -376,6 +377,10 @@
 
   let records = loadRecords();
 
+  // Home uses the same normalized records without initializing ledger controls.
+  window.BiddingLedgerData = { all: loadRecords };
+  if (document.body.getAttribute("data-page") === "dashboard") return;
+
   function recordById(id) {
     return records.find(function (item) { return item.id === id; });
   }
@@ -386,7 +391,8 @@
     const owner = document.getElementById("ledgerOwnerFilter").value;
     const feeFilter = document.getElementById("ledgerFeeFilter").value;
     const searchable = [record.id, record.name, record.purchaser].join(" ").toLowerCase();
-    return (!query || searchable.indexOf(query) !== -1) &&
+    const scopeMatch = homeScope !== "followup" || record.result === "pending" || record.reviewStatus !== "已完成";
+    return scopeMatch && (!query || searchable.indexOf(query) !== -1) &&
       (year === "all" || record.bidDate.slice(0, 4) === year) &&
       (owner === "all" || record.owner === owner) &&
       (feeFilter === "all" || feeSummary(record).key === feeFilter);
@@ -498,7 +504,9 @@
     tableWrap.classList.toggle("hidden", filtered.length === 0);
     empty.classList.toggle("hidden", filtered.length !== 0);
     const end = Math.min(start + pageRecords.length, filtered.length);
-    document.getElementById("ledgerResultCount").textContent = filtered.length ? "共 " + filtered.length + " 条台账记录，当前显示 " + (start + 1) + "-" + end + " 条" : "共 0 条台账记录";
+    const scopeLabel = homeScope === "followup" ? "结果待公布或复盘未完成 · " : homeScope === "pending" ? "结果待公布 · " : "";
+    document.getElementById("ledgerResultCount").textContent = scopeLabel + (filtered.length ? "共 " + filtered.length + " 条台账记录，当前显示 " + (start + 1) + "-" + end + " 条" : "共 0 条台账记录");
+    saveListState();
   }
 
   function hasUnsavedChanges() {
@@ -864,9 +872,33 @@
     notify("投标结果已更新，台账记录已保存", "success");
   }
 
+  function historyListState() {
+    try {
+      const state = window.history.state && window.history.state.biddingLedgerView;
+      return state && typeof state === "object" && !Array.isArray(state) ? state : null;
+    } catch (error) { return null; }
+  }
+
+  function entryListState() {
+    try {
+      const raw = new URLSearchParams(window.location.search).get("returnState");
+      const state = raw ? JSON.parse(raw) : null;
+      return state && typeof state === "object" && !Array.isArray(state) ? state : null;
+    } catch (error) { return null; }
+  }
+
+  function isRestoredNavigation() {
+    try {
+      const performance = window.performance;
+      const entry = performance && performance.getEntriesByType && performance.getEntriesByType("navigation")[0];
+      return entry ? ["back_forward", "reload"].includes(entry.type) : Boolean(performance && performance.navigation && [1, 2].includes(performance.navigation.type));
+    } catch (error) { return false; }
+  }
+
   function saveListState() {
     const state = {
       activeFilter: activeFilter,
+      homeScope: homeScope,
       currentPage: currentPage,
       search: document.getElementById("ledgerSearch").value,
       year: document.getElementById("ledgerYearFilter").value,
@@ -874,13 +906,22 @@
       fee: document.getElementById("ledgerFeeFilter").value
     };
     try { window.sessionStorage.setItem("biddingLedgerListState", JSON.stringify(state)); } catch (error) { /* storage unavailable */ }
+    try {
+      // Keep each history entry's own view, without adding entries or changing its URL.
+      window.history.replaceState(Object.assign({}, window.history.state || {}, { biddingLedgerView: state }), "");
+    } catch (error) { /* Session storage remains the return-state fallback. */ }
+    return state;
   }
 
   function restoreListState() {
-    let state = null;
-    try { state = JSON.parse(window.sessionStorage.getItem("biddingLedgerListState") || "null"); } catch (error) { state = null; }
-    if (!state) return;
+    // A detail return carries its own source view, independent of later list visits.
+    let state = historyListState() || entryListState();
+    if (!state) {
+      try { state = JSON.parse(window.sessionStorage.getItem("biddingLedgerListState") || "null"); } catch (error) { state = null; }
+    }
+    if (!state || typeof state !== "object" || Array.isArray(state)) return;
     activeFilter = ["all", "pending", "won", "lost"].indexOf(state.activeFilter) === -1 ? "all" : state.activeFilter;
+    homeScope = ["followup", "pending"].includes(state.homeScope) ? state.homeScope : "";
     currentPage = Number.isInteger(state.currentPage) && state.currentPage > 0 ? state.currentPage : 1;
     document.getElementById("ledgerSearch").value = state.search || "";
     document.getElementById("ledgerYearFilter").value = state.year || currentYear;
@@ -896,13 +937,35 @@
     });
   }
 
+  function applyHomeEntry() {
+    const params = new URLSearchParams(window.location.search);
+    const scope = params.get("scope");
+    if (params.get("from") !== "dashboard" || !["followup", "pending"].includes(scope)) return false;
+    // Home parameters apply only to a fresh entry; back/forward and reload restore the saved view.
+    if (historyListState() || entryListState() || isRestoredNavigation()) return false;
+    homeScope = scope;
+    activeFilter = scope === "pending" ? "pending" : "all";
+    currentPage = 1;
+    document.getElementById("ledgerSearch").value = "";
+    document.getElementById("ledgerYearFilter").value = "all";
+    document.getElementById("ledgerOwnerFilter").value = "all";
+    document.getElementById("ledgerFeeFilter").value = "all";
+    document.querySelectorAll("[data-ledger-filter]").forEach(function (button) {
+      const active = button.getAttribute("data-ledger-filter") === activeFilter;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-selected", active ? "true" : "false");
+    });
+    return true;
+  }
+
   function openDetail(id) {
     const record = recordById(id);
     if (!record) return;
     persistRecords();
-    saveListState();
+    const sourceState = saveListState();
     try { window.sessionStorage.setItem("biddingLedgerSelectedRecord", JSON.stringify(record)); } catch (error) { /* storage unavailable */ }
-    window.location.href = "ledger-detail.html?id=" + encodeURIComponent(record.id);
+    const params = new URLSearchParams({ id: record.id, returnState: JSON.stringify(sourceState) });
+    window.location.href = "ledger-detail.html?" + params.toString();
   }
 
   function reviewActionTemplate(action, index) {
@@ -1196,6 +1259,7 @@
 
   function resetFilters() {
     activeFilter = "all";
+    homeScope = "";
     currentPage = 1;
     document.getElementById("ledgerSearch").value = "";
     document.getElementById("ledgerYearFilter").value = currentYear;
@@ -1222,6 +1286,7 @@
     document.querySelectorAll("[data-ledger-filter]").forEach(function (button) {
       button.addEventListener("click", function () {
         activeFilter = button.getAttribute("data-ledger-filter");
+        homeScope = "";
         currentPage = 1;
         document.querySelectorAll("[data-ledger-filter]").forEach(function (item) {
           const active = item === button;
@@ -1365,7 +1430,7 @@
 
   function init() {
     initBackdrop();
-    restoreListState();
+    if (!applyHomeEntry()) restoreListState();
     renderMetrics();
     renderTable();
     initEvents();

@@ -635,6 +635,14 @@
     if (!item.acquisitionEnd) return { key: "unknown", text: "获取期限待核验", tone: "orange", blocked: false };
     return { key: "open", text: item.acquired ? "已获取文件" : "可获取文件", tone: "green", blocked: false };
   }
+  function isUrgent(item, now) {
+    const current = now || Date.now();
+    return !item.projectId && ["pending", "approved"].includes(item.review) && !status(item, current).blocked &&
+      [item.acquired ? null : item.acquisitionEnd, item.registered ? null : item.registrationEnd, item.deadline].some(function (value) {
+        const remaining = time(value) - current;
+        return remaining > 0 && remaining <= 72 * 3600000;
+      });
+  }
   function participationChecks(item, now) {
     const current = now || Date.now(), checks = [];
     if (!Number.isFinite(time(item.deadline))) checks.push("公告未明确投标截止时间，请关注后续公告");
@@ -1141,5 +1149,5 @@
   }
   function due(now) { return dueRules(now).length > 0; }
   window.OpportunityStore = { key: KEY, get: function () { return state; }, copy: copy, refresh: refresh, change: change, find: find, status: status, participationChecks: participationChecks, capability: capability, evaluate: evaluate, assessment: assessment, reassess: reassess, collect: collect, review: review, transfer: transfer, updateProject: updateProject, stamp: stamp, time: time, due: due, dueRules: dueRules, dimensions: dimensions, admission: admission, projectConditions: projectConditions, ruleSummary: ruleSummary, ruleModel: ruleModel, scopeGroups: scopeGroups, exclusionGroups: exclusionGroups, focusOptions: focusOptions, saveRule: saveRule, saveSource: saveSource, checkSource: checkSource, sourceConfig: sourceConfig, ruleFields: ruleFields, restoredDefaults: restoredDefaults, persistent: Boolean(storage), storage: storage };
-  Object.assign(window.OpportunityStore, { ruleBasis: ruleBasis, actionContext: actionContext, contextMessage: contextMessage, sourceAccess: sourceAccess, sourceEditContext: sourceEditContext });
+  Object.assign(window.OpportunityStore, { isUrgent: isUrgent, ruleBasis: ruleBasis, actionContext: actionContext, contextMessage: contextMessage, sourceAccess: sourceAccess, sourceEditContext: sourceEditContext });
 })();

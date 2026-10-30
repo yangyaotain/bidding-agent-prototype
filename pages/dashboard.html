@@ -10,13 +10,12 @@
 </head>
 <body class="app-page" data-page="dashboard">
   <div id="appHeader"></div>
-
   <main class="app-main">
     <section class="dashboard-intro">
       <div class="intro-copy">
-        <div class="intro-eyebrow"><i></i><span id="currentDate">2026年7月15日 星期三</span></div>
-        <h1 id="dashboardGreeting">下午好，李明远</h1>
-        <p id="dashboardSummary">当前有 8 个投标项目正在推进，其中 2 个临近截标。建议优先处理解析结论确认、质量问题整改和最终交付确认。</p>
+        <div class="intro-eyebrow"><i></i><span id="currentDate"></span></div>
+        <h1 id="dashboardGreeting">欢迎回来</h1>
+        <p id="dashboardSummary">查看招标机会，推进投标项目，及时处理关键事项。</p>
       </div>
       <div class="intro-actions">
         <a class="primary-btn" href="project-create.html">
@@ -30,115 +29,130 @@
       </div>
     </section>
 
-    <section class="metrics-grid" aria-label="当前需要关注的工作">
-      <a class="metric-card card" href="projects.html">
-        <div class="metric-icon orange"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
-        <div class="metric-copy"><span>临近截标</span><strong id="deadlineMetric">2</strong><small>优先核对截止安排与当前进度</small></div>
-      </a>
-      <a class="metric-card card" href="project-writing.html?id=BID-202607-004#qualityReviewStatusCard">
-        <div class="metric-icon red"><svg viewBox="0 0 24 24"><path d="M10.3 3.8 2.7 17a2 2 0 0 0 1.8 3h15a2 2 0 0 0 1.8-3L13.7 3.8a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg></div>
-        <div class="metric-copy"><span>阻断与材料缺口</span><strong id="gapMetric">4</strong><small>涉及服务响应、人员和证明材料</small></div>
-      </a>
-      <a class="metric-card card" href="project-analysis.html?id=BID-202607-002">
-        <div class="metric-icon cyan"><svg viewBox="0 0 24 24"><path d="M4 5h16v14H4z"/><path d="M8 9h8M8 13h5"/><path d="m15 16 1.5 1.5L20 14"/></svg></div>
-        <div class="metric-copy"><span>待人工确认</span><strong id="confirmationMetric">8</strong><small>解析、偏离、报价与关键承诺</small></div>
-      </a>
-      <a class="metric-card card" href="project-delivery.html?id=BID-202607-005">
-        <div class="metric-icon green"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
-        <div class="metric-copy"><span>待终审交付</span><strong id="deliveryMetric">1</strong><small>确认最终版本后进入交付归档</small></div>
-      </a>
-      <a class="metric-card card" href="ledger.html">
-        <div class="metric-icon"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 3v18M11 8h6M11 12h6M11 16h4"/></svg></div>
-        <div class="metric-copy"><span>结果待维护</span><strong id="resultMetric">1</strong><small>补充公告、得分、排名与佐证材料</small></div>
-      </a>
+
+    <section class="metrics-grid" aria-label="当前工作概览">
+      <button class="metric-card card" type="button" data-home-metric="confirmation" title="首次确认及需重新确认的机会" aria-pressed="false">
+        <span class="metric-icon "><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m16 16 5 5M8 11h6M11 8v6"/></svg></span>
+        <span class="metric-copy"><span>机会待确认</span><strong id="opConfirmationMetric">0</strong><small>首次确认及需重新确认的机会</small></span>
+      </button>
+      <button class="metric-card card" type="button" data-home-metric="approved" title="尚未转入正式投标项目" aria-pressed="false">
+        <span class="metric-icon green"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM8 9h8M8 13h4m2 2 2 2 4-4"/></svg></span>
+        <span class="metric-copy"><span>已确认未转项目</span><strong id="opApprovedMetric">0</strong><small id="approvedMetricHint">尚未转入正式投标项目</small></span>
+      </button>
+      <button class="metric-card card" type="button" data-home-metric="active" title="直接新建及机会转入的未归档项目" aria-pressed="false">
+        <span class="metric-icon cyan"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="15" rx="2"/><path d="M8 5V3h8v2M3 10h18"/></svg></span>
+        <span class="metric-copy"><span>进行中项目</span><strong id="activeProjectMetric">0</strong><small>直接新建及机会转入的未归档项目</small></span>
+      </button>
+      <button class="metric-card card" type="button" data-home-metric="urgent" title="72 小时内获取、报名或投标截止" aria-pressed="false">
+        <span class="metric-icon orange"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+        <span class="metric-copy"><span>关键期限临近</span><strong id="urgentMetric">0</strong><small>72 小时内获取、报名或投标截止</small></span>
+      </button>
+      <button class="metric-card card" type="button" data-home-metric="tasks" title="机会人工确认、项目结论确认、人工审核及交付确认" aria-controls="dashboardTasks">
+        <span class="metric-icon red"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM8 9h8M8 13h5m2 3 1.5 1.5L20 14"/></svg></span>
+        <span class="metric-copy"><span>待处理事项</span><strong id="taskMetric">0</strong><small>机会确认、结论确认、审核及交付确认</small></span>
+      </button>
     </section>
 
     <section class="home-grid">
-      <article class="panel-card card">
+      <article class="panel-card card work-panel" aria-labelledby="dashboardWorkTitle">
         <header class="panel-head">
-          <div><h2>重点投标项目</h2><p>优先展示临近截标、待确认和待交付项目</p></div>
-          <a class="text-btn" href="projects.html"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14M14 7l5 5-5 5"/></svg></span><span>全部项目</span></a>
+          <div><h2 id="dashboardWorkTitle">机会与项目</h2><p>查看重点机会，继续推进投标项目</p></div>
+          <a class="text-btn" id="dashboardViewAll" href="opportunities.html?tab=list"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14M14 7l5 5-5 5"/></svg></span><span>全部机会</span></a>
         </header>
-        <div class="project-table-wrap">
-          <table class="project-table">
-            <colgroup><col style="width:31%"/><col style="width:18%"/><col style="width:19%"/><col style="width:22%"/><col style="width:10%"/></colgroup>
-            <thead><tr><th>项目名称</th><th>投标截止</th><th>当前阶段</th><th>下一步</th><th>操作</th></tr></thead>
-            <tbody id="priorityProjectBody"></tbody>
-          </table>
+        <div class="dashboard-tabs" role="tablist" aria-label="机会与项目">
+          <button class="dashboard-tab active" type="button" id="homeOpportunityTab" role="tab" aria-selected="true" aria-controls="homeOpportunityPanel" tabindex="0" data-home-tab="opportunities">招标机会<span id="homeOpportunityCount">0</span></button>
+          <button class="dashboard-tab" type="button" id="homeProjectTab" role="tab" aria-selected="false" aria-controls="homeProjectPanel" tabindex="-1" data-home-tab="projects">投标项目<span id="homeProjectCount">0</span></button>
         </div>
+        <div class="work-panels">
+          <section id="homeOpportunityPanel" role="tabpanel" aria-labelledby="homeOpportunityTab">
+            <div class="project-table-wrap">
+              <table class="project-table opportunity-preview" aria-label="重点招标机会">
+                <colgroup><col style="width:33%"/><col style="width:13%"/><col style="width:23%"/><col style="width:20%"/><col style="width:11%"/></colgroup>
+                <thead><tr><th>机会名称</th><th>本包预算</th><th>关键期限</th><th>初评与处理状态</th><th>操作</th></tr></thead>
+                <tbody id="priorityOpportunityBody"></tbody>
+              </table>
+            </div>
+          </section>
+          <section id="homeProjectPanel" role="tabpanel" aria-labelledby="homeProjectTab" hidden>
+            <div class="project-table-wrap">
+              <table class="project-table" aria-label="重点投标项目">
+                <colgroup><col style="width:31%"/><col style="width:20%"/><col style="width:16%"/><col style="width:22%"/><col style="width:11%"/></colgroup>
+                <thead><tr><th>项目名称</th><th>投标截止</th><th>当前阶段</th><th>下一步</th><th>操作</th></tr></thead>
+                <tbody id="priorityProjectBody"></tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+        <p class="dashboard-list-scope" id="dashboardListScope" aria-live="polite"></p>
       </article>
-
-      <article class="panel-card card">
-        <header class="panel-head"><div><h2>待我处理</h2><p>按业务影响和项目紧迫程度排序</p></div><span class="status-tag blue">5 项</span></header>
-        <div class="task-list">
-          <div class="task-item">
-            <span class="task-status danger"><svg viewBox="0 0 24 24"><path d="M10.3 3.8 2.7 17a2 2 0 0 0 1.8 3h15a2 2 0 0 0 1.8-3L13.7 3.8a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg></span>
-            <div class="task-copy"><strong>审核港口运维项目送审标书</strong><span>质量审核 · 技术标与商务标待人工查看</span></div>
-            <a class="task-action-btn" href="project-quality.html?id=BID-202601-001"><span>去审核</span><svg viewBox="0 0 24 24"><path d="M5 12h14M14 7l5 5-5 5"/></svg></a>
-          </div>
-          <div class="task-item">
-            <span class="task-status warning"><svg viewBox="0 0 24 24"><path d="M4 5h16v14H4z"/><path d="M8 9h8M8 13h5"/></svg></span>
-            <div class="task-copy"><strong>确认智慧园区项目综合投标结论</strong><span>解析结果 · 资格与材料缺口待确认</span></div>
-            <a class="task-action-btn" href="project-analysis.html?id=BID-202607-002"><span>去确认</span><svg viewBox="0 0 24 24"><path d="M5 12h14M14 7l5 5-5 5"/></svg></a>
-          </div>
-          <div class="task-item">
-            <span class="task-status"><svg viewBox="0 0 24 24"><path d="M4 5a2 2 0 0 1 2-2h12v17H6a2 2 0 0 0-2 2V5z"/><path d="M8 7h6M8 11h7"/></svg></span>
-            <div class="task-copy"><strong>完善轨道交通项目技术标重点章节</strong><span>标书编制 · 技术方案完善中</span></div>
-            <a class="task-action-btn" href="project-writing.html?id=BID-202607-006"><span>去编制</span><svg viewBox="0 0 24 24"><path d="M5 12h14M14 7l5 5-5 5"/></svg></a>
-          </div>
-          <div class="task-item">
-            <span class="task-status warning"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h6"/></svg></span>
-            <div class="task-copy"><strong>确认数据中台项目最终交付文件</strong><span>交付归档 · 正式版本待人工确认</span></div>
-            <a class="task-action-btn" href="project-delivery.html?id=BID-202607-005"><span>去终审</span><svg viewBox="0 0 24 24"><path d="M5 12h14M14 7l5 5-5 5"/></svg></a>
-          </div>
-          <div class="task-item">
-            <span class="task-status"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 3v18M11 8h6M11 12h6M11 16h4"/></svg></span>
-            <div class="task-copy"><strong>维护城市运行项目投标结果</strong><span>投标台账 · 结果公告、得分和排名待补充</span></div>
-            <a class="task-action-btn" href="ledger.html"><span>去维护</span><svg viewBox="0 0 24 24"><path d="M5 12h14M14 7l5 5-5 5"/></svg></a>
-          </div>
-        </div>
+      <article class="panel-card card dashboard-tasks" id="dashboardTasks" aria-labelledby="dashboardTaskTitle">
+        <header class="panel-head"><div><h2 id="dashboardTaskTitle" tabindex="-1">待办事项</h2><p>仅列人工处理事项，按业务期限排序</p></div><span class="status-tag blue" id="dashboardTaskCount">0 项</span></header>
+        <div class="task-list" id="dashboardTaskList"></div>
+        <p class="task-list-note" id="dashboardTaskNote"></p>
       </article>
     </section>
 
     <section class="bottom-grid">
-      <article class="panel-card card">
-        <header class="panel-head"><div><h2>项目阶段态势</h2><p>按当前项目工作台的五个业务阶段汇总</p></div><a class="text-btn" href="projects.html"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14M14 7l5 5-5 5"/></svg></span><span>查看项目</span></a></header>
+      <article class="panel-card card workflow-panel" aria-labelledby="dashboardFlowTitle">
+        <header class="panel-head"><div><h2 id="dashboardFlowTitle">投标全流程</h2><p>机会决策、项目执行、结果复盘与知识复用</p></div></header>
         <div class="workflow-body">
-          <div class="stage-grid">
-            <div class="stage-item"><span class="stage-count" id="stageFilesCount">0</span><strong>招标文件</strong><span>上传、补遗与解析中</span></div>
-            <div class="stage-item"><span class="stage-count" id="stageAnalysisCount">2</span><strong>解析结果</strong><span>研判、策划与材料确认</span></div>
-            <div class="stage-item"><span class="stage-count" id="stageWritingCount">4</span><strong>标书编制</strong><span>章节编制与智能检查</span></div>
-            <div class="stage-item"><span class="stage-count" id="stageQualityCount">1</span><strong>质量审核</strong><span>人工查看技术标与商务标</span></div>
-            <div class="stage-item"><span class="stage-count" id="stageDeliveryCount">1</span><strong>交付归档</strong><span>终审、导出与归档</span></div>
+          <div class="flow-grid" aria-label="八节点投标业务闭环">
+            <a class="flow-step flow-step-1" href="opportunities.html?tab=list" aria-label="1 机会发现与初评">
+              <span class="flow-number">1</span><strong>机会发现与初评</strong><span class="flow-stat" id="flowOpportunity"></span><small>来源采集、筛选与初评</small>
+            </a>
+            <a class="flow-step flow-step-2" href="opportunities.html?tab=list&amp;metric=approved" aria-label="2 决策与建项">
+              <span class="flow-number">2</span><strong>决策与建项</strong><span class="flow-stat" id="flowDecision"></span><small>人工决定、转入或上传建项</small>
+            </a>
+            <a class="flow-step flow-step-3" href="projects.html?filter=active&amp;stage=解析与研判" aria-label="3 招标解析与研判">
+              <span class="flow-number">3</span><strong>招标解析与研判</strong><span class="flow-stat" id="flowAnalysis"></span><small>文件解析、资格与事项确认</small>
+            </a>
+            <a class="flow-step flow-step-4" href="projects.html?filter=active&amp;stage=标书编制" aria-label="4 标书编制与检查">
+              <span class="flow-number">4</span><strong>标书编制与检查</strong><span class="flow-stat" id="flowWriting"></span><small>章节编制、检查与整改</small>
+            </a>
+            <a class="flow-step flow-step-5" href="projects.html?filter=active&amp;stage=质量审核" aria-label="5 人工质量审核">
+              <span class="flow-number">5</span><strong>人工质量审核</strong><span class="flow-stat" id="flowQuality"></span><small>审核送审版本，退回再修改</small>
+            </a>
+            <a class="flow-step flow-step-6" href="projects.html?filter=active&amp;stage=交付归档" aria-label="6 文件交付与归档">
+              <span class="flow-number">6</span><strong>文件交付与归档</strong><span class="flow-stat" id="flowDelivery"></span><small>确认版本、导出和归档</small>
+            </a>
+            <a class="flow-step flow-step-7" href="ledger.html?from=dashboard&amp;scope=followup" aria-label="7 结果维护与复盘">
+              <span class="flow-number">7</span><strong>结果维护与复盘</strong><span class="flow-stat" id="flowResults"></span><small>跟进结果、复盘与改进</small>
+            </a>
+            <a class="flow-step flow-step-8" href="knowledge.html" aria-label="8 知识沉淀与复用">
+              <span class="flow-number">8</span><strong>知识沉淀与复用</strong><span class="flow-stat" id="flowKnowledge"></span><small>归档资料用于后续初评与编制</small>
+            </a>
           </div>
         </div>
       </article>
-
       <article class="panel-card card">
         <header class="panel-head"><div><h2>业务提醒</h2><p>集中处理知识资产和投标结果事项</p></div></header>
         <div class="business-reminder-list">
           <a class="business-reminder" href="knowledge.html?view=validity-alert">
             <span class="reminder-icon danger"><svg viewBox="0 0 24 24"><path d="M10.3 3.8 2.7 17a2 2 0 0 0 1.8 3h15a2 2 0 0 0 1.8-3L13.7 3.8a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg></span>
-            <span class="reminder-copy"><strong>知识资产有效期预警</strong><small>12 项资料需要关注，其中 1 项已过期</small></span>
-            <span class="status-tag red">12 项</span>
+            <span class="reminder-copy"><strong>知识资产有效期预警</strong><small id="validityReminderText">查看临期、过期及日期待补充的资料</small></span>
+            <span class="status-tag red" id="validityReminderCount">0 项</span>
           </a>
           <a class="business-reminder" href="knowledge.html?view=processing">
             <span class="reminder-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
-            <span class="reminder-copy"><strong>知识资料解析中</strong><small>11 项资料正在上传、识别或结构化处理</small></span>
-            <span class="status-tag blue">11 项</span>
+            <span class="reminder-copy"><strong>知识资料解析中</strong><small id="processingReminderText">查看正在识别或结构化处理的资料</small></span>
+            <span class="status-tag blue" id="processingReminderCount">0 项</span>
           </a>
-          <a class="business-reminder" href="ledger.html">
+          <a class="business-reminder" href="ledger.html?from=dashboard&amp;scope=pending">
             <span class="reminder-icon warning"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 3v18M11 8h6M11 12h6M11 16h4"/></svg></span>
-            <span class="reminder-copy"><strong>投标结果待维护</strong><small>1 个已投项目等待补充公告、得分与排名</small></span>
-            <span class="status-tag orange">1 项</span>
+            <span class="reminder-copy"><strong>投标结果待维护</strong><small id="resultReminderText">跟进公告、得分与排名</small></span>
+            <span class="status-tag orange" id="resultReminderCount">0 项</span>
           </a>
         </div>
       </article>
     </section>
   </main>
-
   <script src="../assets/js/common.js"></script>
   <script src="../assets/js/project-data.js"></script>
-  <script src="../assets/js/dashboard.js"></script>
+  <script src="../assets/js/knowledge-data.js"></script>
+  <script src="../assets/js/knowledge-common.js"></script>
+  <script src="../assets/js/opportunity-evidence.js?v=20261029-score-table-v3"></script>
+  <script src="../assets/js/opportunity-store.js?v=20261030-home"></script>
+  <script src="../assets/js/ledger.js"></script>
+  <script src="../assets/js/dashboard.js?v=20261030-home-v2"></script>
 </body>
 </html>

@@ -170,6 +170,17 @@
     const stage = String(project.stage || "");
     return project.filesChanged || project.status === "parsing" || stage === "解析中" ? "project-files.html" : /交付/.test(stage) || project.status === "archived" ? "project-delivery.html" : /质量/.test(stage) ? "project-quality.html" : /编制|生成/.test(stage) ? "project-writing.html" : "project-analysis.html";
   }
+  function deadlineState(project, now) {
+    const raw = String(project.deadline || "").trim();
+    const at = raw ? Date.parse(raw.replace(" ", "T") + (/[zZ]$|[+-]\d\d:\d\d$/.test(raw) ? "" : /^\d{4}-\d{2}-\d{2}$/.test(raw) ? "T23:59:59+08:00" : "+08:00")) : NaN;
+    const remaining = at - (Number.isFinite(now) ? now : Date.now());
+    if (project.status === "archived") return { key: "archived", label: "已交付归档", tone: "gray", at: at };
+    if (!Number.isFinite(at)) return { key: "unknown", label: "截止时间待解析", tone: "gray", at: at };
+    if (remaining <= 0) return { key: "closed", label: "投标已截止", tone: "gray", at: at };
+    if (remaining <= 72 * 3600000) return { key: "near", label: "72 小时内投标截止", tone: "red", at: at };
+    return { key: "open", label: "按计划推进", tone: "blue", at: at };
+  }
+  function isUrgent(project, now) { return deadlineState(project, now).key === "near"; }
   function allowed(project, section) {
     if (!project) return false;
     if (section === "files") return true;
@@ -178,7 +189,7 @@
     const current = entry(project).replace("project-", "").replace(".html", "");
     return order.indexOf(section) <= order.indexOf(current);
   }
-  window.BiddingProjectStore = { all: all, get: get, save: save, create: create, remove: remove, files: files, sourceSnapshot: sourceSnapshot, clearSession: clearSession, sync: sync, entry: entry, allowed: allowed };
+  window.BiddingProjectStore = { all: all, get: get, save: save, create: create, remove: remove, files: files, sourceSnapshot: sourceSnapshot, clearSession: clearSession, sync: sync, entry: entry, allowed: allowed, deadlineState: deadlineState, isUrgent: isUrgent };
 
   // Migrate the previous single-project cache once; opportunity records stay authoritative.
   try {

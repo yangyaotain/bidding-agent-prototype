@@ -7,6 +7,18 @@
   let noticeTimer = null;
   let activeVersionId = "";
 
+  function initReturnLinks() {
+    try {
+      const raw = new URLSearchParams(window.location.search).get("returnState");
+      const state = raw ? JSON.parse(raw) : null;
+      if (!state || typeof state !== "object" || Array.isArray(state)) return;
+      const params = new URLSearchParams({ returnState: JSON.stringify(state) });
+      document.querySelectorAll('.app-main a[href="ledger.html"]').forEach(function (link) {
+        link.setAttribute("href", "ledger.html?" + params.toString());
+      });
+    } catch (error) { /* Older or malformed detail links retain the ordinary list return. */ }
+  }
+
   function escapeHtml(value) {
     return String(value == null ? "" : value).replace(/[&<>"']/g, function (char) {
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char];
@@ -814,6 +826,7 @@
   }
 
   function init() {
+    initReturnLinks();
     const record = loadRecord();
     if (!record) {
       document.getElementById("ledgerDetailContent").classList.add("hidden");

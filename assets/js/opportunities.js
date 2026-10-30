@@ -67,6 +67,7 @@
 
   function opportunityReturnUrl() {
     const target = pageParams.get("returnTo") || "";
+    if (target === "dashboard.html") return target;
     if (target.startsWith("opportunities.html?")) {
       const input = new URLSearchParams(target.slice(target.indexOf("?") + 1)), output = new URLSearchParams({ tab: "list" });
       ["listPage", "listQuery", "listReview", "listRegion", "listSource", "listSourceQuery", "listScore", "metric", "listScroll"].forEach(function (key) { if (input.has(key)) output.set(key, input.get(key)); });
@@ -452,7 +453,7 @@
       return '<button type="button" class="project-metric card' + active + '" data-op-action="metric" data-id="' + m[0] + '">' + content + '</button>';
     }).join("");
   }
-  function isUrgent(item) { const now = Date.now(); return !item.projectId && ["pending", "approved"].includes(item.review) && !store.status(item).blocked && [item.acquired ? null : item.acquisitionEnd, item.registrationEnd && !item.registered ? item.registrationEnd : null, item.deadline].some(function (value) { const delta = store.time(value) - now; return delta > 0 && delta <= 72 * 3600000; }); }
+  function isUrgent(item) { return store.isUrgent(item); }
   function moduleShell() {
     const target = one("#opportunityModule");
     if (!target || target.dataset.ready === "true") return;
@@ -975,9 +976,9 @@
   }
   function renderDetail() {
     const returnTo = opportunityReturnUrl(), backUrl = returnTo || "opportunities.html";
-    const backLabel = returnTo.includes("tab=runs") ? "返回采集记录" : "返回机会列表";
+    const backLabel = returnTo === "dashboard.html" ? "返回首页" : returnTo.includes("tab=runs") ? "返回采集记录" : "返回机会列表";
     const back = link(backLabel, backUrl, "ghost-btn", "back");
-    one(".page-breadcrumb").innerHTML = '<a href="' + esc(backUrl) + '">招标机会</a><span>/</span><strong>机会详情</strong>';
+    one(".page-breadcrumb").innerHTML = (returnTo === "dashboard.html" ? '<a href="dashboard.html">首页</a><span>/</span><a href="opportunities.html">招标机会</a>' : '<a href="' + esc(backUrl) + '">招标机会</a>') + '<span>/</span><strong>机会详情</strong>';
     const item = store.find(detailId);
     if (!item) { if (store.restoredDefaults && window.location && window.location.replace) { window.location.replace(backUrl); return; } one("#opportunityDetail").innerHTML = empty("机会不存在", "该记录不可用，请返回继续查看。") + back; return; }
     const assessment = store.assessment(item), saved = assessment.snapshot, score = assessment.result, timing = store.status(item);

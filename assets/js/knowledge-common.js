@@ -167,6 +167,9 @@
     info: validityInfo
   };
 
+  // Share validity rules with Home without creating knowledge-page layers or events.
+  if (document.body.getAttribute("data-page") === "dashboard") return;
+
   function escapeHtml(value) {
     return String(value == null ? "" : value).replace(/[&<>"']/g, function (char) {
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char];
